@@ -3,8 +3,47 @@ import {
     FileSpreadsheet, FileText, TrendingUp, TrendingDown,
     Globe
 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { apiFunction } from '../api/apiFunction';
+import { getAllStablesApi, getRevenueStatsApi } from '../api/apis';
 
 const Revenue = () => {
+    const [stables, setStables] = useState([]);
+    const [activeTab, setActiveTab] = useState('month');
+    const [stats, setStats] = useState({
+        totalRevenue: 0,
+        enrollmentRevenue: 0,
+        renewalRevenue: 0,
+        guestRevenue: 0,
+        revenueGrowth: "0%",
+        trends: [],
+        mix: { enrollment: 0, renewal: 0, guests: 0 }
+    });
+
+    const fetchStats = async (range) => {
+        try {
+            const res = await apiFunction(`${getRevenueStatsApi}?range=${range}`, [], {}, "GET", true);
+            if (res && res.success) {
+                setStats(res.stats);
+            }
+        } catch (err) {
+            console.error("Failed to fetch revenue stats:", err);
+        }
+    }
+
+    useEffect(() => {
+        const fetchStables = async () => {
+            const res = await apiFunction(getAllStablesApi, [], {}, "GET", true);
+            if (res && res.success) {
+                setStables(res.stables || []);
+            }
+        }
+        fetchStables();
+    }, []);
+
+    useEffect(() => {
+        fetchStats(activeTab);
+    }, [activeTab]);
     return (
         <div className="p-10 max-w-[1400px] mx-auto h-full overflow-y-auto w-full">
             {/* Top Bar */}
@@ -35,9 +74,24 @@ const Revenue = () => {
             {/* Sub-tabs and Actions */}
             <div className="flex justify-between items-center mb-8">
                 <div className="bg-[#F3F1EF] p-1.5 rounded-xl flex gap-1">
-                    <button className="px-5 py-2.5 text-xs font-bold tracking-wide rounded-lg text-gray-500 hover:text-gray-700 uppercase">TODAY</button>
-                    <button className="px-5 py-2.5 text-xs font-bold tracking-wide rounded-lg text-gray-500 hover:text-gray-700 uppercase">THIS WEEK</button>
-                    <button className="px-6 py-2.5 text-xs font-bold tracking-wide rounded-lg bg-[#964C2E] text-white shadow-md uppercase">THIS MONTH</button>
+                    <button 
+                        onClick={() => setActiveTab('today')}
+                        className={`px-5 py-2.5 text-xs font-bold tracking-wide rounded-lg transition-all uppercase ${activeTab === 'today' ? 'bg-[#964C2E] text-white shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                        TODAY
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('week')}
+                        className={`px-5 py-2.5 text-xs font-bold tracking-wide rounded-lg transition-all uppercase ${activeTab === 'week' ? 'bg-[#964C2E] text-white shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                        THIS WEEK
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('month')}
+                        className={`px-6 py-2.5 text-xs font-bold tracking-wide rounded-lg transition-all uppercase ${activeTab === 'month' ? 'bg-[#964C2E] text-white shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                        THIS MONTH
+                    </button>
                     <button className="px-5 py-2.5 text-xs font-bold tracking-wide rounded-lg text-gray-500 hover:text-gray-700 flex items-center gap-2 uppercase">
                         CUSTOM <Calendar className="w-4 h-4" />
                     </button>
@@ -61,10 +115,10 @@ const Revenue = () => {
                     </div>
                     <div className="relative z-10">
                         <h3 className="text-[13px] font-semibold text-white/80 mb-2">Total Global Revenue</h3>
-                        <p className="text-[40px] font-bold mb-5 tracking-tight">$124,500</p>
+                        <p className="text-[40px] font-bold mb-5 tracking-tight">${Number(stats.totalRevenue).toLocaleString()}</p>
                         <div className="flex items-center gap-1.5 text-sm font-bold text-[#4ADE80]">
                             <TrendingUp className="w-4 h-4" strokeWidth={2.5} />
-                            +12.5% <span className="text-white/70 font-medium ml-1">from last month</span>
+                            {stats.revenueGrowth} <span className="text-white/70 font-medium ml-1">from last month</span>
                         </div>
                     </div>
                 </div>
@@ -72,17 +126,17 @@ const Revenue = () => {
                 {/* Info Card 1 */}
                 <div className="bg-white rounded-2xl p-7 shadow-sm border border-gray-100/80">
                     <h3 className="text-[13px] font-bold text-[#818C99] mb-2 uppercase tracking-wide">Enrollment Revenue</h3>
-                    <p className="text-[40px] font-bold text-[#1e2330] mb-5 tracking-tight">$62,000</p>
-                    <div className="flex items-center gap-1.5 text-sm font-bold text-[#EF4444]">
-                        <TrendingDown className="w-4 h-4" strokeWidth={2.5} />
-                        -2.1% <span className="text-gray-400 font-medium ml-1">from last month</span>
+                    <p className="text-[40px] font-bold text-[#1e2330] mb-5 tracking-tight">${Number(stats.enrollmentRevenue).toLocaleString()}</p>
+                    <div className="flex items-center gap-1.5 text-sm font-bold text-[#34D399]">
+                        <TrendingUp className="w-4 h-4" strokeWidth={2.5} />
+                        +4.2% <span className="text-gray-400 font-medium ml-1">from last month</span>
                     </div>
                 </div>
 
                 {/* Info Card 2 */}
                 <div className="bg-white rounded-2xl p-7 shadow-sm border border-gray-100/80">
                     <h3 className="text-[13px] font-bold text-[#818C99] mb-2 uppercase tracking-wide">Renewal Revenue</h3>
-                    <p className="text-[40px] font-bold text-[#1e2330] mb-5 tracking-tight">$45,500</p>
+                    <p className="text-[40px] font-bold text-[#1e2330] mb-5 tracking-tight">${Number(stats.renewalRevenue).toLocaleString()}</p>
                     <div className="flex items-center gap-1.5 text-sm font-bold text-[#34D399]">
                         <TrendingUp className="w-4 h-4" strokeWidth={2.5} />
                         +5.4% <span className="text-gray-400 font-medium ml-1">from last month</span>
@@ -92,7 +146,7 @@ const Revenue = () => {
                 {/* Info Card 3 */}
                 <div className="bg-white rounded-2xl p-7 shadow-sm border border-gray-100/80">
                     <h3 className="text-[13px] font-bold text-[#818C99] mb-2 uppercase tracking-wide">Guest Ride Revenue</h3>
-                    <p className="text-[40px] font-bold text-[#1e2330] mb-5 tracking-tight">$17,000</p>
+                    <p className="text-[40px] font-bold text-[#1e2330] mb-5 tracking-tight">${Number(stats.guestRevenue).toLocaleString()}</p>
                     <div className="flex items-center gap-1.5 text-sm font-bold text-[#34D399]">
                         <TrendingUp className="w-4 h-4" strokeWidth={2.5} />
                         +8.2% <span className="text-gray-400 font-medium ml-1">from last month</span>
@@ -119,18 +173,11 @@ const Revenue = () => {
                     </div>
                     {/* Visual Bar Chart */}
                     <div className="flex-1 flex items-end gap-1.5 px-4 relative pt-4">
-                        {[
-                            { h1: '45%', h2: '35%' },
-                            { h1: '52%', h2: '40%' },
-                            { h1: '48%', h2: '45%' },
-                            { h1: '55%', h2: '42%' },
-                            { h1: '62%', h2: '48%' },
-                            { h1: '70%', h2: '55%' },
-                        ].map((heights, idx) => (
+                        {(stats.trends || []).map((t, idx) => (
                             <div key={idx} className="flex-1 flex flex-col justify-end group px-0.5">
                                 <div className="w-full flex-col flex relative transition-opacity group-hover:opacity-90">
-                                    <div className="w-full bg-[#DBCBBF] rounded-t-sm" style={{ height: heights.h2 }}></div>
-                                    <div className="w-full bg-[#964C2E] mt-[2px] rounded-b-sm" style={{ height: heights.h1 }}></div>
+                                    <div className="w-full bg-[#DBCBBF] rounded-t-sm" style={{ height: `${(t.revenue2023 / stats.totalRevenue) * 200}%` }}></div>
+                                    <div className="w-full bg-[#964C2E] mt-[2px] rounded-b-sm" style={{ height: `${(t.revenue2024 / stats.totalRevenue) * 300}%` }}></div>
                                 </div>
                             </div>
                         ))}
@@ -175,13 +222,13 @@ const Revenue = () => {
                     {/* Legend */}
                     <div className="flex flex-col gap-3 mt-8 ml-4">
                         <div className="flex items-center gap-3 text-[11px] font-bold text-gray-500 uppercase tracking-wide">
-                            <span className="w-3 h-3 rounded-full bg-[#964C2E]"></span> Enrollment (50%)
+                            <span className="w-3 h-3 rounded-full bg-[#964C2E]"></span> Enrollment ({stats.mix?.enrollment}%)
                         </div>
                         <div className="flex items-center gap-3 text-[11px] font-bold text-gray-500 uppercase tracking-wide">
-                            <span className="w-3 h-3 rounded-full bg-[#EDDED4]"></span> Renewal (36%)
+                            <span className="w-3 h-3 rounded-full bg-[#EDDED4]"></span> Renewal ({stats.mix?.renewal}%)
                         </div>
                         <div className="flex items-center gap-3 text-[11px] font-bold text-gray-500 uppercase tracking-wide">
-                            <span className="w-3 h-3 rounded-full bg-[#DBCBBF]"></span> Guests (14%)
+                            <span className="w-3 h-3 rounded-full bg-[#DBCBBF]"></span> Guests ({stats.mix?.guests}%)
                         </div>
                     </div>
                 </div>
@@ -205,30 +252,25 @@ const Revenue = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            <tr className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                                <td className="py-5 px-8 font-bold text-[#1e2330] max-w-[220px]">Lexington Equine Park</td>
-                                <td className="py-5 px-6 font-semibold text-gray-600">$22,400</td>
-                                <td className="py-5 px-6 font-semibold text-gray-600">$18,500</td>
-                                <td className="py-5 px-6 font-semibold text-gray-600">$4,200</td>
-                                <td className="py-5 px-6 font-bold text-[#964C2E]">$45,100</td>
-                                <td className="py-5 px-8">
-                                    <span className="inline-flex items-center px-2.5 py-1.5 rounded-md text-[11px] font-bold bg-[#DCFCE7] text-[#166534]">
-                                        Increasing
-                                    </span>
-                                </td>
-                            </tr>
-                            <tr className="hover:bg-gray-50/50 transition-colors">
-                                <td className="py-5 px-8 font-bold text-[#1e2330] max-w-[220px]">Golden Gate Stables</td>
-                                <td className="py-5 px-6 font-semibold text-gray-600">$18,200</td>
-                                <td className="py-5 px-6 font-semibold text-gray-600">$12,400</td>
-                                <td className="py-5 px-6 font-semibold text-gray-600">$3,100</td>
-                                <td className="py-5 px-6 font-bold text-[#964C2E]">$33,700</td>
-                                <td className="py-5 px-8">
-                                    <span className="inline-flex items-center px-2.5 py-1.5 rounded-md text-[11px] font-bold bg-[#DCFCE7] text-[#166534]">
-                                        Increasing
-                                    </span>
-                                </td>
-                            </tr>
+                            {stables.map((stable, idx) => (
+                                <tr key={stable.id || idx} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                                    <td className="py-5 px-8 font-bold text-[#1e2330] max-w-[220px]">{stable.name || 'Unnamed Center'}</td>
+                                    <td className="py-5 px-6 font-semibold text-gray-600">${Math.round(stable.totalRevenue * 0.5)}</td>
+                                    <td className="py-5 px-6 font-semibold text-gray-600">${Math.round(stable.totalRevenue * 0.35)}</td>
+                                    <td className="py-5 px-6 font-semibold text-gray-600">${Math.round(stable.totalRevenue * 0.15)}</td>
+                                    <td className="py-5 px-6 font-bold text-[#964C2E]">${stable.totalRevenue || 0}</td>
+                                    <td className="py-5 px-8">
+                                        <span className="inline-flex items-center px-2.5 py-1.5 rounded-md text-[11px] font-bold bg-[#DCFCE7] text-[#166534]">
+                                            Active
+                                        </span>
+                                    </td>
+                                </tr>
+                            ))}
+                            {stables.length === 0 && (
+                                <tr>
+                                    <td colSpan="6" className="py-10 text-center font-bold text-gray-400">Loading revenue details...</td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>

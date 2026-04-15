@@ -1,11 +1,31 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, Switch } from 'react-native';
 import { ArrowLeft, User, Bell, Lock, CircleHelp, LogOut, ChevronRight } from 'lucide-react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, CommonActions } from '@react-navigation/native';
+import { useDispatch } from 'react-redux';
+import { resetData } from '../redux/getDataSlice';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function SettingsScreen() {
   const navigation = useNavigation<any>();
+  const dispatch = useDispatch();
   const [notificationsEnabled, setNotificationsEnabled] = React.useState(true);
+
+  const handleLogout = async () => {
+    try {
+      await AsyncStorage.removeItem('token');
+      await AsyncStorage.removeItem('user');
+      dispatch(resetData());
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: 'Login' }],
+        })
+      );
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
 
   const renderSettingItem = (icon: any, title: string, hasAction: boolean = true, rightComponent: React.ReactNode = null, onPress?: () => void) => {
     const IconComponent = icon;
@@ -63,7 +83,7 @@ export default function SettingsScreen() {
           <Text className="text-[#8C4A28] font-bold text-sm tracking-widest uppercase mb-4 ml-2">Support & About</Text>
           <View className="bg-white rounded-3xl px-4 py-2 shadow-sm border border-[#e2e8f0]">
             {renderSettingItem(CircleHelp, 'Help Center')}
-            <TouchableOpacity className="flex-row items-center justify-between py-4">
+            <TouchableOpacity onPress={handleLogout} className="flex-row items-center justify-between py-4">
               <View className="flex-row items-center">
                 <View className="w-10 h-10 bg-[#fceddf] rounded-full items-center justify-center mr-4">
                   <LogOut color="#ef4444" size={20} />

@@ -1,72 +1,160 @@
-import React, { useState } from 'react';
-import { View, Text,  ScrollView, TouchableOpacity, Image, TextInput } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, ActivityIndicator, Alert } from 'react-native';
 import { ArrowLeft, Calendar, MapPin, Clock, CheckCircle2, XCircle, AlertTriangle, CalendarOff, CalendarRange, ChevronLeft, ChevronRight } from 'lucide-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiFunction } from '../api/apiFunction';
+import { getSessionsByTrainerApi, updateSessionApi } from '../api/api';
 
 export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
-  const [attendance, setAttendance] = useState<Record<string, 'present' | 'noshow' | null>>({
-    '1': 'present',
-    '2': 'noshow',
-    '3': 'present',
-  });
-
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("Attendance");
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [attendance, setAttendance] = useState<Record<string, 'present' | 'noshow' | null>>({});
+  const [remarks, setRemarks] = useState("");
+  const [userId, setUserId] = useState<string | null>(null);
+  const [trainerData, setTrainerData] = useState<any>(null);
+  const [showLeaveForm, setShowLeaveForm] = useState(false);
+  const [leaveForm, setLeaveForm] = useState({
+    type: 'Annual Vacation',
+    startDate: '',
+    endDate: '',
+    reason: ''
+  });
+  const [requesting, setRequesting] = useState(false);
 
-  const riders = [
-    {
-      id: '1',
-      name: 'Alex Rivers',
-      horse: 'Starlight',
-      image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop',
-    },
-    {
-      id: '2',
-      name: 'Jamie Smith',
-      horse: 'Thunder',
-      image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=200&auto=format&fit=crop',
-    },
-    {
-      id: '3',
-      name: 'Sarah Chen',
-      horse: 'Eclipse',
-      image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=200&auto=format&fit=crop',
-    },
-  ];
+  useEffect(() => {
+    fetchSessions();
+    fetchTrainerData();
+  }, []);
 
-  const sessions = [
-    {
-      id: '1',
-      title: 'Advanced Show Jumping',
-      level: 'ADVANCED',
-      time: 'Today, 10:00 AM - 11:30 AM',
-      location: 'Main Arena - Zone B',
-      image: 'https://images.unsplash.com/photo-1594911874499-28c0c4a4f896?q=80&w=600&auto=format&fit=crop',
-      riders: riders,
-    },
-    {
-      id: '2',
-      title: 'Dressage Basics',
-      level: 'BEGINNER',
-      time: 'Today, 02:00 PM - 03:00 PM',
-      location: 'Training Paddock',
-      image: 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?q=80&w=600&auto=format&fit=crop',
-      riders: [riders[0], riders[2]],
-    },
-    {
-      id: '3',
-      title: 'Trail Ride',
-      level: 'INTERMEDIATE',
-      time: 'Today, 04:00 PM - 05:30 PM',
-      location: 'Forest Trail',
-      image: 'https://images.unsplash.com/photo-1553026131-ab106511fa48?q=80&w=600&auto=format&fit=crop',
-      riders: [riders[1]],
+  const fetchTrainerData = async () => {
+    try {
+      const userData = await AsyncStorage.getItem('user');
+      if (userData) {
+        const user = JSON.parse(userData);
+        setUserId(user.id);
+        const res = await apiFunction(`/users`, [], {}, "GET", true);
+        if (res && res.success) {
+          setTrainerData(res.user);
+        }
+      }
+    } catch (error) {
+      console.error("Fetch trainer error:", error);
     }
-  ];
+  };
 
-  const [selectedSessionId, setSelectedSessionId] = useState(sessions[0].id);
-  const currentSession = sessions.find(s => s.id === selectedSessionId) || sessions[0];
+  const fetchSessions = async () => {
+    setLoading(true);
+    try {
+      const userData = await AsyncStorage.getItem('user');
+      if (!userData) {
+        Alert.alert("Error", "User details not found. Please log in again.");
+        return;
+      }
+      const user = JSON.parse(userData);
+      const trainerId = user.trainerId;
+
+      if (!trainerId) {
+        Alert.alert("Error", "Trainer profile not linked.");
+        return;
+      }
+
+      const res = await apiFunction(getSessionsByTrainerApi(trainerId), [], {}, "GET", true);
+      if (res && res.success) {
+        setSessions(res.sessions || []);
+        if (res.sessions.length > 0) {
+          setSelectedSessionId(res.sessions[0].id);
+          // Initialize attendance from session participants if they exist
+          const initialAttendance: Record<string, any> = {};
+          res.sessions[0].participants?.forEach((p: any) => {
+            initialAttendance[p.riderId] = p.status;
+          });
+          setAttendance(initialAttendance);
+          setRemarks(res.sessions[0].note || "");
+        }
+      }
+    } catch (error) {
+      console.error("Fetch sessions error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const currentSession = sessions.find(s => s.id === selectedSessionId);
 
   const handleAttendance = (id: string, status: 'present' | 'noshow') => {
     setAttendance(prev => ({ ...prev, [id]: status }));
+  };
+
+  const handleSaveSession = async () => {
+    if (!selectedSessionId || !currentSession) return;
+
+    setSaving(true);
+    try {
+      const updatedParticipants = currentSession.participants.map((p: any) => ({
+        ...p,
+        status: attendance[p.riderId] || p.status
+      }));
+
+      const res = await apiFunction(updateSessionApi, [selectedSessionId], { 
+        data: { 
+          participants: updatedParticipants,
+          note: remarks 
+        } 
+      }, "PUT", true);
+
+      if (res && res.success) {
+        Alert.alert("Success", "Session attendance saved successfully.");
+        fetchSessions();
+      } else {
+        Alert.alert("Error", res?.message || "Failed to save session.");
+      }
+    } catch (error) {
+      Alert.alert("Error", "An unexpected error occurred.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRequestLeave = async () => {
+    if (!leaveForm.startDate || !leaveForm.endDate || !leaveForm.reason) {
+      Alert.alert("Error", "Please fill in all fields.");
+      return;
+    }
+
+    if (new Date(leaveForm.startDate) > new Date(leaveForm.endDate)) {
+      Alert.alert("Error", "Start date cannot be after end date.");
+      return;
+    }
+
+    setRequesting(true);
+    try {
+      const res = await apiFunction(`/users/${userId}`, [], {
+        data: {
+          newLeaveRequest: leaveForm
+        }
+      }, "PUT", true);
+
+      if (res && res.success) {
+        Alert.alert("Success", "Leave request submitted successfully.");
+        setShowLeaveForm(false);
+        setLeaveForm({
+          type: 'Annual Vacation',
+          startDate: '',
+          endDate: '',
+          reason: ''
+        });
+        fetchTrainerData();
+      } else {
+        Alert.alert("Error", res?.message || "Failed to submit request.");
+      }
+    } catch (error) {
+      Alert.alert("Error", "An unexpected error occurred.");
+    } finally {
+      setRequesting(false);
+    }
   };
 
   return (
@@ -107,7 +195,18 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
          </TouchableOpacity>
       </View>
 
-      {activeTab === "Attendance" && <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+      {loading ? (
+        <View className="flex-1 justify-center items-center">
+          <ActivityIndicator size="large" color="#8C4A28" />
+          <Text className="mt-4 text-[#8C4A28] font-bold">Loading sessions...</Text>
+        </View>
+      ) : sessions.length === 0 ? (
+        <View className="flex-1 justify-center items-center p-10">
+          <CalendarOff size={64} color="#94a3b8" />
+          <Text className="mt-6 text-[#1a202c] text-xl font-bold text-center">No Sessions Scheduled</Text>
+          <Text className="mt-2 text-[#64748b] text-center">You don't have any assigned riding sessions for today.</Text>
+        </View>
+      ) : activeTab === "Attendance" && <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         {/* Session Selector */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-6">
            {sessions.map(session => (
@@ -119,7 +218,7 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
                  }`}
               >
                  <Text className={`font-bold ${selectedSessionId === session.id ? 'text-white' : 'text-[#1a202c]'}`}>
-                    {session.time.split(',')[1].split('-')[0].trim()}
+                    {session.timing ? (session.timing.includes(',') ? session.timing.split(',')[1].split('-')[0].trim() : session.timing.split('-')[0].trim()) : 'N/A'}
                  </Text>
                  <Text className={`text-xs mt-1 ${selectedSessionId === session.id ? 'text-[#e6d0b3]' : 'text-[#64748b]'}`}>
                     {session.title}
@@ -132,27 +231,27 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
         <View className="bg-white rounded-3xl p-4 shadow-sm border border-[#e2e8f0] mb-6">
            <View className="flex-row items-center mb-3">
               <View className="bg-[#facc15]/20 px-2 py-1 rounded">
-                 <Text className="text-[#8C4A28] text-[10px] font-bold tracking-widest">{currentSession.level}</Text>
+                 <Text className="text-[#8C4A28] text-[10px] font-bold tracking-widest uppercase">{currentSession?.level || 'STANDARD'}</Text>
               </View>
               <Text className="text-[#94a3b8] text-[10px] font-bold ml-2">SESSION DETAILS</Text>
            </View>
-           <Text className="text-[#1a202c] text-xl font-bold mb-3">{currentSession.title}</Text>
+           <Text className="text-[#1a202c] text-xl font-bold mb-3">{currentSession?.title}</Text>
            
            <View className="flex-row items-center mb-2">
               <View className="w-5 items-center mr-1">
                  <Clock color="#64748b" size={14} />
               </View>
-              <Text className="text-[#64748b] text-sm">{currentSession.time}</Text>
+              <Text className="text-[#64748b] text-sm">{currentSession?.timing} • {currentSession?.date}</Text>
            </View>
            <View className="flex-row items-center mb-4">
               <View className="w-5 items-center mr-1">
                  <MapPin color="#64748b" size={14} />
               </View>
-              <Text className="text-[#64748b] text-sm">{currentSession.location}</Text>
+              <Text className="text-[#64748b] text-sm">{currentSession?.location}</Text>
            </View>
 
            <Image 
-             source={{ uri: currentSession.image }} 
+             source={{ uri: currentSession?.image || 'https://images.unsplash.com/photo-1594911874499-28c0c4a4f896?q=80&w=600&auto=format&fit=crop' }} 
              className="w-full h-40 rounded-xl"
            />
         </View>
@@ -160,42 +259,42 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
         {/* Rider List */}
         <View className="flex-row justify-between items-center mb-4">
            <Text className="text-lg font-bold text-[#1a202c]">Rider List</Text>
-           <Text className="text-[#64748b] text-sm font-semibold">{currentSession.riders.length} Registered</Text>
+           <Text className="text-[#64748b] text-sm font-semibold">{currentSession?.participants?.length || 0} Registered</Text>
         </View>
 
         <View className="bg-white rounded-3xl p-4 shadow-sm border border-[#e2e8f0] mb-8">
-           {currentSession.riders.map((rider, index) => (
-             <View key={rider.id} className={`flex-row items-center py-4 ${index !== currentSession.riders.length - 1 ? 'border-b border-[#e2e8f0]' : ''}`}>
-               <Image source={{ uri: rider.image }} className="w-12 h-12 rounded-full mr-3" />
+           {currentSession?.participants?.map((rider: any, index: number) => (
+             <View key={rider.riderId} className={`flex-row items-center py-4 ${index !== currentSession.participants.length - 1 ? 'border-b border-[#e2e8f0]' : ''}`}>
+               <Image source={{ uri: rider.image || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop' }} className="w-12 h-12 rounded-full mr-3" />
                <View className="flex-1">
                   <Text className="text-[#1a202c] font-bold text-[15px] mb-0.5">{rider.name}</Text>
                   <Text className="text-[#94a3b8] text-xs font-semibold">
-                    Horse: <Text className="text-[#8C4A28]">{rider.horse}</Text>
+                    Role: <Text className="text-[#8C4A28]">{rider.type || 'Rider'}</Text>
                   </Text>
                </View>
                <View className="flex-row gap-2">
                  <TouchableOpacity 
                     className={`px-4 py-2 rounded-lg items-center justify-center border ${
-                      attendance[rider.id] === 'present' 
+                      attendance[rider.riderId] === 'present' 
                         ? 'bg-[#8C4A28] border-[#8C4A28]' 
                         : 'bg-[#f8fafc] border-[#e2e8f0]'
                     }`}
-                    onPress={() => handleAttendance(rider.id, 'present')}
+                    onPress={() => handleAttendance(rider.riderId, 'present')}
                  >
                     <Text className={`text-xs font-bold ${
-                      attendance[rider.id] === 'present' ? 'text-white' : 'text-[#64748b]'
+                      attendance[rider.riderId] === 'present' ? 'text-white' : 'text-[#64748b]'
                     }`}>Present</Text>
                  </TouchableOpacity>
                  <TouchableOpacity 
                     className={`px-4 py-2 rounded-lg items-center justify-center border ${
-                      attendance[rider.id] === 'noshow' 
+                      attendance[rider.riderId] === 'noshow' 
                         ? 'bg-red-500 border-red-500' 
                         : 'bg-[#f8fafc] border-[#e2e8f0]'
                     }`}
-                    onPress={() => handleAttendance(rider.id, 'noshow')}
+                    onPress={() => handleAttendance(rider.riderId, 'noshow')}
                  >
                     <Text className={`text-xs font-bold ${
-                      attendance[rider.id] === 'noshow' ? 'text-white' : 'text-[#64748b]'
+                      attendance[rider.riderId] === 'noshow' ? 'text-white' : 'text-[#64748b]'
                     }`}>No-Show</Text>
                  </TouchableOpacity>
                </View>
@@ -214,26 +313,32 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
                  placeholderTextColor="#94a3b8"
                  multiline
                  textAlignVertical="top"
+                 value={remarks}
+                 onChangeText={setRemarks}
               />
            </View>
 
            <View className="flex-row flex-wrap mb-8">
-              <View className="bg-white border border-[#e2e8f0] rounded-full px-4 py-2 mr-2 mb-2">
+              <TouchableOpacity onPress={() => setRemarks("Good Progress")} className="bg-white border border-[#e2e8f0] rounded-full px-4 py-2 mr-2 mb-2">
                  <Text className="text-[#64748b] text-xs font-semibold">Good Progress</Text>
-              </View>
-              <View className="bg-white border border-[#e2e8f0] rounded-full px-4 py-2 mr-2 mb-2">
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setRemarks("Needs Drill Practice")} className="bg-white border border-[#e2e8f0] rounded-full px-4 py-2 mr-2 mb-2">
                  <Text className="text-[#64748b] text-xs font-semibold">Needs Drill Practice</Text>
-              </View>
-              <View className="bg-white border border-[#e2e8f0] rounded-full px-4 py-2 mb-2">
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setRemarks("Equipment Check Required")} className="bg-white border border-[#e2e8f0] rounded-full px-4 py-2 mb-2">
                  <Text className="text-[#64748b] text-xs font-semibold">Equipment Check Required</Text>
-              </View>
+              </TouchableOpacity>
            </View>
         </View>
 
         {/* Action Button */}
-        <TouchableOpacity className="w-full bg-[#8C4A28] py-4 rounded-xl items-center flex-row justify-center mb-3">
-           <CheckCircle2 color="white" size={20} className="mr-2" />
-           <Text className="text-white font-bold text-lg">Complete & Save Session</Text>
+        <TouchableOpacity 
+          className={`w-full py-4 rounded-xl items-center flex-row justify-center mb-3 ${saving ? 'bg-[#94a3b8]' : 'bg-[#8C4A28]'}`}
+          onPress={handleSaveSession}
+          disabled={saving}
+        >
+           {saving ? <ActivityIndicator size="small" color="white" /> : <CheckCircle2 color="white" size={20} className="mr-2" />}
+           <Text className="text-white font-bold text-lg ml-2">{saving ? 'Saving...' : 'Complete & Save Session'}</Text>
         </TouchableOpacity>
         
         <Text className="text-center text-[#94a3b8] text-xs font-semibold mb-6">
@@ -245,49 +350,125 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
 
       {activeTab === "Apply Leave" && 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-          <TouchableOpacity className="bg-[#8C4A28] flex-row justify-center items-center py-4 rounded-xl mb-6 shadow-sm">
-              <CalendarRange color="white" size={20} className="mr-2" />
-              <Text className="text-white font-bold text-lg">Request New Leave</Text>
-          </TouchableOpacity>
+          {!showLeaveForm ? (
+            <>
+              <TouchableOpacity 
+                onPress={() => setShowLeaveForm(true)}
+                className="bg-[#8C4A28] flex-row justify-center items-center py-4 rounded-xl mb-6 shadow-sm"
+              >
+                  <CalendarRange color="white" size={20} className="mr-2" />
+                  <Text className="text-white font-bold text-lg">Request New Leave</Text>
+              </TouchableOpacity>
 
-          <Text className="text-lg font-bold text-[#1a202c] mb-4">Pending Requests</Text>
-          <View className="bg-white rounded-3xl p-5 shadow-sm border border-[#e2e8f0] mb-8 mt-1">
-              <View className="flex-row justify-between items-start mb-3">
-                 <View>
-                    <Text className="text-[#1a202c] font-bold text-lg mb-1">Annual Vacation</Text>
-                    <Text className="text-[#64748b] text-xs font-semibold">Nov 20, 2026 - Nov 25, 2026</Text>
-                 </View>
-                 <View className="bg-[#fef08a]/40 px-3 py-1.5 rounded-lg border border-[#fef08a]">
-                    <Text className="text-[#ca8a04] text-[10px] font-bold tracking-wider">PENDING</Text>
-                 </View>
-              </View>
-              <Text className="text-[#94a3b8] text-xs">Submitted on Oct 15, 2026</Text>
-          </View>
+              <Text className="text-lg font-bold text-[#1a202c] mb-4">Pending Requests</Text>
+              {trainerData?.leaveRequests?.filter((r: any) => r.status === 'PENDING').length > 0 ? (
+                trainerData.leaveRequests.filter((r: any) => r.status === 'PENDING').map((r: any) => (
+                  <View key={r.id} className="bg-white rounded-3xl p-5 shadow-sm border border-[#e2e8f0] mb-4">
+                    <View className="flex-row justify-between items-start mb-3">
+                       <View>
+                          <Text className="text-[#1a202c] font-bold text-lg mb-1">{r.type}</Text>
+                          <Text className="text-[#64748b] text-xs font-semibold">{r.startDate} - {r.endDate}</Text>
+                       </View>
+                       <View className="bg-[#fef08a]/40 px-3 py-1.5 rounded-lg border border-[#fef08a]">
+                          <Text className="text-[#ca8a04] text-[10px] font-bold tracking-wider">PENDING</Text>
+                       </View>
+                    </View>
+                    <Text className="text-[#64748b] text-sm mb-2">{r.reason}</Text>
+                    <Text className="text-[#94a3b8] text-[10px]">Submitted on {new Date(r.submittedAt).toLocaleDateString()}</Text>
+                  </View>
+                ))
+              ) : (
+                <View className="bg-white/50 border border-dashed border-[#e2e8f0] rounded-3xl p-8 items-center justify-center mb-8">
+                  <Text className="text-[#94a3b8] font-bold">No pending requests</Text>
+                </View>
+              )}
 
-          <Text className="text-lg font-bold text-[#1a202c] mb-4">Past Leaves</Text>
-          <View className="bg-white rounded-3xl p-5 shadow-sm border border-[#e2e8f0] mb-4 mt-1">
-              <View className="flex-row justify-between items-start mb-2">
-                 <View>
-                    <Text className="text-[#1a202c] font-bold text-lg mb-1">Medical Leave</Text>
-                    <Text className="text-[#64748b] text-xs font-semibold">Sep 10, 2026</Text>
-                 </View>
-                 <View className="bg-[#f0fff4] px-3 py-1.5 rounded-lg border border-[#c6f6d5]">
-                    <Text className="text-[#16a34a] text-[10px] font-bold tracking-wider">APPROVED</Text>
-                 </View>
+              <Text className="text-lg font-bold text-[#1a202c] mb-4">Leave History</Text>
+              {trainerData?.leaveRequests?.filter((r: any) => r.status !== 'PENDING').length > 0 ? (
+                trainerData.leaveRequests.filter((r: any) => r.status !== 'PENDING').map((r: any) => (
+                  <View key={r.id} className="bg-white rounded-3xl p-5 shadow-sm border border-[#e2e8f0] mb-4">
+                    <View className="flex-row justify-between items-start mb-2">
+                       <View>
+                          <Text className="text-[#1a202c] font-bold text-lg mb-1">{r.type}</Text>
+                          <Text className="text-[#64748b] text-xs font-semibold">{r.startDate} - {r.endDate}</Text>
+                       </View>
+                       <View className={`px-3 py-1.5 rounded-lg border ${r.status === 'APPROVED' ? 'bg-[#f0fff4] border-[#c6f6d5]' : 'bg-red-50 border-red-100'}`}>
+                          <Text className={`text-[10px] font-bold tracking-wider ${r.status === 'APPROVED' ? 'text-[#16a34a]' : 'text-red-600'}`}>{r.status}</Text>
+                       </View>
+                    </View>
+                  </View>
+                ))
+              ) : (
+                <View className="bg-white/50 border border-dashed border-[#e2e8f0] rounded-3xl p-8 items-center justify-center">
+                  <Text className="text-[#94a3b8] font-bold">No past leaves recorded</Text>
+                </View>
+              )}
+            </>
+          ) : (
+            <View className="bg-white rounded-3xl p-6 shadow-md border border-[#e2e8f0]">
+              <View className="flex-row items-center justify-between mb-8">
+                <Text className="text-xl font-bold text-[#1a202c]">Request Leave</Text>
+                <TouchableOpacity onPress={() => setShowLeaveForm(false)}>
+                  <XCircle color="#94a3b8" size={24} />
+                </TouchableOpacity>
               </View>
-          </View>
-          
-          <View className="bg-white rounded-3xl p-5 shadow-sm border border-[#e2e8f0]">
-              <View className="flex-row justify-between items-start mb-2">
-                 <View>
-                    <Text className="text-[#1a202c] font-bold text-lg mb-1">Personal Day</Text>
-                    <Text className="text-[#64748b] text-xs font-semibold">Aug 05, 2026</Text>
-                 </View>
-                 <View className="bg-[#f0fff4] px-3 py-1.5 rounded-lg border border-[#c6f6d5]">
-                    <Text className="text-[#16a34a] text-[10px] font-bold tracking-wider">APPROVED</Text>
-                 </View>
+
+              <View className="mb-6">
+                <Text className="text-[#94a3b8] text-[10px] font-bold tracking-widest uppercase mb-2 ml-1">Leave Type</Text>
+                <View className="bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl overflow-hidden">
+                  <TextInput 
+                    value={leaveForm.type}
+                    onChangeText={t => setLeaveForm({...leaveForm, type: t})}
+                    placeholder="e.g. Annual Vacation, Medical"
+                    className="px-4 py-4 text-[#1a202c] font-bold"
+                  />
+                </View>
               </View>
-          </View>
+
+              <View className="flex-row gap-4 mb-6">
+                <View className="flex-1">
+                  <Text className="text-[#94a3b8] text-[10px] font-bold tracking-widest uppercase mb-2 ml-1">Start Date</Text>
+                  <TextInput 
+                    value={leaveForm.startDate}
+                    onChangeText={t => setLeaveForm({...leaveForm, startDate: t})}
+                    placeholder="YYYY-MM-DD"
+                    className="bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl px-4 py-4 text-[#1a202c] font-bold"
+                  />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-[#94a3b8] text-[10px] font-bold tracking-widest uppercase mb-2 ml-1">End Date</Text>
+                  <TextInput 
+                    value={leaveForm.endDate}
+                    onChangeText={t => setLeaveForm({...leaveForm, endDate: t})}
+                    placeholder="YYYY-MM-DD"
+                    className="bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl px-4 py-4 text-[#1a202c] font-bold"
+                  />
+                </View>
+              </View>
+
+              <View className="mb-8">
+                <Text className="text-[#94a3b8] text-[10px] font-bold tracking-widest uppercase mb-2 ml-1">Reason for Leave</Text>
+                <TextInput 
+                  value={leaveForm.reason}
+                  onChangeText={t => setLeaveForm({...leaveForm, reason: t})}
+                  placeholder="Tell us why you need this leave..."
+                  multiline
+                  numberOfLines={4}
+                  textAlignVertical="top"
+                  className="bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl px-4 py-4 text-[#1a202c] font-bold min-h-[100px]"
+                />
+              </View>
+
+              <TouchableOpacity 
+                onPress={handleRequestLeave}
+                disabled={requesting}
+                className={`py-4 rounded-xl items-center justify-center flex-row ${requesting ? 'bg-[#94a3b8]' : 'bg-[#8C4A28]'}`}
+              >
+                {requesting ? <ActivityIndicator color="white" size="small" /> : <CalendarRange color="white" size={20} className="mr-2" />}
+                <Text className="text-white font-bold text-lg ml-2">{requesting ? 'Submitting...' : 'Submit Request'}</Text>
+              </TouchableOpacity>
+            </View>
+          )}
       </ScrollView>
       }
 

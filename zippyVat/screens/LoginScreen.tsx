@@ -1,11 +1,93 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, SafeAreaView, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { ArrowLeft, ArrowRight, Smartphone, Mail, ScanLine } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
+import { apiFunction } from '../api/apiFunction';
+import { getOTPApi, verifyOTPApi } from '../api/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function LoginScreen() {
   const [step, setStep] = useState(1);
-  const navigation = useNavigation();
+  const [mobile, setMobile] = useState('9355033652');
+  const [otp, setOtp] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const navigation = useNavigation<any>();
+
+  React.useEffect(() => {
+    checkLoginStatus();
+  }, []);
+
+  const checkLoginStatus = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const user = await AsyncStorage.getItem('user');
+      if (token && user) {
+        navigation.replace('Tabs');
+      }
+    } catch (e) {
+      console.error("Auth check failed:", e);
+    } finally {
+      setCheckingAuth(false);
+    }
+  };
+
+  if (checkingAuth) {
+    return (
+      <View className="flex-1 bg-[#F5EDDF] items-center justify-center">
+        <ActivityIndicator color="#8C4A28" size="large" />
+      </View>
+    );
+  }
+
+  const handleGetOTP = async () => {
+    if (mobile.length < 10) {
+      Alert.alert("Invalid Number", "Please enter a valid mobile number.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await apiFunction(getOTPApi, [], { mobile }, 'POST', false);
+      if (res && res.success) {
+        Alert.alert("OTP Sent", `Your OTP is: ${res.otp}`); // For development/testing
+        setStep(2);
+      } else {
+        Alert.alert("Error", res?.message || "Failed to send OTP. Please check your number.");
+      }
+    } catch (error) {
+      Alert.alert("Error", "Network error. Please check your connection.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOTP = async () => {
+    if (otp.length < 6) {
+      Alert.alert("Invalid OTP", "Please enter a valid 6-digit code.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await apiFunction(verifyOTPApi, [], { mobile, otp }, 'POST', false);
+      if (res && res.success) {
+        // Only allow Vets to access this portal
+        if (res.user.type !== 'vet') {
+          Alert.alert("Access Denied", "This portal is strictly for Veterinary partners.");
+          return;
+        }
+
+        await AsyncStorage.setItem('token', res.token);
+        await AsyncStorage.setItem('user', JSON.stringify(res.user));
+        navigation.replace('Tabs');
+      } else {
+        Alert.alert("Error", res?.message || "Invalid OTP. Please try again.");
+      }
+    } catch (error) {
+      Alert.alert("Error", "Verification failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-[#F5EDDF]">
@@ -40,18 +122,28 @@ export default function LoginScreen() {
                 </View>
                 <TextInput
                   className="flex-1 text-[#1e293b]"
-                  placeholder="+1 (555) 000-0000"
+                  placeholder="Enter 10 digit mobile"
                   placeholderTextColor="#94a3b8"
                   keyboardType="phone-pad"
+                  value={mobile}
+                  onChangeText={setMobile}
+                  maxLength={10}
                 />
               </View>
 
               <TouchableOpacity
-                className="w-full bg-[#8C4A28] py-4 rounded-xl items-center flex-row justify-center mb-8"
-                onPress={() => setStep(2)}
+                className={`w-full ${loading ? 'bg-gray-400' : 'bg-[#8C4A28]'} py-4 rounded-xl items-center flex-row justify-center mb-8`}
+                onPress={handleGetOTP}
+                disabled={loading}
               >
-                <Text className="text-white font-bold text-lg mr-2">Get OTP</Text>
-                <ArrowRight color="white" size={20} />
+                {loading ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <>
+                    <Text className="text-white font-bold text-lg mr-2">Get OTP</Text>
+                    <ArrowRight color="white" size={20} />
+                  </>
+                )}
               </TouchableOpacity>
 
               <View className="flex-row items-center mb-6">
@@ -86,20 +178,29 @@ export default function LoginScreen() {
 
               <Text className="text-2xl font-bold text-[#1a202c] mb-2">Verify Code</Text>
               <Text className="text-[#64748b] mb-6 text-sm">
-                Sent a 6-digit code to <Text className="font-bold text-[#1a202c]">+1 (555) *** **89</Text>
+                Sent a 6-digit code to <Text className="font-bold text-[#1a202c]">{mobile}</Text>
               </Text>
 
-              <View className="flex-row justify-between mb-8">
-                {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <View key={i} className="w-12 h-14 border border-[#e2e8f0] rounded-lg bg-[#f8fafc] justify-center items-center" />
-                ))}
-              </View>
+              <TextInput
+                className="w-full border border-[#e2e8f0] rounded-xl px-4 py-4 mb-8 bg-[#f8fafc] text-center text-2xl font-black tracking-[10px] text-[#1a202c]"
+                placeholder="000000"
+                placeholderTextColor="#94a3b8"
+                keyboardType="number-pad"
+                value={otp}
+                onChangeText={setOtp}
+                maxLength={6}
+              />
 
               <TouchableOpacity
-                className="w-full bg-[#8C4A28] py-4 rounded-xl items-center justify-center mb-6"
-                onPress={() => navigation.navigate('Tabs')}
+                className={`w-full ${loading ? 'bg-gray-400' : 'bg-[#8C4A28]'} py-4 rounded-xl items-center justify-center mb-6`}
+                onPress={handleVerifyOTP}
+                disabled={loading}
               >
-                <Text className="text-white font-bold text-lg">Verify and Access Portal</Text>
+                {loading ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text className="text-white font-bold text-lg">Verify and Access Portal</Text>
+                )}
               </TouchableOpacity>
 
               <Text className="text-center text-[#64748b] text-sm mb-6">

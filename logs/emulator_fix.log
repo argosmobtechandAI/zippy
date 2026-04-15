@@ -1,0 +1,400 @@
+INFO    | Storing crashdata in: /tmp/android-vansh/emu-crash-34.1.20.db, detection is enabled for process: 11352
+INFO    | Android emulator version 34.1.20.0 (build_id 11610631) (CL:N/A)
+INFO    | Found systemPath /Users/vansh/Library/Android/sdk/system-images/android-30/google_apis_playstore/arm64-v8a/
+WARNING | Please update the emulator to one that supports the feature(s): Vulkan
+WARNING | FeatureControl is requesting a non existing feature.
+cannot add library /Users/vansh/Library/Android/sdk/emulator/qemu/darwin-aarch64/lib64/vulkan/libvulkan.dylib: failed
+added library /Users/vansh/Library/Android/sdk/emulator/lib64/vulkan/libvulkan.dylib
+initialize: Supports id properties, got a vulkan device UUID
+INFO    | Storing crashdata in: /tmp/android-vansh/emu-crash-34.1.20.db, detection is enabled for process: 11352
+INFO    | Duplicate loglines will be removed, if you wish to see each individual line launch with the -log-nofilter flag.
+INFO    | Warning: QMetaObject::connectSlotsByName: No matching signal for on_new_posture_requested(int) ((null):0, (null))
+INFO    | Warning: QMetaObject::connectSlotsByName: No matching signal for on_dismiss_posture_selection_dialog() ((null):0, (null))
+INFO    | Warning: QMetaObject::connectSlotsByName: No matching signal for on_new_resizable_requested(PresetEmulatorSizeType) ((null):0, (null))
+INFO    | Warning: QMetaObject::connectSlotsByName: No matching signal for on_dismiss_resizable_dialog() ((null):0, (null))
+INFO    | Warning: QMetaObject::connectSlotsByName: No matching signal for on_sleep_timer_done() ((null):0, (null))
+INFO    | Crash reports will be automatically uploaded to: https://clients2.google.com/cr/report
+library_mode host gpu mode host
+Initializing hardware OpenGLES emulation supportandroid_startOpenglesRenderer: gpu infoI0414 09:48:29.645654 0c21f00 HealthMonitor.cpp:279] HealthMonitor disabled.
+createGlobalVkEmulation:964 Selecting Vulkan device: SwiftShader Device (LLVM 10.0.0)
+I0414 09:48:29.749044 0c21f00 VkCommonOperations.cpp:1226] Initializing VkEmulation features:
+I0414 09:48:29.749051 0c21f00 VkCommonOperations.cpp:1227]     glInteropSupported: false
+I0414 09:48:29.749052 0c21f00 VkCommonOperations.cpp:1228]     useDeferredCommands: true
+I0414 09:48:29.749053 0c21f00 VkCommonOperations.cpp:1230]     createResourceWithRequirements: true
+I0414 09:48:29.749054 0c21f00 VkCommonOperations.cpp:1231]     useVulkanComposition: false
+I0414 09:48:29.749055 0c21f00 VkCommonOperations.cpp:1232]     useVulkanNativeSwapchain: false
+I0414 09:48:29.749056 0c21f00 VkCommonOperations.cpp:1233]     enable guestRenderDoc: false
+I0414 09:48:29.749057 0c21f00 VkCommonOperations.cpp:1234]     ASTC LDR emulation mode: 2
+I0414 09:48:29.749058 0c21f00 VkCommonOperations.cpp:1235]     enable ETC2 emulation: true
+I0414 09:48:29.749059 0c21f00 VkCommonOperations.cpp:1236]     enable Ycbcr emulation: false
+I0414 09:48:29.749060 0c21f00 VkCommonOperations.cpp:1237]     guestUsesAngle: false
+I0414 09:48:29.749061 0c21f00 VkCommonOperations.cpp:1238]     useDedicatedAllocations: false
+I0414 09:48:29.759453 0c21f00 FrameBuffer.cpp:486] Graphics Adapter Vendor Google (Apple)
+I0414 09:48:29.759461 0c21f00 FrameBuffer.cpp:487] Graphics Adapter Android Emulator OpenGL ES Translator (Apple M1)
+I0414 09:48:29.759463 0c21f00 FrameBuffer.cpp:488] Graphics API Version OpenGL ES 3.0 (4.1 Metal - 89.4)
+I0414 09:48:29.759464 0c21f00 FrameBuffer.cpp:489] Graphics API Extensions GL_OES_EGL_sync GL_OES_EGL_image GL_OES_EGL_image_external GL_OES_depth24 GL_OES_depth32 GL_OES_element_index_uint GL_OES_texture_float GL_OES_texture_float_linear GL_OES_compressed_paletted_texture GL_OES_compressed_ETC1_RGB8_texture GL_OES_depth_texture GL_OES_texture_npot GL_OES_rgb8_rgba8 GL_EXT_color_buffer_float GL_EXT_color_buffer_half_float GL_EXT_texture_format_BGRA8888 GL_APPLE_texture_format_BGRA8888 
+I0414 09:48:29.759465 0c21f00 FrameBuffer.cpp:490] Graphics Device Extensions N/A
+WARNING | The emulator now requires a signed jwt token for gRPC access! Use the -grpc flag if you really want an open unprotected grpc port
+INFO    | Using security allow list from: /Users/vansh/Library/Android/sdk/emulator/lib/emulator_access.json
+WARNING | *** Basic token auth should only be used by android-studio ***
+INFO    | The active JSON Web Key Sets can be found here: /Users/vansh/Library/Caches/TemporaryItems/avd/running/11352/jwks/8057ddac-f350-45b0-9945-33748b0821e1/active.jwk
+INFO    | Scanning /Users/vansh/Library/Caches/TemporaryItems/avd/running/11352/jwks/8057ddac-f350-45b0-9945-33748b0821e1 for jwk keys.
+INFO    | Started GRPC server at 127.0.0.1:8554, security: Local, auth: +token
+INFO    | Advertising in: /Users/vansh/Library/Caches/TemporaryItems/avd/running/pid_11352.ini
+I0414 09:48:31.131482 0923000 FrameBuffer.cpp:3707] setDisplayConfigs w 1080 h 2400 dpiX 420 dpiY 420
+I0414 09:48:31.131513 0923000 FrameBuffer.cpp:3720] setDisplayActiveConfig 0
+WARNING | Cold boot:  requested by the user
+OpenGL Vendor=[Google (Apple)]OpenGL Renderer=[Android Emulator OpenGL ES Translator (Apple M1)]OpenGL Version=[OpenGL ES 3.0 (4.1 Metal - 89.4)]INFO    | Boot completed in 20911 ms
+INFO    | Increasing screen off timeout, logcat buffer size to 2M.
+E0414 09:48:58.436525 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.436667 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:27
+E0414 09:48:58.436698 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.436752 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.436761 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.436784 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.436817 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.438991 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.439035 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:30
+E0414 09:48:58.439675 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.439741 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.439749 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:13
+E0414 09:48:58.439773 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.439783 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.439797 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.439803 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.439808 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.439837 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.439862 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.439989 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.440070 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.440175 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.440230 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.440257 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.440275 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.440359 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.440371 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.440376 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.440501 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.440526 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.440535 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.440542 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.440563 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.440570 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.441267 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.441280 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.441291 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.441328 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.441832 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.441882 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.441898 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.441913 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.441928 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.441943 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.441957 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.441968 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.441980 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.441991 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.442002 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.442013 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.442024 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.442035 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.442062 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.442074 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.442091 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.442109 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.442123 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.442138 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.442151 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.442170 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.442185 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.442200 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.442216 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.442232 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.442247 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.442262 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.442273 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.442285 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.442299 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.442311 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.442322 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.442334 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.442345 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.442357 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.442369 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.442381 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.442391 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.442417 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.442430 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.442441 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.442452 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.442464 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.442475 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.442486 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.442497 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.442509 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.442520 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.442556 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.442568 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.442579 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.442591 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.442602 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.442613 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.442623 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.442634 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.442646 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.442658 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.442669 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.442680 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.442692 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.442703 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.442714 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.442726 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.442737 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.442749 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.442761 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.442773 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.442788 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.442801 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.442814 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.442827 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.442840 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.442853 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.442866 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.442879 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.442892 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.442905 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.442918 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.442930 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.442943 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.442956 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.442968 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.442981 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.442994 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.443005 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.443016 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.443026 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.443037 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.443048 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.443059 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.443069 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.443081 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.443092 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.443103 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.443114 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.443125 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.443136 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.443147 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.443175 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.443187 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.443197 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.443208 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.443219 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.443230 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.443240 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.443251 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.443261 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.443272 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.443282 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.443293 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.443304 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.443314 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.443325 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.443336 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.443346 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.443357 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.443367 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.443377 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.443388 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.443398 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.443409 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.443420 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+E0414 09:48:58.443430 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:8
+E0414 09:48:58.443441 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:11
+E0414 09:48:58.443451 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:5
+INFO    | Warning: QMetaObject::connectSlotsByName: No matching signal for on_rgbcSensorValueWidget_valueChanged() ((null):0, (null))
+INFO    | Warning: QMetaObject::connectSlotsByName: No matching signal for on_posture_valueChanged(int) ((null):0, (null))
+INFO    | Info: 
+
+GLImplementation: 
+Surface Type: OpenGL
+Surface Profile: CoreProfile
+Surface Version: 4.1
+Using Default SG Backend: no
+Using Software Dynamic GL: no
+Using Angle: no
+
+Init Parameters:
+  *  application-name Emulator 
+  *  browser-subprocess-path /Users/vansh/Library/Android/sdk/emulator/lib64/qt/libexec/QtWebEngineProcess 
+  *  disable-features DnsOverHttpsUpgrade,ConsolidatedMovementXY,InstalledApp,BackgroundFetch,WebOTP,WebPayments,WebUSB,PictureInPicture 
+  *  disable-gpu  
+  *  disable-speech-api  
+  *  enable-features TracingServiceInProcess 
+  *  enable-threaded-compositing  
+ ((null):0, (null))
+INFO    | Warning: No functional TLS backend was found ((null):0, (null))
+INFO    | Warning: No functional TLS backend was found ((null):0, (null))
+ (2x)
+INFO    | Warning: No TLS backend is available ((null):0, (null))
+INFO    | Warning: No functional TLS backend was found ((null):0, (null))
+INFO    | Warning: No functional TLS backend was found ((null):0, (null))
+ (3x)
+INFO    | Warning: No TLS backend is available ((null):0, (null))
+INFO    | Warning: No functional TLS backend was found ((null):0, (null))
+INFO    | Warning: No functional TLS backend was found ((null):0, (null))
+ (2x)
+INFO    | Warning: Google Maps JavaScript API has been loaded directly without loading=async. This can result in suboptimal performance. For best-practice loading patterns please see https://goo.gle/js-api-loading (https://maps.googleapis.com/maps/api/js?libraries=places&key=AIzaSyABrfflV49aFWF4Kohsf1VSx68td8f-sFY&callback=initMap&v=3.53:1434, (null))
+INFO    | Warning: Google Maps JavaScript API has been loaded directly without loading=async. This can result in suboptimal performance. For best-practice loading patterns please see https://goo.gle/js-api-loading (https://maps.googleapis.com/maps/api/js?libraries=places&key=AIzaSyABrfflV49aFWF4Kohsf1VSx68td8f-sFY&callback=initMap&v=3.53:1434, (null))
+
+INFO    | Warning: As of March 1st, 2025, google.maps.places.AutocompleteService is not available to new customers. Please use google.maps.places.AutocompleteSuggestion instead. At this time, google.maps.places.AutocompleteService is not scheduled to be discontinued, but google.maps.places.AutocompleteSuggestion is recommended over google.maps.places.AutocompleteService. While google.maps.places.AutocompleteService will continue to receive bug fixes for any major regressions, existing bugs in google.maps.places.AutocompleteService will not be addressed. At least 12 months notice will be given before support is discontinued. Please see https://developers.google.com/maps/legacy for additional details and https://developers.google.com/maps/documentation/javascript/places-migration-overview for the migration guide. (https://maps.googleapis.com/maps/api/js?libraries=places&key=AIzaSyABrfflV49aFWF4Kohsf1VSx68td8f-sFY&callback=initMap&v=3.53:61, (null))
+INFO    | Warning: google.maps.DirectionsService is deprecated as of February 25th, 2026. Please use google.maps.routes.Route.computeRoutes instead. At this time, google.maps.DirectionsService is not scheduled to be discontinued, but google.maps.routes.Route.computeRoutes is recommended over google.maps.DirectionsService.route. While google.maps.DirectionsService will continue to receive bug fixes for any major regressions, existing bugs in google.maps.DirectionsService will not be addressed. At least 12 months notice will be given before support is discontinued. Please see https://developers.google.com/maps/legacy for additional details and https://developers.google.com/maps/documentation/javascript/routes/routes-js-migration for the migration guide. (https://maps.googleapis.com/maps/api/js?libraries=places&key=AIzaSyABrfflV49aFWF4Kohsf1VSx68td8f-sFY&callback=initMap&v=3.53:1525, (null))
+INFO    | Warning: As of March 1st, 2025, google.maps.places.AutocompleteService is not available to new customers. Please use google.maps.places.AutocompleteSuggestion instead. At this time, google.maps.places.AutocompleteService is not scheduled to be discontinued, but google.maps.places.AutocompleteSuggestion is recommended over google.maps.places.AutocompleteService. While google.maps.places.AutocompleteService will continue to receive bug fixes for any major regressions, existing bugs in google.maps.places.AutocompleteService will not be addressed. At least 12 months notice will be given before support is discontinued. Please see https://developers.google.com/maps/legacy for additional details and https://developers.google.com/maps/documentation/javascript/places-migration-overview for the migration guide. (https://maps.googleapis.com/maps/api/js?libraries=places&key=AIzaSyABrfflV49aFWF4Kohsf1VSx68td8f-sFY&callback=initMap&v=3.53:61, (null))
+INFO    | Warning: As of March 1st, 2025, google.maps.places.Autocomplete is not available to new customers. Please use google.maps.places.PlaceAutocompleteElement instead. At this time, google.maps.places.Autocomplete is not scheduled to be discontinued, but google.maps.places.PlaceAutocompleteElement is recommended over google.maps.places.Autocomplete. While google.maps.places.Autocomplete will continue to receive bug fixes for any major regressions, existing bugs in google.maps.places.Autocomplete will not be addressed. At least 12 months notice will be given before support is discontinued. Please see https://developers.google.com/maps/legacy for additional details and https://developers.google.com/maps/documentation/javascript/places-migration-overview for the migration guide. (https://maps.googleapis.com/maps/api/js?libraries=places&key=AIzaSyABrfflV49aFWF4Kohsf1VSx68td8f-sFY&callback=initMap&v=3.53:60, (null))
+INFO    | Warning: As of March 1st, 2025, google.maps.places.Autocomplete is not available to new customers. Please use google.maps.places.PlaceAutocompleteElement instead. At this time, google.maps.places.Autocomplete is not scheduled to be discontinued, but google.maps.places.PlaceAutocompleteElement is recommended over google.maps.places.Autocomplete. While google.maps.places.Autocomplete will continue to receive bug fixes for any major regressions, existing bugs in google.maps.places.Autocomplete will not be addressed. At least 12 months notice will be given before support is discontinued. Please see https://developers.google.com/maps/legacy for additional details and https://developers.google.com/maps/documentation/javascript/places-migration-overview for the migration guide. (https://maps.googleapis.com/maps/api/js?libraries=places&key=AIzaSyABrfflV49aFWF4Kohsf1VSx68td8f-sFY&callback=initMap&v=3.53:60, (null))
+
+INFO    | Warning: Google Maps JavaScript API warning: RetiredVersion https://developers.google.com/maps/documentation/javascript/error-messages#retired-version (https://maps.googleapis.com/maps/api/js?libraries=places&key=AIzaSyABrfflV49aFWF4Kohsf1VSx68td8f-sFY&callback=initMap&v=3.53:30, (null))
+INFO    | Warning: Google Maps JavaScript API warning: RetiredVersion https://developers.google.com/maps/documentation/javascript/error-messages#retired-version (https://maps.googleapis.com/maps/api/js?libraries=places&key=AIzaSyABrfflV49aFWF4Kohsf1VSx68td8f-sFY&callback=initMap&v=3.53:30, (null))
+
+INFO    | Warning: delivering touch release to same window QWindow(0x0) not QWidgetWindow(0x143926c40, name="EmulatorContainerClassWindow") ((null):0, (null))
+INFO    | Warning: skipping QEventPoint(id=1 ts=0 pos=0,0 scn=1129.63,619.07 gbl=1129.63,619.07 Released ellipse=(1x1 ∡ 0) vel=0,0 press=-1129.63,-619.07 last=-1129.63,-619.07 Δ 1129.63,619.07) : no target window ((null):0, (null))
+E0414 09:50:34.664079 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:56
+E0414 09:50:34.664596 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:60
+E0414 09:50:34.664641 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:63
+E0414 09:50:34.664654 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:58
+E0414 09:50:34.664725 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:64
+E0414 09:50:34.664738 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:66
+INFO    | Warning: delivering touch release to same window QWindow(0x0) not QWidgetWindow(0x143926c40, name="EmulatorContainerClassWindow") ((null):0, (null))
+INFO    | Warning: skipping QEventPoint(id=1 ts=0 pos=0,0 scn=1186.42,418.408 gbl=1186.42,418.408 Released ellipse=(1x1 ∡ 0) vel=0,0 press=-1186.42,-418.408 last=-1186.42,-418.408 Δ 1186.42,418.408) : no target window ((null):0, (null))
+INFO    | Warning: delivering touch release to same window QWindow(0x0) not QWidgetWindow(0x143926c40, name="EmulatorContainerClassWindow") ((null):0, (null))
+INFO    | Warning: skipping QEventPoint(id=1 ts=0 pos=0,0 scn=1311.02,262.353 gbl=1311.02,262.353 Released ellipse=(1x1 ∡ 0) vel=0,0 press=-1311.02,-262.353 last=-1311.02,-262.353 Δ 1311.02,262.353) : no target window ((null):0, (null))
+E0414 09:51:19.590010 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:71
+E0414 09:51:19.799179 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:67
+E0414 09:51:19.799281 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:70
+E0414 09:51:19.799295 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:71
+E0414 09:51:19.799319 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:67
+E0414 09:51:19.799330 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:70
+E0414 09:52:16.775336 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.775941 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.776095 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.776114 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.776132 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.776199 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.776212 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.776224 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.776237 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.776248 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.776260 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.776271 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.776284 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.776295 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.776307 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.776318 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.776330 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.776340 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.776353 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.776363 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.776383 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:26
+E0414 09:52:16.776396 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.776407 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.776419 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.776430 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.776509 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.776523 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.776535 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.776546 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.776559 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.776570 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.776582 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.776592 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.776605 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.776657 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.776673 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:25
+E0414 09:52:16.776684 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.776699 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.776741 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:23
+E0414 09:52:16.776757 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.776768 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.776779 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:26
+E0414 09:52:16.776793 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:25
+E0414 09:52:16.776804 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.776816 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.776829 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:23
+E0414 09:52:16.776841 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:26
+E0414 09:52:16.776852 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.776865 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.776878 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:25
+E0414 09:52:16.776890 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:23
+E0414 09:52:16.776901 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.776914 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.776927 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:26
+E0414 09:52:16.776937 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:25
+E0414 09:52:16.776975 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.776989 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.777000 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:23
+E0414 09:52:16.777012 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:26
+E0414 09:52:16.777028 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:25
+E0414 09:52:16.777038 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.777049 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:23
+E0414 09:52:16.777059 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.777071 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:26
+E0414 09:52:16.777085 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.777098 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:25
+E0414 09:52:16.777109 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.777119 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:23
+E0414 09:52:16.777132 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:26
+E0414 09:52:16.777144 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.777156 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.777169 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:25
+E0414 09:52:16.777182 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.777195 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.777207 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.777218 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.777231 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.777242 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.777254 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.777266 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.777280 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.777293 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.777306 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.777316 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.777329 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.777340 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.777352 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.777363 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.777375 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.777386 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.777399 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.777412 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.777425 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.777436 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.777448 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.777459 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.777471 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.777482 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.777494 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.777504 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.777517 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.777527 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.777540 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.777552 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.777565 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.777592 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.777605 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.777615 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.777628 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.777651 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.777665 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.777986 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.778025 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.778037 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.778050 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.778061 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.778074 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.778084 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+E0414 09:52:16.778097 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:79
+E0414 09:52:16.778108 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:82
+INFO    | Warning: delivering touch release to same window QWindow(0x0) not QWidgetWindow(0x143926c40, name="EmulatorContainerClassWindow") ((null):0, (null))
+INFO    | Warning: skipping QEventPoint(id=1 ts=0 pos=0,0 scn=1209.76,489.262 gbl=1209.76,489.262 Released ellipse=(1x1 ∡ 0) vel=0,0 press=-1209.76,-489.262 last=-1209.76,-489.262 Δ 1209.76,489.262) : no target window ((null):0, (null))
+E0414 09:54:32.899607 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:180
+E0414 09:54:32.905812 35bb000 FrameBuffer.cpp:3790] Failed to find ColorBuffer:183
+INFO    | Wait for emulator (pid 11352) 20 seconds to shutdown gracefully before kill;you can set environment variable ANDROID_EMULATOR_WAIT_TIME_BEFORE_KILL(in seconds) to change the default value (20 seconds)

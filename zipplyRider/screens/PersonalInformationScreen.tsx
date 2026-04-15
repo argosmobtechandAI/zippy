@@ -1,20 +1,79 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { ArrowLeft, User, Mail, Phone, ShieldAlert } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useSelector, useDispatch } from 'react-redux';
+import { fetchUser } from '../redux/getDataSlice';
+import { apiFunction } from '../api/apifunction';
+import { updateUserApi } from '../api/api';
+import Toast from 'react-native-toast-message';
 
 export default function PersonalInformationScreen() {
   const navigation = useNavigation();
+  const dispatch = useDispatch<any>();
+  const { user, loading: reduxLoading } = useSelector((state: any) => state.getData);
 
   const [form, setForm] = useState({
-    fullName: 'Alex Sterling',
-    email: 'alex.sterling@example.com',
-    phone: '+1 (555) 123-4567',
-    emergencyContact: 'Sarah Sterling (+1 555-012-3456)',
+    fullName: '',
+    email: '',
+    phone: '',
+    emergencyContact: '',
   });
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setForm({
+        fullName: user.name || '',
+        email: user.email || '',
+        phone: user.mobile || '',
+        emergencyContact: user.emergencyContact || '',
+      });
+    } else {
+      dispatch(fetchUser());
+    }
+  }, [user]);
 
   const updateForm = (key: string, value: string) => {
     setForm(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleSave = async () => {
+    setLoading(true);
+    try {
+      const payload = {
+        name: form.fullName,
+        email: form.email,
+        mobile: form.phone,
+        emergencyContact: form.emergencyContact
+      };
+
+      const res = await apiFunction(updateUserApi, [user.id], payload, 'PUT', true);
+      if (res && res.success) {
+        Toast.show({
+          type: 'success',
+          text1: 'Success',
+          text2: 'Profile updated successfully'
+        });
+        dispatch(fetchUser());
+        navigation.goBack();
+      } else {
+        Toast.show({
+          type: 'error',
+          text1: 'Update Failed',
+          text2: res?.message || 'Something went wrong'
+        });
+      }
+    } catch (error) {
+      console.error('Update profile error:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Network error occurred'
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const renderInput = (icon: any, label: string, value: string, key: string, keyboardType: any = 'default') => {
@@ -69,9 +128,14 @@ export default function PersonalInformationScreen() {
         <View className="p-4 bg-white border-t border-[#e2e8f0]">
           <TouchableOpacity 
             className="bg-[#8C4A28] py-4 rounded-xl items-center shadow-sm"
-            onPress={() => navigation.goBack()}
+            onPress={handleSave}
+            disabled={loading || reduxLoading}
           >
-            <Text className="text-white font-bold text-base">Save Changes</Text>
+            {loading || reduxLoading ? (
+              <ActivityIndicator color="white" size="small" />
+            ) : (
+              <Text className="text-white font-bold text-base">Save Changes</Text>
+            )}
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>

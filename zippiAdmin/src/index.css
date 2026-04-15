@@ -1,1 +1,57 @@
 @import "tailwindcss";
+
+@font-face {
+  font-family: 'GTUltra';
+  src: url('/fonts/GTUltra-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'GTUltra';
+  src: url('/fonts/GTUltra-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'GTUltra';
+  src: url('/fonts/GTUltra-Light.otf') format('opentype');
+  font-weight: 300;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'GTUltraFine';
+  src: url('/fonts/GTUltraFine-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+}
+
+:root {
+  --primary-brown: #85431E;
+  --secondary-orange: #DA7347;
+  --bg-beige: #F2EBD9;
+  --text-black: #111111;
+  --accent-blue: #526FAE;
+}
+
+@theme {
+  --font-display: "GTUltra", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "GTUltraFine", ui-sans-serif, system-ui, sans-serif;
+  
+  --color-brand-brown: var(--primary-brown);
+  --color-brand-orange: var(--secondary-orange);
+  --color-brand-beige: var(--bg-beige);
+  --color-brand-black: var(--text-black);
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-brand-beige);
+  color: var(--color-brand-black);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+}

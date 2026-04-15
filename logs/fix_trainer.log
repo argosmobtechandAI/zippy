@@ -1,0 +1,4 @@
+Starting a Gradle Daemon, 2 busy and 1 incompatible Daemons could not be reused, use --status for details
+Invalid Java installation found at '/Users/vansh/Library/Java/JavaVirtualMachines/azul-16.0.2/Contents/Home' (IntelliJ) auto-detected. It will be re-checked in the next build. This might have performance impact if it keeps failing. Run the 'javaToolchains' task for more details.
+Invalid Java installation found at '/Users/vansh/Library/Java/JavaVirtualMachines/corretto-17.0.10/Contents/Home' (IntelliJ) auto-detected. It will be re-checked in the next build. This might have performance impact if it keeps failing. Run the 'javaToolchains' task for more details.
+Invalid Java installation found at '/Users/vansh/Library/Java/JavaVirtualMachines/corretto-1.8.0_412/Contents/Home' (IntelliJ) auto-detected. It will be re-checked in the next build. This might have performance impact if it keeps failing. Run the 'javaToolchains' task for more details.

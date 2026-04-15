@@ -1,0 +1,19 @@
+
+> zippybackend@1.0.0 start
+> nodemon index.js
+
+[33m[nodemon] 3.1.14[39m
+[33m[nodemon] to restart at any time, enter `rs`[39m
+[33m[nodemon] watching path(s): *.*[39m
+[33m[nodemon] watching extensions: js,mjs,cjs,json[39m
+[32m[nodemon] starting `node index.js`[39m
+◇ injected env (2) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+Server is running on port 3000
+Trainer table migration complete.
+Inventory table migration complete.
+Database schema synchronization complete.
+Notification failed but session created: ReferenceError: trainerTable is not defined
+    at createSession (file:///Users/vansh/ReactProject/zippy/zippyBackend/controllers/sessionController.js:19:32)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)

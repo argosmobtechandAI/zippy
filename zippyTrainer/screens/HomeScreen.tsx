@@ -1,140 +1,202 @@
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
-import { Bell, ChevronRight } from 'lucide-react-native';
-import { useNavigation } from '@react-navigation/native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator, RefreshControl } from 'react-native';
+import { Bell, ChevronRight, Bookmark } from 'lucide-react-native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiFunction } from '../api/apiFunction';
+import { getSessionsByTrainerApi, getAllHorsesApi } from '../api/api';
 
 export default function HomeScreen() {
-
    const navigation = useNavigation();
+   const [loading, setLoading] = useState(true);
+   const [refreshing, setRefreshing] = useState(false);
+   const [user, setUser] = useState<any>(null);
+   const [sessions, setSessions] = useState<any[]>([]);
+   const [assignedHorses, setAssignedHorses] = useState<any[]>([]);
+   const [stats, setStats] = useState({
+      todaySessions: 0,
+      pendingApprovals: 0,
+      assignedHorsesCount: 0
+   });
+
+   useFocusEffect(
+      React.useCallback(() => {
+         fetchDashboardData();
+      }, [])
+   );
+
+   const fetchDashboardData = async (isRefresh = false) => {
+      if (isRefresh) setRefreshing(true);
+      else setLoading(true);
+
+      try {
+         const userData = await AsyncStorage.getItem('user');
+         if (!userData) return;
+         const parsedUser = JSON.parse(userData);
+         setUser(parsedUser);
+
+         const userId = parsedUser.id;
+         const trainerId = parsedUser.trainerId;
+         if (!userId) return;
+
+         // Fetch Sessions
+         const sessionRes = await apiFunction(getSessionsByTrainerApi(trainerId || userId), [], {}, "GET", true);
+         if (sessionRes && sessionRes.success) {
+            const allSessions = (sessionRes.sessions || []).filter((s: any) => s.status !== 'BLOCKED');
+            setSessions(allSessions.slice(0, 3));
+            setStats(prev => ({ ...prev, todaySessions: allSessions.length }));
+         }
+
+         // Fetch Horses
+         const horseRes = await apiFunction(getAllHorsesApi, [], {}, "GET", true);
+         if (horseRes && horseRes.success) {
+            const allHorses = horseRes.horses || [];
+            const filtered = allHorses.filter((h: any) => h.trainerId === (trainerId || userId));
+            setAssignedHorses(filtered);
+            setStats(prev => ({ ...prev, assignedHorsesCount: filtered.length }));
+         }
+
+      } catch (error) {
+         console.error("Home Dashboard data fetch error:", error);
+      } finally {
+         setLoading(false);
+         setRefreshing(false);
+      }
+   };
+
+   if (loading) {
+      return (
+         <View className="flex-1 bg-[#F5EDDF] justify-center items-center">
+            <ActivityIndicator size="large" color="#8C4A28" />
+            <Text className="mt-4 text-[#8C4A28] font-bold">Synchronizing Dashboard...</Text>
+         </View>
+      );
+   }
+
    return (
-      <View className="flex-1 bg-[#F5EDDF]">
-         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+      <View className="flex-1 bg-brand-beige">
+         <ScrollView
+            contentContainerStyle={{ padding: 24, paddingBottom: 60 }}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+               <RefreshControl refreshing={refreshing} onRefresh={() => fetchDashboardData(true)} colors={["#85431E"]} />
+            }
+         >
             {/* Header Section */}
-            <View className="flex-row justify-between items-center mb-6">
+            <View className="flex-row justify-between items-center mb-8">
                <View className="flex-row items-center">
-                  {/* Profile Image Dummy */}
-                  <View className="w-12 h-12 bg-white rounded-full overflow-hidden mr-3 border-2 border-[#8C4A28]">
+                  <View className="w-14 h-14 bg-white rounded-full overflow-hidden mr-4 border-[3px] border-white shadow-xl">
                      <Image
-                        source={{ uri: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop' }}
+                        source={{ uri: user?.image || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop' }}
                         className="w-full h-full"
                      />
                   </View>
                   <View>
-                     <Text className="text-xl font-bold text-[#8C4A28]">zippy Equestrian</Text>
-                     <Text className="text-sm font-semibold text-[#64748b]">Trainer Dashboard</Text>
+                     <Text className="text-2xl font-display text-brand-brown leading-tight">{user?.name?.split(' ')[0] || 'Trainer'}</Text>
+                     <Text className="text-[10px] font-body text-brand-brown/50 uppercase tracking-[2px]">Admin Dashboard</Text>
                   </View>
                </View>
-               <TouchableOpacity onPress={() => navigation.navigate("Notification")} className="relative w-10 h-10 bg-[#e6d0b3] rounded-full items-center justify-center">
-                  <Bell color="#8C4A28" size={20} />
-                  <View className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full" />
+               <TouchableOpacity 
+                  onPress={() => navigation.navigate("Notification")} 
+                  className="w-11 h-11 bg-white/50 border border-brand-brown/5 rounded-full items-center justify-center shadow-sm"
+               >
+                  <Bell color="#85431E" size={20} strokeWidth={2.5} />
+                  {user?.notifications?.some(n => n.unread) && (
+                     <View className="absolute top-2 right-2 w-2.5 h-2.5 bg-brand-orange rounded-full border-2 border-brand-beige" />
+                  )}
                </TouchableOpacity>
             </View>
 
-            {/* Summary Cards */}
-            <View className="flex-row justify-between mb-8">
-               <View className="flex-1 bg-[#8C4A28] rounded-2xl p-4 mr-2">
-                  <Text className="text-white text-[10px] font-bold tracking-wider mb-2">TODAY</Text>
-                  <Text className="text-white text-3xl font-bold mb-1">8</Text>
-                  <Text className="text-red-100 text-xs font-semibold">Sessions</Text>
+            {/* Premium Summary Cards */}
+            <View className="flex-row justify-between mb-10">
+               <View className="flex-1 bg-brand-brown rounded-[24px] p-5 mr-2 shadow-lg">
+                  <Text className="text-white/60 text-[8px] font-display uppercase tracking-[2px] mb-2">Today</Text>
+                  <Text className="text-white text-3xl font-display mb-1">{stats.todaySessions}</Text>
+                  <Text className="text-white/40 text-[9px] font-body uppercase tracking-wider">Sessions</Text>
                </View>
-               <View className="flex-1 bg-white rounded-2xl p-4 mr-2 shadow-sm border border-[#e2e8f0]">
-                  <Text className="text-[#8C4A28] text-[10px] font-bold tracking-wider mb-2">PENDING</Text>
-                  <Text className="text-[#8C4A28] text-3xl font-bold mb-1">3</Text>
-                  <Text className="text-[#8C4A28] text-xs font-semibold">Approvals</Text>
+               <View className="flex-1 bg-white border border-brand-brown/5 rounded-[24px] p-5 mr-2 shadow-sm">
+                  <Text className="text-brand-brown/40 text-[8px] font-display uppercase tracking-[2px] mb-2">Pending</Text>
+                  <Text className="text-brand-brown text-3xl font-display mb-1">{stats.pendingApprovals}</Text>
+                  <Text className="text-brand-brown/40 text-[9px] font-body uppercase tracking-wider">Approvals</Text>
                </View>
-               <View className="flex-1 bg-[#e6d0b3] rounded-2xl p-4">
-                  <Text className="text-[#8C4A28] text-[10px] font-bold tracking-wider mb-2">HORSES</Text>
-                  <Text className="text-[#8C4A28] text-3xl font-bold mb-1">12</Text>
-                  <Text className="text-[#8C4A28] text-xs font-semibold">Assigned</Text>
+               <View className="flex-1 bg-[#FDF8F2] border border-brand-brown/5 rounded-[24px] p-5 shadow-sm">
+                  <Text className="text-brand-brown/40 text-[8px] font-display uppercase tracking-[2px] mb-2">Fleet</Text>
+                  <Text className="text-brand-brown text-3xl font-display mb-1">{stats.assignedHorsesCount}</Text>
+                  <Text className="text-brand-brown/40 text-[9px] font-body uppercase tracking-wider">Assigned</Text>
                </View>
             </View>
 
             {/* Today's Schedule */}
-            <View className="flex-row justify-between items-center mb-4">
-               <Text className="text-xl font-bold text-[#1a202c]">Today's Schedule</Text>
+            <View className="flex-row justify-between items-center mb-6">
+               <Text className="text-xl font-display text-brand-brown tracking-tight">Today's Schedule</Text>
                <TouchableOpacity onPress={() => navigation.navigate('Schedule')}>
-                  <Text className="text-[#8C4A28] font-bold text-sm">View All</Text>
+                  <Text className="text-brand-orange font-display text-xs uppercase tracking-widest">View All</Text>
                </TouchableOpacity>
             </View>
 
-            <View className="mb-8">
-               {/* Card 1 */}
-               <TouchableOpacity className="bg-white rounded-2xl flex-row items-center p-3 mb-3 shadow-sm border border-[#e2e8f0]" onPress={() => navigation.navigate('SessionDetail')}>
-                  <View className="bg-[#8C4A28] p-3 rounded-xl items-center justify-center min-w-[60px] h-[60px] mr-3">
-                     <Text className="text-white font-bold text-[13px]">09:00</Text>
-                     <Text className="text-red-100 font-semibold text-[10px]">AM</Text>
+            <View className="mb-10">
+               {sessions.length === 0 ? (
+                  <View className="bg-white/50 rounded-3xl p-10 items-center justify-center border border-dashed border-brand-brown/20">
+                     <Text className="text-brand-brown/40 font-body text-sm">No entries for today</Text>
                   </View>
-                  <View className="flex-1">
-                     <Text className="text-[#1a202c] font-bold text-[15px] mb-1">Show Jumping Practice</Text>
-                     <Text className="text-[#64748b] text-xs font-semibold">Rider: Sarah J. • Horse: Thunder</Text>
-                  </View>
-                  <ChevronRight onPress={() => navigation.navigate("SessionDetail")} color="#8C4A28" size={20} className="ml-2" />
-               </TouchableOpacity>
-
-               {/* Card 2 */}
-               <TouchableOpacity className="bg-white rounded-2xl flex-row items-center p-3 mb-3 shadow-sm border border-[#e2e8f0]">
-                  <View className="bg-[#e6d0b3] p-3 rounded-xl items-center justify-center min-w-[60px] h-[60px] mr-3">
-                     <Text className="text-[#8C4A28] font-bold text-[13px]">11:30</Text>
-                     <Text className="text-[#8C4A28] opacity-80 font-semibold text-[10px]">AM</Text>
-                  </View>
-                  <View className="flex-1">
-                     <Text className="text-[#1a202c] font-bold text-[15px] mb-1">Dressage Basics</Text>
-                     <Text className="text-[#64748b] text-xs font-semibold">Rider: Mike D. • Horse: Bella</Text>
-                  </View>
-                  <ChevronRight onPress={() => navigation.navigate("SessionDetail")} color="#8C4A28" size={20} className="ml-2" />
-               </TouchableOpacity>
-
-               {/* Card 3 */}
-               <TouchableOpacity className="bg-white rounded-2xl flex-row items-center p-3 shadow-sm border border-[#e2e8f0]">
-                  <View className="bg-[#e6d0b3] p-3 rounded-xl items-center justify-center min-w-[60px] h-[60px] mr-3">
-                     <Text className="text-[#8C4A28] font-bold text-[13px]">02:00</Text>
-                     <Text className="text-[#8C4A28] opacity-80 font-semibold text-[10px]">PM</Text>
-                  </View>
-                  <View className="flex-1">
-                     <Text className="text-[#1a202c] font-bold text-[15px] mb-1">Cross Country Intro</Text>
-                     <Text className="text-[#64748b] text-xs font-semibold">Rider: Emma L. • Horse: Spirit</Text>
-                  </View>
-                  <ChevronRight onPress={() => navigation.navigate("SessionDetail")} color="#8C4A28" size={20} className="ml-2" />
-               </TouchableOpacity>
+               ) : sessions.map((session) => (
+                  <TouchableOpacity
+                     key={session.id}
+                     className="bg-white rounded-[28px] flex-row items-center p-4 mb-4 shadow-sm border border-brand-brown/5"
+                     onPress={() => navigation.navigate('SessionDetail', { session })}
+                  >
+                     <View className="bg-brand-beige p-3 rounded-2xl items-center justify-center min-w-[70px] h-[70px] mr-5">
+                        <Text className="text-brand-brown font-display text-[14px] leading-tight text-center">{session.timing?.split(' ')[0] || '08:00'}</Text>
+                        <Text className="text-brand-brown/40 font-display text-[9px] uppercase tracking-widest">{session.timing?.split(' ')[1] || 'AM'}</Text>
+                     </View>
+                     <View className="flex-1">
+                        <Text className="text-brand-brown font-display-reg font-bold text-[16px] mb-1">{session.title}</Text>
+                        <View className="flex-row items-center">
+                           <Bookmark size={10} color="#DA7347" className="mr-1" />
+                           <Text className="text-brand-brown/40 font-body text-xs tracking-tight">
+                              {session.location} • {session.participants?.length || 0} Riders
+                           </Text>
+                        </View>
+                     </View>
+                     <View className="w-8 h-8 rounded-full bg-brand-brown/5 items-center justify-center ml-2">
+                        <ChevronRight color="#85431E" size={16} strokeWidth={3} />
+                    </View>
+                  </TouchableOpacity>
+               ))}
             </View>
 
             {/* Assigned Horses */}
-            <View className="flex-row justify-between items-center mb-4">
-               <Text className="text-xl font-bold text-[#1a202c]">Assigned Horses</Text>
+            <View className="flex-row justify-between items-center mb-6">
+               <Text className="text-xl font-display text-brand-brown tracking-tight">Assigned Roster</Text>
                <TouchableOpacity onPress={() => navigation.navigate('Horses')}>
-                  <Text className="text-[#8C4A28] font-bold text-sm">Manage</Text>
+                  <Text className="text-brand-orange font-display text-xs uppercase tracking-widest">Manage Fleet</Text>
                </TouchableOpacity>
             </View>
 
             <ScrollView horizontal showsHorizontalScrollIndicator={false} className="overflow-visible">
-               <TouchableOpacity onPress={() => navigation.navigate("HorseDetail")} className="bg-white rounded-2xl p-3 mr-3 shadow-sm border border-[#e2e8f0] w-36">
-                  <Image
-                     source={{ uri: 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?q=80&w=300&auto=format&fit=crop' }}
-                     className="w-full h-32 rounded-xl mb-3"
-                  />
-                  <Text className="text-[#1a202c] font-bold text-sm mb-1">Thunder</Text>
-                  <Text className="text-[#94a3b8] text-[10px] font-semibold">Stall: A12 • Gelding</Text>
-               </TouchableOpacity>
-
-               <TouchableOpacity onPress={() => navigation.navigate("HorseDetail")} className="bg-white rounded-2xl p-3 mr-3 shadow-sm border border-[#e2e8f0] w-36">
-                  <Image
-                     source={{ uri: 'https://images.unsplash.com/photo-1598974357801-cbca100e65d3?q=80&w=300&auto=format&fit=crop' }}
-                     className="w-full h-32 rounded-xl mb-3"
-                  />
-                  <Text className="text-[#1a202c] font-bold text-sm mb-1">Bella</Text>
-                  <Text className="text-[#94a3b8] text-[10px] font-semibold">Stall: B04 • Mare</Text>
-               </TouchableOpacity>
-
-               <TouchableOpacity onPress={() => navigation.navigate("HorseDetail")} className="bg-white rounded-2xl p-3 mr-3 shadow-sm border border-[#e2e8f0] w-36">
-                  <Image
-                     source={{ uri: 'https://images.unsplash.com/photo-1553026131-ab106511fa48?q=80&w=300&auto=format&fit=crop' }}
-                     className="w-full h-32 rounded-xl mb-3"
-                  />
-                  <Text className="text-[#1a202c] font-bold text-sm mb-1">Spirit</Text>
-                  <Text className="text-[#94a3b8] text-[10px] font-semibold">Stall: C01 • Stallion</Text>
-               </TouchableOpacity>
+               {assignedHorses.length === 0 ? (
+                  <View className="bg-white/50 rounded-3xl p-8 w-72 items-center justify-center border border-dashed border-brand-brown/20">
+                     <Text className="text-brand-brown/40 font-body text-sm">Stable roster empty</Text>
+                  </View>
+               ) : assignedHorses.map((horse) => (
+                  <TouchableOpacity
+                     key={horse.id}
+                     onPress={() => navigation.navigate("HorseDetail", { horse })}
+                     className="bg-white rounded-[32px] p-4 mr-5 shadow-sm border border-brand-brown/5 w-44"
+                  >
+                     <Image
+                        source={{ uri: horse.imageUrl || 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?q=80&w=300&auto=format&fit=crop' }}
+                        className="w-full h-40 rounded-[24px] mb-4"
+                     />
+                     <View className="px-1">
+                        <Text className="text-brand-brown font-display-reg font-bold text-[15px] mb-1 leading-tight">{horse.name}</Text>
+                        <Text className="text-brand-orange text-[9px] font-display uppercase tracking-widest">{horse.title || 'Fit for service'}</Text>
+                     </View>
+                  </TouchableOpacity>
+               ))}
             </ScrollView>
          </ScrollView>
       </View>
+
    );
 }

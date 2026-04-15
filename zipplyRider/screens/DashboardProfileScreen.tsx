@@ -5,12 +5,10 @@ import { ArrowLeft, Settings, Check, Info, AlertOctagon, Stethoscope, ClipboardL
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchRider, fetchUser } from '../redux/getDataSlice';
 
-
-
 const trophies = [
-  { title: 'Spring Derby 2023', subtitle: '1st Place Gold', icon: Trophy, color: '#f59e0b' },
-  { title: 'Mountain Trail', subtitle: 'Completed Achievement', icon: Medal, color: '#3b82f6' },
-  { title: 'Horse Whisperer', subtitle: '10 Successful Tames', icon: Star, color: '#8b5cf6' },
+  { title: 'Spring Derby 2023', subtitle: '1st Place Gold', icon: Trophy, color: '#85431E' },
+  { title: 'Mountain Trail', subtitle: 'Completed Achievement', icon: Medal, color: '#DA7347' },
+  { title: 'Horse Whisperer', subtitle: '10 Successful Tames', icon: Star, color: '#85431E' },
   { title: 'Winter Gala', subtitle: 'Silver Runner-up', icon: Award, color: '#94a3b8' },
 ];
 
@@ -19,9 +17,7 @@ export default function DashboardProfileScreen() {
   const { user, rider } = useSelector((state) => state.getData)
   const dispatch = useDispatch();
 
-
   useEffect(() => {
-
     if (!user) {
       dispatch(fetchUser())
     }
@@ -30,84 +26,94 @@ export default function DashboardProfileScreen() {
     }
   }, [dispatch])
 
-
   const essentialDetails = [
-    { icon: AlertOctagon, title: 'Emergency Contact', desc: 'Sarah Sterling (Mother) • +1 (555) 012-3456' },
-    { icon: Stethoscope, title: 'Medical Information', desc: 'No known allergies. Blood type A+.' },
-    { icon: ClipboardList, title: 'Safety Instructions', desc: 'Certified for Level 3 jumping. Must wear helmet at all times.' },
+    { icon: AlertOctagon, title: 'Emergency Contact', desc: user?.emergencyContact || 'Not Set', color: '#85431E' },
+    { icon: Stethoscope, title: 'Medical Information', desc: rider?.medical || 'No medical conditions reported.', color: '#DA7347' },
+    { icon: ClipboardList, title: 'Safety Instructions', desc: rider?.instructions || 'Standard safety rules apply.', color: '#526FAE' },
   ];
 
   return (
-    <SafeAreaView className="flex-1 bg-[#F5EDDF]">
-      {/* Header */}
-      <View className="flex-row justify-between items-center px-4 py-4 mb-2">
-        <TouchableOpacity>
-          <View className="mr-6 pl-1">
-            <ArrowLeft color="#8C4A28" size={24} />
-          </View>
+    <SafeAreaView className="flex-1 bg-brand-beige">
+      {/* Premium Header */}
+      <View className="flex-row justify-between items-center px-6 py-4">
+        <TouchableOpacity 
+          onPress={() => navigation.goBack()}
+          className="w-10 h-10 rounded-full bg-white/50 items-center justify-center border border-brand-brown/10"
+        >
+          <ArrowLeft color="#85431E" size={20} />
         </TouchableOpacity>
-        <Text className="text-[#8C4A28] font-bold text-lg">Rider Profile</Text>
-        <TouchableOpacity onPress={() => navigation.navigate("Settings")}>
-          <Settings color="#8C4A28" size={24} />
+        <Text className="text-brand-brown font-display text-lg uppercase tracking-widest">Rider's Profile</Text>
+        <TouchableOpacity 
+           onPress={() => navigation.navigate("Settings")}
+           className="w-10 h-10 rounded-full bg-white/50 items-center justify-center border border-brand-brown/10"
+        >
+          <Settings color="#85431E" size={20} />
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
-
-        {/* Profile Info */}
-        <View className="items-center mb-8">
-          <View className="w-28 h-28 rounded-full border-4 border-[#e2d5c3] items-center justify-center relative mb-4">
-            <Image
-              source={{ uri: 'https://images.unsplash.com/photo-1579975002161-0f4db23932e6?auto=format&fit=crop&w=300&q=80' }}
-              className="w-full h-full rounded-full"
-            />
-            <View className="absolute bottom-0 right-0 bg-[#8C4A28] w-8 h-8 rounded-full border-2 border-[#F5EDDF] items-center justify-center">
-              <Check color="white" size={16} />
+      <ScrollView contentContainerStyle={{ paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
+        
+        {/* Profile Info Section */}
+        <View className="items-center mt-4 mb-8">
+          <View className="relative">
+            <View className="w-32 h-32 rounded-full border-[6px] border-white shadow-xl items-center justify-center overflow-hidden bg-white">
+              <Image
+                source={{ uri: 'https://images.unsplash.com/photo-1579975002161-0f4db23932e6?auto=format&fit=crop&w=300&q=80' }}
+                className="w-full h-full"
+              />
+            </View>
+            <View className="absolute bottom-1 right-1 bg-brand-orange w-9 h-9 rounded-full border-[3px] border-white items-center justify-center shadow-lg">
+              <Check color="white" size={18} strokeWidth={3} />
             </View>
           </View>
-          <Text className="text-3xl font-bold text-[#8C4A28] mb-1">{user?.name}</Text>
-          <View className="flex-row items-center mb-1">
-            <Text className="text-[#64748b] text-sm"> Level {rider?.level}</Text>
-          </View>
-          <Text className="text-[#94a3b8] text-xs">Member since {user?.createdAt}</Text>
-        </View>
-
-        {/* Stats Row */}
-        <View className="flex-row justify-between mb-8">
-          <View className="bg-white rounded-3xl p-4 flex-1 items-center mr-2 shadow-sm">
-            <Text className="text-2xl font-bold text-[#8C4A28] mb-1">{rider?.session_count}</Text>
-            <Text className="text-[#94a3b8] text-[8px] uppercase font-bold tracking-widest text-center">Total Rides</Text>
-          </View>
-          <View className="bg-white rounded-3xl p-4 flex-1 items-center mx-1 shadow-sm">
-            <Text className="text-2xl font-bold text-[#8C4A28] mb-1">12{rider?.trophies?.length}</Text>
-            <Text className="text-[#94a3b8] text-[8px] uppercase font-bold tracking-widest text-center">Trophies</Text>
-          </View>
-          <View className="bg-white rounded-3xl p-4 flex-1 items-center ml-2 shadow-sm">
-            <Text className="text-2xl font-bold text-[#8C4A28] mb-1">{rider?.safety_briefing}%</Text>
-            <Text className="text-[#94a3b8] text-[8px] uppercase font-bold tracking-widest text-center">Safety Score</Text>
+          
+          <View className="items-center mt-5">
+            <Text className="text-3xl font-display text-brand-brown text-center leading-tight">
+              {user?.name?.split(' ')[0] || 'Alex'} <Text className="font-display-reg font-light">{user?.name?.split(' ')[1] || 'Sterling'}</Text>
+            </Text>
+            <Text className="text-brand-brown/60 font-body text-sm mt-1 uppercase tracking-widest">
+              Advanced Equestrian • Level {rider?.level || 8}
+            </Text>
+            <Text className="text-brand-brown/40 font-body-light text-xs mt-1">
+              Member since {user?.createdAt?.split("-")[0] || "April 2021"}
+            </Text>
           </View>
         </View>
 
-        {/* Essential Details */}
-        <View className="mb-8">
-          <View className="flex-row items-center mb-4">
-            <View className="mr-2">
-              <Info color="#8C4A28" size={24} />
-            </View>
-            <Text className="text-[#8C4A28] font-bold text-xl">Essential Details</Text>
+        {/* High-Fidelity Stats Row */}
+        <View className="flex-row justify-between px-6 mb-10">
+          <View className="bg-[#FDF8F2] border border-brand-brown/5 rounded-[24px] p-4 flex-1 items-center mr-2 shadow-sm">
+            <Text className="text-2xl font-display text-brand-brown mb-0.5">{rider?.sessionCount || 42}</Text>
+            <Text className="text-brand-brown/40 text-[9px] uppercase font-bold tracking-[2px] text-center">Total Rides</Text>
+          </View>
+          <View className="bg-[#FDF8F2] border border-brand-brown/5 rounded-[24px] p-4 flex-1 items-center mx-1 shadow-sm">
+            <Text className="text-2xl font-display text-brand-brown mb-0.5">{rider?.trophies?.length || 12}</Text>
+            <Text className="text-brand-brown/40 text-[9px] uppercase font-bold tracking-[2px] text-center">Trophies</Text>
+          </View>
+          <View className="bg-[#FDF8F2] border border-brand-brown/5 rounded-[24px] p-4 flex-1 items-center ml-2 shadow-sm">
+            <Text className="text-2xl font-display text-brand-brown mb-0.5">{rider?.safetyBriefing?.length || 85}%</Text>
+            <Text className="text-brand-brown/40 text-[9px] uppercase font-bold tracking-[2px] text-center">Safety Score</Text>
+          </View>
+        </View>
+
+        {/* Essential Details Card Layout */}
+        <View className="px-6 mb-10">
+          <View className="flex-row justify-between items-center mb-5">
+             <Text className="text-brand-brown font-display text-xl">Essential Details</Text>
+             <Info color="#85431E" size={20} opacity={0.5} />
           </View>
 
-          <View className="space-y-3">
+          <View className="space-y-4">
             {essentialDetails.map((item, idx) => {
               const IconComp = item.icon;
               return (
-                <View key={idx} className="bg-white rounded-2xl p-4 flex-row items-start shadow-sm mb-3">
-                  <View className="bg-[#fceddf] w-10 h-10 rounded-xl items-center justify-center mr-4">
-                    <IconComp color="#8C4A28" size={20} />
+                <View key={idx} className="bg-white/70 border border-brand-brown/5 rounded-3xl p-5 flex-row items-center mb-4 shadow-sm">
+                  <View style={{ backgroundColor: `${item.color}15` }} className="w-14 h-14 rounded-2xl items-center justify-center mr-4">
+                    <IconComp color={item.color} size={24} strokeWidth={2.5} />
                   </View>
-                  <View className="flex-1 pt-1">
-                    <Text className="text-[#1a202c] font-bold text-sm mb-1">{item.title}</Text>
-                    <Text className="text-[#64748b] text-xs leading-relaxed">{item.desc}</Text>
+                  <View className="flex-1">
+                    <Text className="text-brand-brown font-display-reg font-bold text-sm mb-0.5">{item.title}</Text>
+                    <Text className="text-brand-brown/50 font-body text-xs leading-relaxed">{item.desc}</Text>
                   </View>
                 </View>
               )
@@ -115,17 +121,15 @@ export default function DashboardProfileScreen() {
           </View>
         </View>
 
-        {/* My Trophies */}
-        <View className="mb-4">
-          <View className="flex-row justify-between items-center mb-4">
+        {/* Trophies Grid Section */}
+        <View className="px-6 mb-10">
+          <View className="flex-row justify-between items-center mb-6">
             <View className="flex-row items-center">
-              <View className="mr-2">
-                <Trophy color="#8C4A28" size={24} />
-              </View>
-              <Text className="text-[#8C4A28] font-bold text-xl">My Trophies</Text>
+              <Trophy color="#85431E" size={22} className="mr-2" />
+              <Text className="text-brand-brown font-display text-xl ml-2">My Trophies</Text>
             </View>
             <TouchableOpacity onPress={() => navigation.navigate("Trophies")}>
-              <Text className="text-[#8C4A28] font-bold text-sm">View All</Text>
+              <Text className="text-brand-orange font-bold text-sm">View All</Text>
             </TouchableOpacity>
           </View>
 
@@ -133,13 +137,13 @@ export default function DashboardProfileScreen() {
             {trophies.map((trophy, idx) => {
               const IconComp = trophy.icon;
               return (
-                <View key={idx} className="bg-white rounded-2xl p-4 w-[48%] mb-4 shadow-sm relative overflow-hidden">
-                  <View className="absolute -top-4 -right-4 w-16 h-16 bg-[#F5EDDF] rounded-full opacity-50" />
-                  <View className="mb-3">
-                    <IconComp color={trophy.color} size={28} />
+                <View key={idx} className="bg-white border border-brand-brown/5 rounded-[28px] p-5 w-[48%] mb-4 shadow-md relative overflow-hidden">
+                  <View className="absolute -top-6 -right-6 w-20 h-20 bg-brand-beige/50 rounded-full" />
+                  <View className="mb-4 bg-brand-beige/30 self-start p-3 rounded-2xl">
+                    <IconComp color={trophy.color} size={28} strokeWidth={2.5} />
                   </View>
-                  <Text className="text-[#1a202c] font-bold text-sm mb-1">{trophy.title}</Text>
-                  <Text className="text-[#94a3b8] text-[10px]">{trophy.subtitle}</Text>
+                  <Text className="text-brand-brown font-display-reg font-bold text-[13px] mb-1">{trophy.title}</Text>
+                  <Text className="text-brand-brown/40 font-body text-[10px] uppercase tracking-wider">{trophy.subtitle}</Text>
                 </View>
               )
             })}
@@ -150,3 +154,4 @@ export default function DashboardProfileScreen() {
     </SafeAreaView>
   );
 }
+

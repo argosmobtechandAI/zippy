@@ -1,196 +1,176 @@
-import React from 'react';
-import { View, Text, SafeAreaView, ScrollView, TouchableOpacity, Image } from 'react-native';
-import { Check, Award, FileText, TrendingUp, Trophy, Medal, Upload, User, ChevronRight, Calendar, LogOut } from 'lucide-react-native';
-import { useNavigation } from '@react-navigation/native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import { Check, Award, FileText, Activity, User, ChevronRight, LogOut, HeartPulse, ShieldAlert, ClipboardList } from 'lucide-react-native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiFunction } from '../api/apiFunction';
+import { getAllHorsesApi, getUserApi } from '../api/api';
 
 export default function ProfileScreen() {
+   const navigation = useNavigation<any>();
+   const [user, setUser] = useState<any>(null);
+   const [loading, setLoading] = useState(true);
+   const [stats, setStats] = useState({
+      patients: 0,
+      logs: 24, // Mocked for now
+      alerts: 2
+   });
 
-   const navigation = useNavigation()
+   const loadUserData = async () => {
+      try {
+         const userData = await AsyncStorage.getItem('user');
+         if (userData) {
+            const parsedUser = JSON.parse(userData);
+            setUser(parsedUser);
+
+            // Fetch fresh data from DB
+            const res = await apiFunction(getUserApi, [], {}, "GET", true);
+            if (res && res.success && res.user) {
+               setUser(res.user);
+               await AsyncStorage.setItem('user', JSON.stringify(res.user));
+            }
+         }
+
+         // Fetch total patients for stat
+         const horseRes = await apiFunction(getAllHorsesApi, [], {}, "GET", true);
+         if (horseRes && horseRes.success) {
+            setStats(prev => ({ ...prev, patients: horseRes.horses?.length || 0 }));
+         }
+      } catch (error) {
+         console.error("Load profile data error:", error);
+      } finally {
+         setLoading(false);
+      }
+   };
+
+   useFocusEffect(
+      useCallback(() => {
+         loadUserData();
+      }, [])
+   );
+
+   const handleLogout = async () => {
+      await AsyncStorage.multiRemove(['token', 'user']);
+      navigation.replace('Login');
+   };
+
+   if (loading && !user) {
+      return (
+         <View className="flex-1 bg-brand-beige items-center justify-center">
+            <ActivityIndicator color="#85431E" />
+         </View>
+      );
+   }
+
    return (
-      <View className="flex-1 bg-[#F5EDDF]">
-         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+      <View className="flex-1 bg-brand-beige">
+         <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
 
-            {/* Top Profile Info */}
-            <View className="items-center mt-6 mb-8">
-               <View className="relative mb-4">
-                  <View className="w-28 h-28 rounded-full border-4 border-[#e6d0b3] p-1 bg-[#F5EDDF]">
-                     <View className="w-full h-full rounded-full overflow-hidden bg-white">
-                        <Image
-                           source={{ uri: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop' }}
-                           className="w-full h-full"
-                        />
+            {/* Top Profile Info - Premium Vet Redesign */}
+            <View className="items-center mt-12 mb-10">
+               <View className="relative">
+                  <View className="w-32 h-32 rounded-full border-[6px] border-white shadow-xl overflow-hidden bg-white">
+                      <Image
+                         source={{ uri: user?.imageUrl || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop' }}
+                         className="w-full h-full"
+                      />
+                  </View>
+                  <View className="absolute bottom-1 right-1 bg-brand-orange w-9 h-9 border-[3px] border-white rounded-full items-center justify-center shadow-lg">
+                     <Check color="white" size={18} strokeWidth={3} />
+                  </View>
+               </View>
+
+               <Text className="text-3xl font-display text-brand-brown mt-6 mb-1">{user?.name || 'Dr. Alexander'}</Text>
+               <Text className="text-brand-brown/50 font-body text-xs uppercase tracking-[3px]">{user?.type === 'vet' ? 'Chief Veterinarian • Specialist' : (user?.type || 'Specialist')}</Text>
+               <View className="bg-white/50 px-5 py-2 rounded-full border border-brand-brown/5 mt-4">
+                  <Text className="text-brand-brown/40 text-[10px] font-body uppercase tracking-widest">{user?.email}</Text>
+               </View>
+            </View>
+
+            {/* Stats Row - Professional Analytics */}
+            <View className="flex-row justify-between mb-12 gap-4">
+               <View className="flex-1 bg-white border border-brand-brown/5 rounded-[32px] py-7 items-center shadow-sm">
+                  <HeartPulse color="#85431E" size={28} strokeWidth={2.5} className="mb-3" />
+                  <Text className="text-brand-brown text-2xl font-display mb-0.5">{stats.patients}</Text>
+                  <Text className="text-brand-brown/40 text-[9px] font-display uppercase tracking-[2px]">Patients</Text>
+               </View>
+               <View className="flex-1 bg-white border border-brand-brown/5 rounded-[32px] py-7 items-center shadow-sm">
+                  <ClipboardList color="#DA7347" size={28} strokeWidth={2.5} className="mb-3" />
+                  <Text className="text-brand-brown text-2xl font-display mb-0.5">{stats.logs}</Text>
+                  <Text className="text-brand-brown/40 text-[9px] font-display uppercase tracking-[2px]">Logs</Text>
+               </View>
+               <View className="flex-1 bg-[#FDF8F2] border border-brand-brown/5 rounded-[32px] py-7 items-center shadow-sm">
+                  <ShieldAlert color="#85431E" size={28} strokeWidth={2.5} className="mb-3" opacity={0.6} />
+                  <Text className="text-brand-brown text-2xl font-display mb-0.5">{stats.alerts}</Text>
+                  <Text className="text-brand-brown/40 text-[9px] font-display uppercase tracking-[2px]">Alerts</Text>
+               </View>
+            </View>
+
+            {/* Account Settings */}
+            <View className="mb-10">
+               <Text className="text-2xl font-display text-brand-brown mb-6">Professional Portal</Text>
+               
+               <View className="bg-white/70 border border-brand-brown/5 rounded-[40px] p-3 shadow-sm">
+                  <TouchableOpacity 
+                    activeOpacity={0.7}
+                    onPress={() => navigation.navigate("PersonalInformation")} 
+                    className="flex-row items-center p-5 border-b border-brand-brown/5"
+                  >
+                     <View className="w-14 h-14 bg-brand-beige rounded-[22px] items-center justify-center mr-5">
+                        <User color="#85431E" size={22} strokeWidth={2.5} />
                      </View>
-                  </View>
-                  {/* Verified Badge */}
-                  <View className="absolute bottom-1 right-2 w-6 h-6 bg-[#8C4A28] rounded-full items-center justify-center border-2 border-[#F5EDDF]">
-                     <Check color="white" size={12} strokeWidth={3} />
-                  </View>
-               </View>
+                     <View className="flex-1">
+                        <Text className="text-brand-brown font-display-reg font-bold text-base tracking-tight mb-0.5">Personal Identity</Text>
+                        <Text className="text-brand-brown/40 font-body text-[11px] uppercase tracking-wider">Credentials & Security</Text>
+                     </View>
+                     <ChevronRight color="#85431E" size={20} opacity={0.3} />
+                  </TouchableOpacity>
 
-               <Text className="text-2xl font-bold text-[#1a202c] mb-1">Alex Sterling</Text>
-               <Text className="text-[#8C4A28] font-bold text-sm mb-2">Professional Rider | Grade IV</Text>
-               <View className="flex-row items-center">
-                  <CalendarIcon color="#94a3b8" size={12} className="mr-1" />
-                  <Text className="text-[#94a3b8] text-xs font-bold">Member since 2021</Text>
-               </View>
-            </View>
+                  <TouchableOpacity 
+                    activeOpacity={0.7}
+                    className="flex-row items-center p-5 border-b border-brand-brown/5"
+                  >
+                     <View className="w-14 h-14 bg-brand-orange/10 rounded-[22px] items-center justify-center mr-5">
+                        <Award color="#DA7347" size={22} strokeWidth={2.5} />
+                     </View>
+                     <View className="flex-1">
+                        <Text className="text-brand-brown font-display-reg font-bold text-base tracking-tight mb-0.5">Specializations</Text>
+                        <Text className="text-brand-brown/40 font-body text-[11px] uppercase tracking-wider">Verified Clinical Bio</Text>
+                     </View>
+                     <ChevronRight color="#85431E" size={20} opacity={0.3} />
+                  </TouchableOpacity>
 
-            {/* Stats Row */}
-            <View className="flex-row justify-between mb-8">
-               <View className="flex-1 bg-white rounded-2xl py-4 items-center mr-2 shadow-sm border border-[#e2e8f0]">
-                  <Award color="#8C4A28" size={24} className="mb-2" />
-                  <Text className="text-[#1a202c] text-2xl font-bold mb-1">12</Text>
-                  <Text className="text-[#94a3b8] text-[9px] font-bold tracking-widest">MEDALS</Text>
-               </View>
-               <View className="flex-1 bg-white rounded-2xl py-4 items-center mr-2 shadow-sm border border-[#e2e8f0]">
-                  <FileText color="#8C4A28" size={24} className="mb-2" />
-                  <Text className="text-[#1a202c] text-2xl font-bold mb-1">8</Text>
-                  <Text className="text-[#94a3b8] text-[9px] font-bold tracking-widest">CERTS</Text>
-               </View>
-               <View className="flex-1 bg-white rounded-2xl py-4 items-center shadow-sm border border-[#e2e8f0]">
-                  <TrendingUp color="#8C4A28" size={24} className="mb-2" />
-                  <Text className="text-[#1a202c] text-2xl font-bold mb-1">65%</Text>
-                  <Text className="text-[#94a3b8] text-[9px] font-bold tracking-widest">WIN RATE</Text>
-               </View>
-            </View>
-
-            {/* Performance History */}
-            <View className="flex-row justify-between items-center mb-4">
-               <Text className="text-lg font-bold text-[#1a202c]">Performance History</Text>
-               <View className="bg-[#e6d0b3] px-3 py-1 rounded-lg">
-                  <Text className="text-[#8C4A28] font-bold text-[10px]">Last 12 Months</Text>
+                  <TouchableOpacity 
+                    activeOpacity={0.7}
+                    className="flex-row items-center p-5"
+                  >
+                     <View className="w-14 h-14 bg-brand-brown/5 rounded-[22px] items-center justify-center mr-5">
+                        <FileText color="#85431E" size={22} strokeWidth={2.5} />
+                     </View>
+                     <View className="flex-1">
+                        <Text className="text-brand-brown font-display-reg font-bold text-base tracking-tight mb-0.5">Clinical Affiliations</Text>
+                        <Text className="text-brand-brown/40 font-body text-[11px] uppercase tracking-wider">Practice Locations</Text>
+                     </View>
+                     <ChevronRight color="#85431E" size={20} opacity={0.3} />
+                  </TouchableOpacity>
                </View>
             </View>
 
-            <View className="bg-white rounded-3xl p-5 shadow-sm border border-[#e2e8f0] mb-8 h-40 justify-end relative">
-               {/* Extremely simple dummy SVG-like curve using borders and absolutely positioned dots */}
-               <View className="absolute inset-0 right-4 left-4 border-b border-[#f1f5f9] top-1/2" />
-               <View className="flex-row justify-between items-end h-20 mb-3 px-2">
-                  {/* Fake data points for the visual */}
-                  <View className="w-1.5 h-1.5 bg-[#8C4A28] rounded-full absolute left-[10%] bottom-[20%]" />
-                  <View className="w-1.5 h-1.5 bg-[#8C4A28] rounded-full absolute left-[30%] bottom-[50%]" />
-                  <View className="w-1.5 h-1.5 bg-[#8C4A28] rounded-full absolute left-[50%] bottom-[40%]" />
-                  <View className="w-1.5 h-1.5 bg-[#8C4A28] rounded-full absolute left-[70%] bottom-[80%]" />
-                  <View className="w-1.5 h-1.5 bg-[#8C4A28] rounded-full absolute left-[90%] bottom-[60%]" />
-               </View>
+            {/* Logout Section */}
+            <TouchableOpacity 
+               activeOpacity={0.8}
+               onPress={handleLogout}
+               className="bg-brand-brown rounded-[32px] p-6 shadow-xl shadow-brand-brown/20 flex-row items-center justify-center mb-8"
+            >
+               <LogOut color="white" size={24} strokeWidth={2.5} className="mr-4" />
+               <Text className="text-white font-display text-lg tracking-tight">End Professional Session</Text>
+            </TouchableOpacity>
 
-               <View className="flex-row justify-between border-t border-[#f1f5f9] pt-3 px-2">
-                  {['JAN', 'MAR', 'JUN', 'SEP', 'DEC'].map((m) => (
-                     <Text key={m} className="text-[#94a3b8] text-[10px] font-bold">{m}</Text>
-                  ))}
-               </View>
-            </View>
-
-            {/* Competition Log */}
-            <View className="flex-row justify-between items-center mb-4">
-               <Text className="text-lg font-bold text-[#1a202c]">Competition Log</Text>
-               <TouchableOpacity className="flex-row items-center">
-                  <View className="w-3 h-3 rounded-full border border-[#8C4A28] items-center justify-center mr-1">
-                     <Text className="text-[#8C4A28] text-[8px] font-bold">+</Text>
-                  </View>
-                  <Text className="text-[#8C4A28] font-bold text-[10px]">Record</Text>
-               </TouchableOpacity>
-            </View>
-
-            <View className="bg-white rounded-2xl p-4 shadow-sm border border-[#e2e8f0] mb-3 flex-row items-center">
-               <View className="w-12 h-12 bg-[#fdf2f2] rounded-xl items-center justify-center mr-4">
-                  <Trophy color="#8C4A28" size={24} />
-               </View>
-               <View className="flex-1">
-                  <View className="flex-row justify-between items-center mb-1">
-                     <Text className="text-[#1a202c] font-bold text-sm">Royal Windsor Horse Show</Text>
-                     <Text className="text-[#b45309] font-bold text-[10px]">GOLD</Text>
-                  </View>
-                  <View className="flex-row justify-between items-center">
-                     <Text className="text-[#64748b] text-[11px]">1st Place • Dressage</Text>
-                     <Text className="text-[#94a3b8] text-[9px]">May 2024</Text>
-                  </View>
-               </View>
-            </View>
-
-            <View className="bg-white rounded-2xl p-4 shadow-sm border border-[#e2e8f0] mb-8 flex-row items-center">
-               <View className="w-12 h-12 bg-[#f8fafc] rounded-xl items-center justify-center mr-4">
-                  <Medal color="#8C4A28" size={24} />
-               </View>
-               <View className="flex-1">
-                  <View className="flex-row justify-between items-center mb-1">
-                     <Text className="text-[#1a202c] font-bold text-sm">National Equine League</Text>
-                     <Text className="text-[#64748b] font-bold text-[10px]">BRONZE</Text>
-                  </View>
-                  <View className="flex-row justify-between items-center">
-                     <Text className="text-[#64748b] text-[11px]">3rd Place • Jumping</Text>
-                     <Text className="text-[#94a3b8] text-[9px]">Apr 2024</Text>
-                  </View>
-               </View>
-            </View>
-
-            <Text className="text-lg font-bold text-[#1a202c] mb-4">Account Overview</Text>
-
-            <View className="bg-white rounded-3xl p-2 shadow-sm border border-[#e2e8f0] mb-6">
-               <TouchableOpacity onPress={() => navigation.navigate("PersonalInformation")} className="flex-row items-center p-3 border-b border-[#f1f5f9]">
-                  <View className="w-10 h-10 bg-[#F5EDDF] rounded-xl items-center justify-center mr-3">
-                     <User color="#8C4A28" size={20} />
-                  </View>
-                  <View className="flex-1">
-                     <Text className="text-[#1a202c] font-bold text-base mb-0.5">Personal Details</Text>
-                     <Text className="text-[#64748b] text-xs">Email, Phone, Address</Text>
-                  </View>
-                  <ChevronRight color="#94a3b8" size={20} />
-               </TouchableOpacity>
-
-
-            </View>
-
-
-            {/* Certificates */}
-            <View className="flex-row justify-between items-center mb-4">
-               <Text className="text-lg font-bold text-[#1a202c]">Certificates</Text>
-               <TouchableOpacity className="flex-row items-center">
-                  <Upload color="#8C4A28" size={12} className="mr-1" />
-                  <Text className="text-[#8C4A28] font-bold text-[10px]">Upload</Text>
-               </TouchableOpacity>
-            </View>
-
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="overflow-visible mb-6">
-               <View className="w-40 h-28 bg-[#2c2c2c] rounded-2xl mr-3 overflow-hidden border border-[#e2e8f0] shadow-sm relative">
-                  <View className="absolute inset-0 items-center justify-center opacity-40">
-                     <FileText color="white" size={40} />
-                  </View>
-                  <View className="absolute bottom-0 left-0 right-0 p-2 bg-black/40">
-                     <Text className="text-white text-[9px] font-bold">Grade IV License.pdf</Text>
-                  </View>
-               </View>
-
-               <View className="w-40 h-28 bg-[#475569] rounded-2xl mr-3 overflow-hidden border border-[#e2e8f0] shadow-sm relative">
-                  <View className="absolute inset-0 items-center justify-center opacity-40">
-                     <Award color="white" size={40} />
-                  </View>
-                  <View className="absolute bottom-0 left-0 right-0 p-2 bg-black/40">
-                     <Text className="text-white text-[9px] font-bold">FEI Excellence.jpg</Text>
-                  </View>
-               </View>
-            </ScrollView>
-
-            {/* Support & Logout */}
-            <Text className="text-lg font-bold text-[#1a202c] mb-4">Other</Text>
-            <View className="bg-white rounded-3xl p-2 shadow-sm border border-[#e2e8f0] mb-6">
-               <TouchableOpacity className="flex-row items-center p-3" onPress={() => navigation.navigate("Login")}>
-                  <View className="w-10 h-10 bg-[#fee2e2] rounded-xl items-center justify-center mr-3">
-                     <LogOut color="#ef4444" size={20} />
-                  </View>
-                  <View className="flex-1">
-                     <Text className="text-[#ef4444] font-bold text-base">Log Out</Text>
-                  </View>
-               </TouchableOpacity>
-            </View>
+            <Text className="text-center text-brand-brown/20 font-body text-[9px] uppercase tracking-[4px] mt-4 mb-2">
+               zippy equestrian center • vet portal v1.0.4
+            </Text>
 
          </ScrollView>
       </View>
-   );
-}
-
-function CalendarIcon(props: any) {
-   return (
-      <View style={{ width: props.size, height: props.size, borderColor: props.color, borderWidth: 1.5, borderRadius: 3, marginTop: 1 }} />
    );
 }

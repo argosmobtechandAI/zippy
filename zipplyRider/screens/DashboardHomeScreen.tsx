@@ -1,24 +1,66 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { Leaf, Bell, AlertTriangle, Calendar, Clock, Activity, Plus, User } from 'lucide-react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchRider, fetchUser } from '../redux/getDataSlice';
+import { fetchRider, fetchRiderSessions, fetchUser } from '../redux/getDataSlice';
 
 export default function DashboardHomeScreen() {
-  const { user, rider, loading } = useSelector((state) => state.getData)
+  const { user, rider, sessions, loading } = useSelector((state: any) => state.getData)
   const navigation = useNavigation()
-  const dispatch = useDispatch()
+  const dispatch = useDispatch<any>()
 
   useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      console.log("Refreshing Dashboard data...");
+      if (!user) {
+        dispatch(fetchUser())
+      }
+      if (!rider) {
+        dispatch(fetchRider())
+      }
+      if (user?.riderId) {
+        dispatch(fetchRiderSessions(user.riderId))
+      }
+    });
 
-    if (!user) {
-      dispatch(fetchUser())
-    }
-    if (!rider) {
-      dispatch(fetchRider())
-    }
-  }, [dispatch])
+    return unsubscribe;
+  }, [navigation, user?.riderId, rider, dispatch]);
+
+  const nextRide = useMemo(() => {
+    if (!sessions || sessions.length === 0) return null;
+    const now = new Date();
+
+    const upcoming = sessions.filter(s => {
+      const sessionDate = new Date(s.date);
+      
+      // If the session is for today, we need to check the timing
+      if (sessionDate.toDateString() === now.toDateString()) {
+        try {
+          const [startTime] = s.timing.split(' - ');
+          const [hours, minutes] = startTime.split(':').map(Number);
+          const sessionWithTime = new Date(sessionDate);
+          sessionWithTime.setHours(hours, minutes, 0, 0);
+          
+          return sessionWithTime > now;
+        } catch (e) {
+          // Fallback if timing format is unexpected
+          return true;
+        }
+      }
+      
+      // For other days, just check if it's in the future
+      return sessionDate > now;
+    }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    
+    return upcoming[0];
+  }, [sessions]);
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "";
+    const options: any = { weekday: 'long', month: 'long', day: 'numeric' };
+    return new Date(dateString).toLocaleDateString('en-US', options);
+  };
 
   console.log(user, "user")
 
@@ -60,13 +102,15 @@ export default function DashboardHomeScreen() {
             <Text className="text-[#fceddf] opacity-80 text-[10px] font-bold tracking-wider mb-1">
               REMAINING SESSIONS
             </Text>
-            <Text className="text-white text-4xl font-bold">8</Text>
+            <Text className="text-white text-4xl font-bold">{rider?.sessionCount || 0}</Text>
           </View>
           <View className="items-end">
             <Text className="text-[#fceddf] opacity-80 text-[10px] font-bold tracking-wider mb-1">
               PLAN EXPIRY
             </Text>
-            <Text className="text-white text-lg font-bold">Oct 12, 2026</Text>
+            <Text className="text-white text-lg font-bold">
+              {rider?.plan && rider?.plan.length > 0 ? "Active Plan" : "No Active Plan"}
+            </Text>
           </View>
         </TouchableOpacity>
 
@@ -78,39 +122,49 @@ export default function DashboardHomeScreen() {
           </TouchableOpacity>
         </View>
 
-        <View className="bg-white rounded-3xl p-5 mb-8 shadow-sm">
-          <View className="flex-row justify-between items-center mb-4">
-            <View className="flex-row items-center space-x-2">
-              <Calendar color="#64748b" size={16} />
-              <Text className="text-[#1a202c] font-bold text-sm ml-2">Saturday, May 18</Text>
-            </View>
-            <View className="bg-[#fceddf] px-3 py-1 rounded-full">
-              <Text className="text-[#8C4A28] font-bold text-[10px]">Intermediate</Text>
-            </View>
-          </View>
-          <View className="flex-row items-center space-x-2 mb-6">
-            <Clock color="#64748b" size={16} />
-            <Text className="text-[#1a202c] font-bold text-sm ml-2">09:30 AM - 10:30 AM</Text>
-          </View>
-
-          <View className="h-[1px] bg-[#f1f5f9] mb-4" />
-
-          <View className="flex-row justify-between items-center">
-            <View className="flex-row items-center flex-1">
-              <View className="w-10 h-10 bg-[#FAEDDD] rounded-full mr-3 items-center justify-center">
-                <Activity color="#8C4A28" size={20} />
+        {nextRide ? (
+          <View className="bg-white rounded-3xl p-5 mb-8 shadow-sm">
+            <View className="flex-row justify-between items-center mb-4">
+              <View className="flex-row items-center space-x-2">
+                <Calendar color="#64748b" size={16} />
+                <Text className="text-[#1a202c] font-bold text-sm ml-2">{formatDate(nextRide.date)}</Text>
               </View>
-              <View>
-                <Text className="text-[#94a3b8] text-[8px] font-bold tracking-widest uppercase mb-1">Horse</Text>
-                <Text className="text-[#8C4A28] font-bold text-sm">Thunderbolt</Text>
+              <View className="bg-[#fceddf] px-3 py-1 rounded-full">
+                <Text className="text-[#8C4A28] font-bold text-[10px]">Upcoming</Text>
               </View>
             </View>
-            <View className="items-end flex-1 pl-4 border-l border-[#f1f5f9]">
-              <Text className="text-[#94a3b8] text-[8px] font-bold tracking-widest uppercase mb-1">Trainer</Text>
-              <Text className="text-[#8C4A28] font-bold text-sm">Sarah Jenkins</Text>
+            <View className="flex-row items-center space-x-2 mb-6">
+              <Clock color="#64748b" size={16} />
+              <Text className="text-[#1a202c] font-bold text-sm ml-2">{nextRide.timing}</Text>
+            </View>
+
+            <View className="h-[1px] bg-[#f1f5f9] mb-4" />
+
+            <View className="flex-row justify-between items-center">
+              <View className="flex-row items-center flex-1">
+                <View className="w-10 h-10 bg-[#FAEDDD] rounded-full mr-3 items-center justify-center">
+                  <Activity color="#8C4A28" size={20} />
+                </View>
+                <View>
+                  <Text className="text-[#94a3b8] text-[8px] font-bold tracking-widest uppercase mb-1">Horse</Text>
+                  <Text className="text-[#8C4A28] font-bold text-sm">{nextRide.title}</Text>
+                </View>
+              </View>
+              <View className="items-end flex-1 pl-4 border-l border-[#f1f5f9]">
+                <Text className="text-[#94a3b8] text-[8px] font-bold tracking-widest uppercase mb-1">Location</Text>
+                <Text className="text-[#8C4A28] font-bold text-sm">{nextRide.location}</Text>
+              </View>
             </View>
           </View>
-        </View>
+        ) : (
+          <View className="bg-white/50 rounded-3xl p-10 mb-8 border border-[#e2d5c3] border-dashed items-center justify-center">
+             <Calendar color="#94a3b8" size={32} />
+             <Text className="text-[#64748b] mt-2 font-semibold">No upcoming rides</Text>
+             <TouchableOpacity onPress={() => navigation.navigate("Sessions")} className="mt-4">
+               <Text className="text-[#8C4A28] font-bold">Book your first session →</Text>
+             </TouchableOpacity>
+          </View>
+        )}
 
         {/* Quick Actions */}
         <View className="flex-row justify-between mb-2">

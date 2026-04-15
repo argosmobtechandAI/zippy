@@ -1,146 +1,244 @@
-import React from 'react';
-import { View, Text, SafeAreaView, ScrollView, TouchableOpacity, Image } from 'react-native';
-import { Bell, ChevronRight, Activity, Stethoscope } from 'lucide-react-native';
+import { Bell, ChevronRight, Activity, Stethoscope, Loader2, ClipboardCheck, ArrowUpRight } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useEffect, useState } from 'react';
+import { apiFunction } from '../api/apiFunction';
+import { getAllHorsesApi } from '../api/api';
+import { View, Text, ScrollView, Image, TouchableOpacity, Dimensions, RefreshControl, ActivityIndicator } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
+   const navigation = useNavigation<any>();
+   const [horses, setHorses] = useState([]);
+   const [loading, setLoading] = useState(true);
+   const [user, setUser] = useState<any>(null);
 
-   const navigation = useNavigation()
+   const [refreshing, setRefreshing] = useState(false);
+
+   const onRefresh = async () => {
+      setRefreshing(true);
+      await fetchHorses();
+      setRefreshing(false);
+   };
+
+   const fetchHorses = async () => {
+      try {
+         const res = await apiFunction(getAllHorsesApi, [], {}, "GET", true);
+         if (res && res.success) {
+            setHorses(res.horses || []);
+         }
+      } catch (error) {
+         console.error("Fetch horses error", error);
+      } finally {
+         setLoading(false);
+      }
+   };
+
+   const loadUserData = async () => {
+      try {
+         const userData = await AsyncStorage.getItem('user');
+         if (userData) {
+            setUser(JSON.parse(userData));
+         }
+      } catch (error) {
+         console.error("Load user data error", error);
+      }
+   };
+
+   useEffect(() => {
+      loadUserData();
+      fetchHorses();
+   }, []);
+
    return (
-      <View className="flex-1 bg-[#F5EDDF]">
-         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-            {/* Header Section */}
-            <View className="flex-row justify-between items-center mb-6 mt-2">
+      <View className="flex-1 bg-brand-beige">
+         <ScrollView 
+            contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 60 }} 
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+               <RefreshControl 
+                  refreshing={refreshing} 
+                  onRefresh={onRefresh} 
+                  tintColor="#85431E"
+                  colors={["#85431E"]}
+               />
+            }
+         >
+            {/* Header Section - High-Fidelity Professional Profile */}
+            <View className="flex-row justify-between items-center mb-10 mt-8">
                <View className="flex-row items-center">
-                  <View className="w-12 h-12 bg-white rounded-full overflow-hidden mr-3 border-2 border-[#8C4A28]">
-                     <Image
-                        source={{ uri: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop' }}
-                        className="w-full h-full"
-                     />
+                  <View className="w-16 h-16 rounded-full border-[4px] border-white shadow-xl overflow-hidden bg-white">
+                      <Image
+                         source={{ uri: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop' }}
+                         className="w-full h-full"
+                      />
                   </View>
-                  <View>
-                     <Text className="text-xl font-bold text-[#8C4A28]">Welcome, Dr. Sarah</Text>
-                     <Text className="text-sm font-semibold text-[#64748b]">Veterinary Dashboard</Text>
+                  <View className="ml-5">
+                     <Text className="text-2xl font-display text-brand-brown leading-tight">{user?.name || 'Veterinary User'}</Text>
+                     <View className="flex-row items-center mt-1">
+                        <View className="w-2 h-2 rounded-full bg-emerald-500 mr-2" />
+                        <Text className="text-[10px] font-body text-brand-brown/50 uppercase tracking-[2px]">{user?.type === 'vet' ? 'Chief Veterinarian' : (user?.type || 'Specialist')}</Text>
+                     </View>
                   </View>
                </View>
-               <TouchableOpacity onPress={() => navigation.navigate('Notification')} className="relative w-10 h-10 bg-[#e6d0b3] rounded-full items-center justify-center">
-                  <Bell color="#8C4A28" size={20} />
-                  <View className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full" />
+               <TouchableOpacity 
+                  activeOpacity={0.7}
+                  onPress={() => navigation.navigate('Notification')} 
+                  className="w-12 h-12 bg-white/50 rounded-2xl items-center justify-center border border-brand-brown/5 shadow-sm"
+               >
+                  <Bell color="#85431E" size={22} strokeWidth={2.5} />
+                  <View className="absolute top-3 right-3 w-2.5 h-2.5 bg-brand-orange rounded-full border-2 border-brand-beige" />
                </TouchableOpacity>
             </View>
 
-            {/* Action Widgets */}
-            <View className="flex-row justify-between mb-8">
+            {/* Premium Clinical Metrics */}
+            <View className="flex-row justify-between mb-10 gap-5">
                <TouchableOpacity
-                  className="flex-1 bg-[#8C4A28] rounded-2xl p-4 mr-2 justify-center"
+                  activeOpacity={0.9}
+                  className="flex-[1.2] bg-brand-brown rounded-[32px] p-8 justify-between shadow-2xl shadow-brand-brown/30 relative overflow-hidden"
                   onPress={() => navigation.navigate('Health')}
                >
-                  <Stethoscope color="white" size={24} className="mb-2" />
-                  <Text className="text-white text-lg font-bold">Health Checks</Text>
-                  <Text className="text-red-100 text-xs font-semibold mt-1">4 Scheduled Today</Text>
+                  <View className="absolute -top-12 -right-12 w-36 h-36 bg-white opacity-5 rounded-full" />
+                  
+                  <View>
+                     <View className="bg-white/10 self-start p-3.5 rounded-2xl mb-8 border border-white/10">
+                        <Stethoscope color="white" size={26} strokeWidth={2.5} />
+                     </View>
+                     <Text className="text-white text-5xl font-display tracking-tighter leading-none">{horses.length}</Text>
+                     <Text className="text-white/50 text-[10px] font-display uppercase tracking-[3px] mt-2">Active Fleet</Text>
+                  </View>
+                  
+                  <View className="flex-row items-center gap-2 mt-6">
+                     <Text className="text-white/40 text-[9px] font-body uppercase tracking-widest">Live Roster Monitor</Text>
+                     <ArrowUpRight color="white" opacity={0.3} size={14} />
+                  </View>
                </TouchableOpacity>
-               <View className="flex-1">
+
+               <View className="flex-1 gap-5">
                   <TouchableOpacity
-                     className="bg-white rounded-2xl p-3 mb-2 shadow-sm border border-[#e2e8f0] flex-row items-center"
+                     activeOpacity={0.8}
+                     className="bg-white rounded-[28px] p-6 shadow-sm border border-brand-brown/5 flex-col justify-between"
                      onPress={() => navigation.navigate('Horses')}
                   >
-                     <View className="bg-red-100 p-2 rounded-lg mr-2">
-                        <Activity color="#ef4444" size={16} />
+                     <View className="bg-brand-orange/10 self-start p-3 rounded-2xl mb-3">
+                        <Activity color="#DA7347" size={20} strokeWidth={2.5} />
                      </View>
                      <View>
-                        <Text className="text-[#1a202c] font-bold text-sm">2 Critical</Text>
-                        <Text className="text-[#64748b] text-[10px] font-semibold">Need attention</Text>
+                        <Text className="text-brand-brown font-display text-lg tracking-tight leading-tight">3 Care</Text>
+                        <Text className="text-brand-brown/40 text-[8px] font-body uppercase tracking-[2px] mt-0.5">Alerts</Text>
                      </View>
                   </TouchableOpacity>
+                  
                   <TouchableOpacity
-                     className="bg-white rounded-2xl p-3 shadow-sm border border-[#e2e8f0] flex-row items-center"
+                     activeOpacity={0.8}
+                     className="bg-[#FDF8F2] rounded-[28px] p-6 shadow-sm border border-brand-brown/5 flex-col justify-between"
                      onPress={() => navigation.navigate('Records')}
                   >
-                     <View className="bg-orange-100 p-2 rounded-lg mr-2">
-                        <Activity color="#f97316" size={16} />
+                     <View className="bg-brand-brown/5 self-start p-3 rounded-2xl mb-3">
+                        <ClipboardCheck color="#85431E" size={20} strokeWidth={2.5} />
                      </View>
                      <View>
-                        <Text className="text-[#1a202c] font-bold text-sm">5 Overdue</Text>
-                        <Text className="text-[#64748b] text-[10px] font-semibold">Vaccinations</Text>
+                        <Text className="text-brand-brown font-display text-lg tracking-tight leading-tight">Stable</Text>
+                        <Text className="text-brand-brown/40 text-[8px] font-body uppercase tracking-[2px] mt-0.5">Records</Text>
                      </View>
                   </TouchableOpacity>
                </View>
             </View>
 
-            {/* Priority Patients */}
-            <View className="flex-row justify-between items-center mb-4">
-               <Text className="text-xl font-bold text-[#1a202c]">Priority Patients</Text>
-               <TouchableOpacity onPress={() => navigation.navigate('Health')}>
-                  <Text className="text-[#8C4A28] font-bold text-sm">View All</Text>
+            {/* High-Fidelity Health Roster */}
+            <View className="flex-row justify-between items-center mb-8 px-1">
+               <View className="flex-row items-center">
+                  <Stethoscope color="#85431E" size={22} className="mr-3" />
+                  <Text className="text-2xl font-display text-brand-brown tracking-tight ml-2">Clinical Queue</Text>
+               </View>
+               <TouchableOpacity onPress={() => navigation.navigate('Health')} activeOpacity={0.6}>
+                  <Text className="text-brand-orange font-display text-[10px] uppercase tracking-[2px]">See All</Text>
                </TouchableOpacity>
             </View>
 
-            <TouchableOpacity className="bg-white rounded-2xl p-4 shadow-sm border border-[#e2e8f0] mb-3 flex-row items-center">
-               <Image
-                  source={{ uri: 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?q=80&w=200&auto=format&fit=crop' }}
-                  className="w-16 h-16 rounded-xl mr-3"
-               />
-               <View className="flex-1">
-                  <View className="flex-row justify-between items-center mb-1">
-                     <Text className="text-[#1a202c] font-bold text-base">Copper Blaze</Text>
-                     <Text className="text-xs font-bold text-white bg-red-500 px-2 py-0.5 rounded">REST REQUIRED</Text>
-                  </View>
-                  <Text className="text-[#64748b] text-xs font-semibold mb-1">ID: #ZE-7782 | Chestnut Gelding</Text>
-                  <Text className="text-[#ef4444] text-xs font-bold">Post-operative eval today</Text>
+            {loading ? (
+               <View className="py-20 justify-center items-center">
+                  <Loader2 className="w-10 h-10 animate-spin text-brand-brown" />
+                  <Text className="mt-4 text-brand-brown/40 font-display text-[10px] uppercase tracking-[3px]">Syncing Laboratory...</Text>
                </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity className="bg-white rounded-2xl p-4 shadow-sm border border-[#e2e8f0] mb-8 flex-row items-center">
-               <Image
-                  source={{ uri: 'https://images.unsplash.com/photo-1594911874499-28c0c4a4f896?q=80&w=200&auto=format&fit=crop' }}
-                  className="w-16 h-16 rounded-xl mr-3"
-               />
-               <View className="flex-1">
-                  <View className="flex-row justify-between items-center mb-1">
-                     <Text className="text-[#1a202c] font-bold text-base">Thunder Dash</Text>
-                     <Text className="text-xs font-bold text-white bg-orange-500 px-2 py-0.5 rounded">VACCINE DUE</Text>
-                  </View>
-                  <Text className="text-[#64748b] text-xs font-semibold mb-1">ID: #ZE-2299 | Bay Stallion</Text>
-                  <Text className="text-[#f97316] text-xs font-bold">Influenza + Tetanus Booster</Text>
+            ) : horses.length === 0 ? (
+               <View className="bg-white/50 rounded-[40px] p-16 items-center border-2 border-dashed border-brand-brown/10">
+                  <Stethoscope color="#85431E" opacity={0.1} size={48} className="mb-6" />
+                  <Text className="text-brand-brown/40 font-body text-[10px] uppercase tracking-[2.5px] text-center">No Priority cases detected</Text>
                </View>
-            </TouchableOpacity>
+            ) : (
+               <View className="gap-5">
+                  {horses.slice(0, 3).map((horse, idx) => (
+                     <TouchableOpacity
+                        key={horse.id}
+                        activeOpacity={0.9}
+                        onPress={() => navigation.navigate("HorseDetail", { horse })}
+                        className="bg-white rounded-[32px] p-5 shadow-sm border border-brand-brown/5 flex-row items-center"
+                     >
+                        <View className="w-20 h-20 rounded-[22px] overflow-hidden bg-brand-beige/30 items-center justify-center border border-brand-brown/5 shadow-inner">
+                           {horse.imageUrl || horse.image ? (
+                              <Image
+                                 source={{ uri: horse.imageUrl || horse.image }}
+                                 className="w-full h-full"
+                              />
+                           ) : (
+                              <Stethoscope color="#85431E" size={24} opacity={0.2} />
+                           )}
+                           <View className="absolute top-1 right-1 w-5 h-5 bg-emerald-500 rounded-full border-[3px] border-white" />
+                        </View>
+                        
+                        <View className="flex-1 ml-6">
+                           <View className="flex-row justify-between items-center mb-1">
+                              <Text className="text-brand-brown font-display-reg font-bold text-lg leading-tight tracking-tight">{horse.name}</Text>
+                              <View className="bg-brand-orange/10 px-3 py-1.5 rounded-2xl">
+                                 <Text className="text-[9px] font-display text-brand-orange uppercase tracking-widest leading-none">Healthy</Text>
+                              </View>
+                           </View>
+                           <View className="flex-row items-center">
+                              <Text className="text-brand-brown/40 font-body text-[10px] uppercase tracking-[1.5px]">{horse.title || 'Standard Checkup'}</Text>
+                              <View className="w-1 h-1 rounded-full bg-brand-brown/10 mx-2" />
+                              <Text className="text-brand-brown/40 font-body text-[10px] uppercase tracking-[1.5px] flex-1" numberOfLines={1}>{horse.location}</Text>
+                           </View>
+                        </View>
+                        <View className="w-10 h-10 rounded-2xl bg-brand-brown/5 items-center justify-center ml-3">
+                           <ChevronRight color="#85431E" size={16} strokeWidth={3} />
+                        </View>
+                     </TouchableOpacity>
+                  ))}
+               </View>
+            )}
 
-            <View className="flex-row justify-between items-center mb-4">
-               <Text className="text-xl font-bold text-[#1a202c]">Horses</Text>
-               <TouchableOpacity onPress={() => navigation.navigate('Horses')}>
-                  <Text className="text-[#8C4A28] font-bold text-sm">Manage</Text>
-               </TouchableOpacity>
+            {/* Fleet Showcase - Horizontal Slider */}
+            <View className="flex-row justify-between items-center mt-12 mb-8 px-1">
+               <View className="flex-row items-center">
+                  <Text className="text-2xl font-display text-brand-brown tracking-tight">Patient Showcase</Text>
+               </View>
             </View>
 
             <ScrollView horizontal showsHorizontalScrollIndicator={false} className="overflow-visible">
-               <TouchableOpacity onPress={() => navigation.navigate("HorseDetail")} className="bg-white rounded-2xl p-3 mr-3 shadow-sm border border-[#e2e8f0] w-36">
-                  <Image
-                     source={{ uri: 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?q=80&w=300&auto=format&fit=crop' }}
-                     className="w-full h-32 rounded-xl mb-3"
-                  />
-                  <Text className="text-[#1a202c] font-bold text-sm mb-1">Thunder</Text>
-                  <Text className="text-[#94a3b8] text-[10px] font-semibold">Stall: A12 • Gelding</Text>
-               </TouchableOpacity>
-
-               <TouchableOpacity onPress={() => navigation.navigate("HorseDetail")} className="bg-white rounded-2xl p-3 mr-3 shadow-sm border border-[#e2e8f0] w-36">
-                  <Image
-                     source={{ uri: 'https://images.unsplash.com/photo-1598974357801-cbca100e65d3?q=80&w=300&auto=format&fit=crop' }}
-                     className="w-full h-32 rounded-xl mb-3"
-                  />
-                  <Text className="text-[#1a202c] font-bold text-sm mb-1">Bella</Text>
-                  <Text className="text-[#94a3b8] text-[10px] font-semibold">Stall: B04 • Mare</Text>
-               </TouchableOpacity>
-
-               <TouchableOpacity onPress={() => navigation.navigate("HorseDetail")} className="bg-white rounded-2xl p-3 mr-3 shadow-sm border border-[#e2e8f0] w-36">
-                  <Image
-                     source={{ uri: 'https://images.unsplash.com/photo-1553026131-ab106511fa48?q=80&w=300&auto=format&fit=crop' }}
-                     className="w-full h-32 rounded-xl mb-3"
-                  />
-                  <Text className="text-[#1a202c] font-bold text-sm mb-1">Spirit</Text>
-                  <Text className="text-[#94a3b8] text-[10px] font-semibold">Stall: C01 • Stallion</Text>
-               </TouchableOpacity>
+               {horses.map((horse) => (
+                  <TouchableOpacity 
+                     key={horse.id} 
+                     activeOpacity={0.9}
+                     onPress={() => navigation.navigate("HorseDetail", { horse })} 
+                     className="bg-white rounded-[40px] p-4 mr-6 shadow-xl shadow-brand-brown/5 border border-brand-brown/5 w-60"
+                  >
+                     <View className="relative">
+                        <Image
+                           source={{ uri: horse.imageUrl || 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a' }}
+                           className="w-full h-72 rounded-[32px] border-2 border-white/50"
+                        />
+                        <View className="absolute bottom-4 left-4 right-4 bg-white/95 p-5 rounded-[24px] shadow-sm">
+                           <Text className="text-brand-brown font-display text-lg tracking-tight leading-tight">{horse.name}</Text>
+                           <Text className="text-brand-orange text-[9px] font-display uppercase tracking-[2px] mt-1">{horse.location}</Text>
+                        </View>
+                     </View>
+                  </TouchableOpacity>
+               ))}
             </ScrollView>
          </ScrollView>
       </View>
+
    );
 }

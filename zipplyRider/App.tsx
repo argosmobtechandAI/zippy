@@ -16,12 +16,10 @@ function App() {
     <SafeAreaProvider>
       <NavigationContainer>
         <Provider store={store}>
-
-        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor="#F5EDDF" />
-        <Toast />
-        <WelcomStack />
+          <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor="#F5EDDF" />
+          <WelcomStack />
+          <Toast />
         </Provider>
-
       </NavigationContainer>
     </SafeAreaProvider>
   );

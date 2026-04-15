@@ -1,10 +1,47 @@
-import React from 'react';
-import { View, Text,  ScrollView, TouchableOpacity, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { ArrowLeft, Clock, MapPin, Calendar, User, MoreVertical, FileText, CheckCircle2, XCircle } from 'lucide-react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { apiFunction } from '../api/apiFunction';
+import { getAllHorsesApi } from '../api/api';
 
 const SessionDetail = () => {
     const navigation = useNavigation();
+    const route = useRoute();
+    const { session } = route.params || {};
+    
+    const [horse, setHorse] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (session?.horseId) {
+            fetchHorseDetails();
+        } else {
+            setLoading(false);
+        }
+    }, [session?.id]);
+
+    const fetchHorseDetails = async () => {
+        try {
+            const res = await apiFunction(getAllHorsesApi, [], {}, "GET", true);
+            if (res && res.success) {
+                const found = (res.horses || []).find((h: any) => h.id === session.horseId);
+                setHorse(found);
+            }
+        } catch (e) {
+            console.error("Error fetching horse for session:", e);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <View className="flex-1 bg-[#F5EDDF] justify-center items-center">
+                <ActivityIndicator size="large" color="#8C4A28" />
+            </View>
+        );
+    }
 
     return (
         <View className="flex-1 bg-[#F5EDDF]">
@@ -25,16 +62,16 @@ const SessionDetail = () => {
                 {/* Status & Type */}
                 <View className="flex-row justify-between items-center mb-6">
                     <View className="bg-[#8C4A28] px-3 py-1.5 rounded-lg">
-                        <Text className="text-white text-[12px] font-bold">Dressage</Text>
+                        <Text className="text-white text-[12px] font-bold">{session?.title || 'Training'}</Text>
                     </View>
-                    <TouchableOpacity onPress={()=> navigation.navigate("Schedule")} className="bg-[#e6d0b3] px-3 py-1.5 rounded-lg">
-                        <Text className="text-[#8C4A28] text-[12px] font-bold">Upcoming</Text>
-                    </TouchableOpacity>
+                    <View className="bg-[#e6d0b3] px-3 py-1.5 rounded-lg">
+                        <Text className="text-[#8C4A28] text-[12px] font-bold">{session?.status || 'Upcoming'}</Text>
+                    </View>
                 </View>
 
                 {/* Date & Time Info */}
                 <View className="bg-white rounded-3xl p-4 shadow-sm border border-[#e2e8f0] mb-6">
-                    <Text className="text-[#1a202c] text-xl font-bold mb-4">Dressage Training</Text>
+                    <Text className="text-[#1a202c] text-xl font-bold mb-4">{session?.title || 'Session Details'}</Text>
                     
                     <View className="flex-row items-center mb-4">
                         <View className="w-10 h-10 bg-[#F5EDDF] rounded-full items-center justify-center mr-3">
@@ -42,7 +79,7 @@ const SessionDetail = () => {
                         </View>
                         <View>
                             <Text className="text-[#64748b] text-xs font-semibold">Date</Text>
-                            <Text className="text-[#1a202c] font-bold">Wednesday, Oct 18, 2026</Text>
+                            <Text className="text-[#1a202c] font-bold">{session?.date || 'N/A'}</Text>
                         </View>
                     </View>
 
@@ -52,7 +89,7 @@ const SessionDetail = () => {
                         </View>
                         <View>
                             <Text className="text-[#64748b] text-xs font-semibold">Time</Text>
-                            <Text className="text-[#1a202c] font-bold">08:00 AM - 09:30 AM (1.5 hrs)</Text>
+                            <Text className="text-[#1a202c] font-bold">{session?.timing || 'N/A'} ({session?.duration || '1 hr'})</Text>
                         </View>
                     </View>
 
@@ -62,42 +99,32 @@ const SessionDetail = () => {
                         </View>
                         <View>
                             <Text className="text-[#64748b] text-xs font-semibold">Location</Text>
-                            <Text className="text-[#1a202c] font-bold">Arena B, Main Facility</Text>
+                            <Text className="text-[#1a202c] font-bold">{session?.location || 'Arena'}</Text>
                         </View>
                     </View>
-                </View>
-
-                {/* Rider Info */}
-                <Text className="text-lg font-bold text-[#1a202c] mb-3">Rider Information</Text>
-                <View className="bg-white rounded-3xl p-4 shadow-sm border border-[#e2e8f0] flex-row items-center mb-6">
-                    <Image 
-                        source={{ uri: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop' }}
-                        className="w-14 h-14 rounded-full mr-4"
-                    />
-                    <View className="flex-1">
-                        <Text className="text-[#1a202c] font-bold text-lg">Emma Wilson</Text>
-                        <Text className="text-[#64748b] text-sm font-semibold">Intermediate Level</Text>
-                    </View>
-                    <TouchableOpacity className="w-10 h-10 bg-[#F5EDDF] rounded-full items-center justify-center">
-                        <User color="#8C4A28" size={20} />
-                    </TouchableOpacity>
                 </View>
 
                 {/* Horse Info */}
                 <Text className="text-lg font-bold text-[#1a202c] mb-3">Assigned Horse</Text>
-                <View className="bg-white rounded-3xl p-4 shadow-sm border border-[#e2e8f0] flex-row items-center mb-6">
-                    <Image 
-                        source={{ uri: 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?q=80&w=200&auto=format&fit=crop' }}
-                        className="w-16 h-16 rounded-2xl mr-4"
-                    />
-                    <View className="flex-1">
-                        <Text className="text-[#1a202c] font-bold text-lg">Bella</Text>
-                        <Text className="text-[#64748b] text-sm font-semibold mb-1">Mare • 8 Years</Text>
-                        <View className="bg-[#F5EDDF] self-start px-2 py-1 rounded-md">
-                            <Text className="text-[#8C4A28] text-[10px] font-bold">Stall B04</Text>
+                {horse ? (
+                    <View className="bg-white rounded-3xl p-4 shadow-sm border border-[#e2e8f0] flex-row items-center mb-6">
+                        <Image 
+                            source={{ uri: horse.imageUrl || 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?q=80&w=200&auto=format&fit=crop' }}
+                            className="w-16 h-16 rounded-2xl mr-4"
+                        />
+                        <View className="flex-1">
+                            <Text className="text-[#1a202c] font-bold text-lg">{horse.name}</Text>
+                            <Text className="text-[#64748b] text-sm font-semibold mb-1">{horse.title || 'Standard'}</Text>
+                            <View className="bg-[#F5EDDF] self-start px-2 py-1 rounded-md">
+                                <Text className="text-[#8C4A28] text-[10px] font-bold">{horse.age || '?'} Years Old</Text>
+                            </View>
                         </View>
                     </View>
-                </View>
+                ) : (
+                    <View className="bg-white rounded-3xl p-6 shadow-sm border border-[#e2e8f0] items-center justify-center mb-6">
+                        <Text className="text-[#64748b]">No horse assigned to this session.</Text>
+                    </View>
+                )}
 
                 {/* Notes */}
                 <View className="bg-white rounded-3xl p-4 shadow-sm border border-[#e2e8f0] mb-8">
@@ -106,7 +133,7 @@ const SessionDetail = () => {
                         <Text className="text-[#1a202c] font-bold text-lg">Training Notes</Text>
                     </View>
                     <Text className="text-[#64748b] leading-relaxed">
-                        Focus on transition from trot to canter. Bella has been a bit stiff on the left rein, so start with loose bending exercises. Emma needs to work on her posture during downward transitions.
+                        {session?.note || 'No specific notes recorded for this session yet.'}
                     </Text>
                 </View>
 

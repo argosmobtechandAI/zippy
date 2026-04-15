@@ -1,140 +1,198 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Image } from 'react-native';
-import { Menu, Bell, Search, Filter, CalendarDays, History, Activity, ChevronRight, Plus, ArrowLeft } from 'lucide-react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, Image, ActivityIndicator, Dimensions, RefreshControl } from 'react-native';
+import { Menu, Bell, Search, ListFilter, Activity, ChevronRight, Plus, ArrowLeft, Calendar, Info } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
+import { apiFunction } from '../api/apiFunction';
+import { getAllHorsesApi } from '../api/api';
+
+const { width } = Dimensions.get('window');
 
 export default function HorsesScreen() {
   const [activeTab, setActiveTab] = useState('All Horses');
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [horses, setHorses] = useState<any[]>([]);
+  const navigation = useNavigation<any>();
 
-  const horses = [
-    {
-      id: 'ZE-2901',
-      name: 'Thunder Strike',
-      type: 'Bay Stallion',
-      status: 'FIT FOR WORK',
-      statusColor: 'text-[#1a202c]',
-      lastCheck: 'Today, 09:30 AM',
-      icon: CalendarDays,
-      image: 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?q=80&w=200&auto=format&fit=crop',
-    },
-    {
-      id: 'ZE-1104',
-      name: 'Midnight Rose',
-      type: 'Black Mare',
-      status: 'LIGHT WORK',
-      statusColor: 'text-[#1a202c]',
-      lastCheck: '2 days ago',
-      icon: CalendarDays,
-      image: 'https://images.unsplash.com/photo-1598974357801-cbca100e65d3?q=80&w=200&auto=format&fit=crop',
-    },
-    {
-      id: 'ZE-7782',
-      name: 'Copper Blaze',
-      type: 'Chestnut Gelding',
-      status: 'REST REQUIRED',
-      statusColor: 'text-[#1a202c]',
-      lastCheck: 'Under medication - Lameness',
-      icon: History,
-      image: 'https://images.unsplash.com/photo-1553026131-ab106511fa48?q=80&w=200&auto=format&fit=crop',
-    },
-    {
-      id: 'ZE-0544',
-      name: 'Silver Mist',
-      type: 'Grey Mare',
-      status: 'FIT FOR WORK',
-      statusColor: 'text-[#1a202c]',
-      lastCheck: 'Yesterday',
-      icon: CalendarDays,
-      image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop',
-    },
-  ];
+  useEffect(() => {
+    fetchHorses();
+  }, []);
+
+  const fetchHorses = async () => {
+    if (!refreshing) setLoading(true);
+    try {
+      const res = await apiFunction(getAllHorsesApi, [], {}, "GET", true);
+      if (res && res.success) {
+        setHorses(res.horses || []);
+      }
+    } catch (error) {
+      console.error("Fetch vet horses error:", error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    fetchHorses();
+  }, []);
+
+  const filteredHorses = horses.filter(h => {
+    if (activeTab === 'All Horses') return true;
+    return h.status?.toLowerCase() === activeTab.toLowerCase() || h.shoeStatus?.toLowerCase() === activeTab.toLowerCase();
+  });
 
   const filterTabs = ['All Horses', 'Fit for Work', 'Light Work', 'Rest Required'];
-  const navigation = useNavigation()
 
   return (
-    <View className="flex-1 bg-[#F5EDDF]">
+    <View className="flex-1 bg-[#FDF5EA]">
       {/* Header */}
-      <View className="flex-row justify-start gap-4 items-center px-4 py-4 mb-2 mt-2">
-        <TouchableOpacity onPress={() => navigation.goBack()} className="w-10 h-10 bg-white rounded-full items-center justify-center shadow-sm border border-[#e2e8f0]">
-          <ArrowLeft color="#8C4A28" size={20} />
+      <View className="flex-row justify-between items-center px-6 py-6 mt-4">
+        <TouchableOpacity className="w-10 h-10 items-center justify-center">
+          <Menu color="#8C4A28" size={24} />
         </TouchableOpacity>
-        <Text className="text-xl font-bold text-[#8C4A28]">Horse Health</Text>
-       
+        <Text className="text-2xl font-black text-[#8C4A28] tracking-tight">Horse Health</Text>
+        <TouchableOpacity className="w-10 h-10 items-center justify-center">
+          <Bell color="#8C4A28" size={24} />
+          <View className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-[#FDF5EA]" />
+        </TouchableOpacity>
       </View>
 
-      {/* Search */}
-      <View className="px-4 mb-4">
-        <View className="bg-white rounded-xl flex-row items-center px-4 py-3 border border-[#e2e8f0] shadow-sm">
-          <Search color="#94a3b8" size={20} className="mr-2" />
-          <TextInput
-            placeholder="Search by name or ID..."
-            placeholderTextColor="#94a3b8"
-            className="flex-1 text-[#1a202c] h-8"
-          />
-          <Filter color="#94a3b8" size={20} className="ml-2" />
-        </View>
-      </View>
-
-      {/* Internal Tabs */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-4 mb-6 h-10 flex-grow-0" contentContainerStyle={{ paddingRight: 20 }}>
-        {filterTabs.map(tab => (
-          <TouchableOpacity
-            key={tab}
-            className={`px-4 py-2 border rounded-full mr-2 justify-center items-center ${activeTab === tab ? 'bg-[#8C4A28] border-[#8C4A28]' : 'bg-transparent border-[#8C4A28]/30'}`}
-            onPress={() => setActiveTab(tab)}
-          >
-            <Text className={`text-xs font-bold ${activeTab === tab ? 'text-white' : 'text-[#8C4A28]'}`}>
-              {tab}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
-        {/* Stable Overview */}
-        <View className="bg-[#8C4A28] rounded-2xl p-4 flex-row justify-between items-center mb-4 shadow-sm">
-          <View>
-            <Text className="text-white/80 text-[10px] font-bold tracking-widest mb-1">STABLE OVERVIEW</Text>
-            <Text className="text-white text-2xl font-bold">24 Total Horses</Text>
-          </View>
-          <View className="flex-row items-center">
-            <View className="w-8 h-8 rounded-full border border-[#8C4A28] overflow-hidden -mr-2 bg-[#F5EDDF]">
-              <Image source={{ uri: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop' }} className="w-full h-full" />
-            </View>
-            <View className="w-8 h-8 rounded-full border border-[#e2e8f0] overflow-hidden bg-[#e2e8f0] items-center justify-center z-10">
-              <Text className="text-[#1a202c] text-[10px] font-bold">+21</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* List */}
-        {horses.map((horse, index) => {
-          const IconComp = horse.icon;
-          return (
-            <TouchableOpacity key={index} onPress={() => navigation.navigate('HorseDetail')} className="bg-white rounded-2xl p-4 shadow-sm border border-[#e2e8f0] flex-row items-center mb-3">
-              <Image source={{ uri: horse.image }} className="w-[70px] h-[70px] rounded-xl mr-3" />
-              <View className="flex-1">
-                <View className="flex-row justify-between items-center mb-1">
-                  <Text className="text-[#8C4A28] font-bold text-base">{horse.name}</Text>
-                  <Text className={`text-[9px] font-bold ${horse.statusColor}`}>{horse.status}</Text>
-                </View>
-                <Text className="text-[#94a3b8] text-xs mb-2">ID: #{horse.id} | {horse.type}</Text>
-
-                <View className="flex-row items-center">
-                  <IconComp color="#94a3b8" size={12} className="mr-1" />
-                  <Text className="text-[#94a3b8] text-[10px]">{horse.lastCheck}</Text>
-                </View>
-              </View>
-              <ChevronRight color="#94a3b8" size={20} className="ml-1" />
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 120 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#8C4A28']} tintColor="#8C4A28" />
+        }
+      >
+        {/* Search */}
+        <View className="mb-6">
+          <View className="bg-white rounded-[2rem] flex-row items-center px-6 py-1 border border-[#8C4A28]/10 shadow-sm">
+            <Search color="#8C4A28" size={20} opacity={0.6} />
+            <TextInput
+              placeholder="Search by name or ID..."
+              placeholderTextColor="#94a3b8"
+              className="flex-1 text-[#1a202c] h-14 text-sm font-bold ml-3"
+            />
+            <TouchableOpacity className="p-2">
+              <ListFilter color="#8C4A28" size={20} />
             </TouchableOpacity>
-          )
-        })}
+          </View>
+        </View>
+
+        {/* Categories */}
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false} 
+          className="mb-8"
+          contentContainerStyle={{ gap: 12 }}
+        >
+          {filterTabs.map(tab => (
+            <TouchableOpacity
+              key={tab}
+              onPress={() => setActiveTab(tab)}
+              className={`px-6 py-3 rounded-full border ${
+                activeTab === tab 
+                  ? 'bg-[#8C4A28] border-[#8C4A28] shadow-lg shadow-[#8C4A28]/30' 
+                  : 'bg-white border-[#8C4A28]/10'
+              }`}
+            >
+              <Text className={`text-[10px] font-black tracking-widest uppercase ${
+                activeTab === tab ? 'text-white' : 'text-[#8C4A28]'
+              }`}>
+                {tab}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        {/* Stable Overview Hero */}
+        <TouchableOpacity 
+          activeOpacity={0.9}
+          className="bg-[#8C4A28] rounded-[2.5rem] p-8 mb-8 shadow-2xl shadow-[#8C4A28]/40 overflow-hidden"
+        >
+          <View className="absolute -top-10 -right-10 w-40 h-40 bg-white/5 rounded-full" />
+          <View className="mb-1">
+            <Text className="text-white/60 text-[10px] font-black tracking-[2px] uppercase">Stable Overview</Text>
+          </View>
+          <View className="flex-row justify-between items-end">
+            <Text className="text-white text-4xl font-black">{horses.length} Total Horses</Text>
+            <View className="flex-row items-center">
+               <View className="flex-row -space-x-4">
+                  {horses.slice(0, 2).map((h, i) => (
+                     <View key={i} className="w-10 h-10 rounded-full border-2 border-[#8C4A28] overflow-hidden bg-white shadow-sm">
+                        <Image source={{ uri: h.imageUrl || 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a' }} className="w-full h-full" />
+                     </View>
+                  ))}
+                  <View className="w-10 h-10 rounded-full border-2 border-white bg-[#FAF7F2] items-center justify-center z-10 shadow-sm">
+                    <Text className="text-[#8C4A28] text-[10px] font-black">+{horses.length > 2 ? horses.length - 2 : 21}</Text>
+                  </View>
+               </View>
+            </View>
+          </View>
+        </TouchableOpacity>
+
+        {/* List Section */}
+        <View className="gap-6">
+          {loading ? (
+            <View className="py-20 flex-row justify-center items-center">
+              <ActivityIndicator color="#8C4A28" size="large" />
+            </View>
+          ) : filteredHorses.length === 0 ? (
+            <View className="py-20 items-center bg-white/50 rounded-[2.5rem] border-2 border-dashed border-[#8C4A28]/10">
+              <Activity color="#cbd5e1" size={40} className="mb-4" />
+              <Text className="text-[#94a3b8] font-black text-[10px] uppercase tracking-[2px]">No matching patients</Text>
+            </View>
+          ) : (
+            filteredHorses.map((horse, index) => (
+              <TouchableOpacity
+                key={horse.id || index}
+                activeOpacity={0.95}
+                onPress={() => navigation.navigate('HorseDetail', { horse })}
+                className="bg-white rounded-[2.5rem] p-5 shadow-xl shadow-gray-200 border border-white flex-row items-center"
+              >
+                <View className="shadow-lg shadow-gray-200">
+                  <Image
+                    source={{ uri: horse.imageUrl || 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a' }}
+                    className="w-24 h-24 rounded-[2rem] border-2 border-gray-50 bg-[#FAF7F2]"
+                  />
+                </View>
+
+                <View className="flex-1 ml-5">
+                  <View className="flex-row justify-between items-center mb-1">
+                    <Text className="text-[#1a202c] font-black text-lg tracking-tight">{horse.name}</Text>
+                    <Text className="text-[10px] font-black text-[#8C4A28] uppercase tracking-wider">{horse.shoeStatus || 'FIT FOR WORK'}</Text>
+                  </View>
+                  
+                  <Text className="text-[#94a3b8] text-[9px] font-black uppercase tracking-[1px] mb-3">
+                     ID: #{horse.id?.substring(0, 8).toUpperCase()} | {horse.title || 'Bay Stallion'}
+                  </Text>
+
+                  <View className="flex-row items-center">
+                    <Calendar color="#8C4A28" size={12} opacity={0.5} />
+                    <Text className="text-[#64748b] text-[10px] font-bold ml-2">
+                       {horse.lastVisit ? `Last Check: ${horse.lastVisit}` : 'Last Check: Today, 09:30 AM'}
+                    </Text>
+                  </View>
+                </View>
+
+                <View className="ml-2">
+                  <ChevronRight color="#cbd5e1" size={20} strokeWidth={3} />
+                </View>
+              </TouchableOpacity>
+            ))
+          )}
+        </View>
       </ScrollView>
 
-      {/* FAB */}
-      <TouchableOpacity className="absolute bottom-6 right-6 w-14 h-14 bg-[#8C4A28] rounded-full items-center justify-center shadow-lg border border-[#6b381e]">
-        <Plus color="white" size={28} />
+      {/* Floating Action Button */}
+      <TouchableOpacity 
+        activeOpacity={0.9}
+        onPress={() => navigation.navigate('AddHorse')}
+        className="absolute bottom-10 right-8 w-20 h-20 bg-[#8C4A28] rounded-full items-center justify-center shadow-2xl shadow-[#8C4A28]/50 border-4 border-[#FDF5EA]"
+      >
+        <Plus color="white" size={32} strokeWidth={3} />
       </TouchableOpacity>
     </View>
   );

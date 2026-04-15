@@ -10,7 +10,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 export default function LoginScreen() {
   const navigation = useNavigation();
   const [step, setStep] = useState(1);
-  const [mobileNumber, setMobileNumber] = useState('');
+  const [mobileNumber, setMobileNumber] = useState('1231231234');
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [gotOtp, setGotOtp] = useState(false);
@@ -73,6 +73,9 @@ export default function LoginScreen() {
 
       if (res.success) {
         await AsyncStorage.setItem("token", res.token);
+        if (res.user) {
+          await AsyncStorage.setItem("user", JSON.stringify(res.user));
+        }
         console.log("Token saved:", res.token);
 
         navigation.navigate("Tabs");

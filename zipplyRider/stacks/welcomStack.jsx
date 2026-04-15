@@ -11,6 +11,7 @@ import SettingsScreen from '../screens/SettingsScreen'
 import PersonalInformationScreen from '../screens/PersonalInformationScreen'
 import MainTabsStack from './mainTabs'
 import DeclarationScreen from '../screens/declarationScreen'
+import NotificationScreen from '../screens/notificationScreen'
 
 const Stack = createNativeStackNavigator()
 
@@ -24,6 +25,7 @@ const WelcomStack = () => {
             <Stack.Screen name="Success" component={SuccessScreen} />
             <Stack.Screen name="SessionDetail" component={SessionDetailScreen} />
             <Stack.Screen name="Trophies" component={TrophiesScreen} />
+            <Stack.Screen name="Notification" component={NotificationScreen} />
             <Stack.Screen name="Settings" component={SettingsScreen} />
             <Stack.Screen name="PersonalInformation" component={PersonalInformationScreen} />
             <Stack.Screen name="Tabs" component={MainTabsStack} />

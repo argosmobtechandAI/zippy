@@ -3,8 +3,113 @@ import {
     CheckCircle2, Circle, MoreVertical, Download, 
     ChevronDown, Info, ShieldAlert, CheckSquare, List, LayoutGrid
 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { apiFunction } from '../api/apiFunction';
+import { getAllSessionsApi, createSessionApi, updateSessionApi, getAllUsersApi, getAllStablesApi, getAllHorsesApi } from '../api/apis';
+import { useSearchParams } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { X, Plus } from 'lucide-react';
 
 const SlotManagement = () => {
+    const [sessions, setSessions] = useState([]);
+    const [trainers, setTrainers] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [searchParams] = useSearchParams();
+    const [showModal, setShowModal] = useState(false);
+    const [sessionToEdit, setSessionToEdit] = useState(null);
+    const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+    const stableId = searchParams.get("id");
+    const trainerIdParam = searchParams.get("trainerId");
+    const [stableName, setStableName] = useState("Lexington Stables");
+
+    useEffect(() => {
+        if (trainerIdParam && trainers.length > 0) {
+            setShowModal(true);
+            setSessionToEdit(null);
+        }
+    }, [trainerIdParam, trainers]);
+
+    const handleBlock = async (session) => {
+        const newStatus = session.status === "BLOCKED" ? "ACTIVE" : "BLOCKED";
+        const res = await apiFunction(`${updateSessionApi}/${session.id}`, [], { status: newStatus }, "PUT", true);
+        if (res?.success) {
+            toast.success(newStatus === "BLOCKED" ? "Session Blocked" : "Session Unblocked");
+            fetchData();
+        } else {
+            toast.error("Failed to update session status");
+        }
+    };
+
+    const fetchData = async () => {
+        setLoading(true);
+        
+        // Fetch Stables to get our current name/location if needed
+        let currentLocation = stableName;
+        if (stableId) {
+            const stableRes = await apiFunction(getAllStablesApi, [], {}, "GET", true);
+            if (stableRes && stableRes.success && stableRes.stables) {
+                const currentStable = stableRes.stables.find(s => s.id === stableId);
+                if (currentStable) {
+                    setStableName(currentStable.name);
+                    currentLocation = currentStable.name;
+                }
+            }
+        }
+
+        // Fetch Sessions filtered by location
+        const res = await apiFunction(`${getAllSessionsApi}?location=${encodeURIComponent(currentLocation)}`, [], {}, "GET", true);
+        if (res && res.success) {
+            setSessions(res.sessions || []);
+        }
+
+        // Fetch Trainers for the modal (using the new trainerId from our joined backend query)
+        const userRes = await apiFunction(getAllUsersApi, [], {}, "GET", true);
+        if (userRes && userRes.success) {
+            setTrainers(userRes.users.filter(u => u.type === 'trainer' && u.trainerId));
+        }
+
+        setLoading(false);
+    }
+
+    const handleBookingStatus = async (sessionId, riderId, newStatus) => {
+        const session = sessions.find(s => s.id === sessionId);
+        if (!session) return;
+
+        let updatedParticipants;
+        if (newStatus === 'REJECTED') {
+            // Remove rider from list entirely for rejection
+            updatedParticipants = session.participants.filter(p => p.riderId !== riderId);
+        } else {
+            updatedParticipants = session.participants.map(p => 
+                p.riderId === riderId ? { ...p, status: newStatus } : p
+            );
+        }
+
+        try {
+            const res = await apiFunction(`${updateSessionApi}/${sessionId}`, [], { participants: updatedParticipants }, "PUT", true);
+            if (res && res.success) {
+                toast.success(newStatus === 'REJECTED' ? "Booking rejected" : `Booking ${newStatus.toLowerCase()}`);
+                fetchData();
+            } else {
+                toast.error(res?.message || "Update failed");
+            }
+        } catch (error) {
+            toast.error("Network error");
+        }
+    };
+
+    useEffect(() => {
+        fetchData();
+    }, [stableId]);
+
+    // Derived stats
+    const totalSlots = sessions.length;
+    const totalBookings = sessions.reduce((acc, s) => acc + (s.participants?.length || 0), 0);
+    const availableSlots = sessions.length > 0 ? sessions.reduce((acc, s) => acc + (s.totalSeats - (s.participants?.length || 0)), 0) : 0;
+    const pendingRequests = sessions.reduce((acc, s) => acc + (s.participants?.filter(p => p.status === 'PENDING').length || 0), 0);
+
+    // Filter sessions to show today's participants
+    const allParticipants = sessions.flatMap(s => (s.participants || []).map(p => ({ ...p, session: s })));
     return (
         <div className="p-10 max-w-[1400px] mx-auto min-h-full bg-[#F6EDE2] w-full font-sans">
             {/* Top Breadcrumb & Header section */}
@@ -12,7 +117,7 @@ const SlotManagement = () => {
                 <div className="flex items-center gap-2 text-[11px] font-bold text-gray-500 mb-6 uppercase tracking-wider">
                     <span>Centers</span>
                     <ChevronRight className="w-3 h-3" />
-                    <span>Lexington Stables</span>
+                    <span>{stableName}</span>
                     <ChevronRight className="w-3 h-3" />
                     <span className="text-[#964C2E] border-b-2 border-[#964C2E] pb-0.5">Slot Management</span>
                 </div>
@@ -21,41 +126,44 @@ const SlotManagement = () => {
                 <p className="text-[14px] font-semibold text-gray-500 mb-8">Manage daily equestrian sessions and rider capacities for Oct 24, 2023.</p>
 
                 <div className="flex gap-4">
-                    <button className="bg-white border border-[#964C2E]/20 text-[13px] font-bold text-[#1e2330] px-5 py-3.5 rounded-xl shadow-sm flex items-center gap-2.5 hover:bg-white/80 transition-all">
+                    <button onClick={() => fetchData()} className="bg-white border border-[#964C2E]/20 text-[13px] font-bold text-[#1e2330] px-5 py-3.5 rounded-xl shadow-sm flex items-center gap-2.5 hover:bg-white/80 transition-all">
                         <Clock className="w-4 h-4 text-[#964C2E]" strokeWidth={2.5} />
-                        Edit Center Timings
+                        Refresh Data
                     </button>
-                    <button className="bg-[#964C2E] text-white text-[13px] font-bold px-5 py-3.5 rounded-xl shadow-md flex items-center gap-2.5 hover:bg-[#7D3F25] transition-all">
+                    <button 
+                        onClick={() => { setSessionToEdit(null); setShowModal(true); }}
+                        className="bg-[#964C2E] text-white text-[13px] font-bold px-5 py-3.5 rounded-xl shadow-md flex items-center gap-2.5 hover:bg-[#7D3F25] transition-all"
+                    >
                         <Calendar className="w-4 h-4" strokeWidth={2.5} />
-                        Add Special Event
+                        Add Session
                     </button>
                 </div>
             </div>
 
             {/* KPI Row */}
             <div className="grid grid-cols-4 gap-6 mb-12">
-                {/* Total Slots */}
+                {/* Total Sessions */}
                 <div className="bg-[#F0E4D5] rounded-xl p-6 border border-[#E3CDBC]/50 relative overflow-hidden">
-                    <h3 className="text-[11px] font-bold text-gray-500 tracking-widest uppercase mb-2">Total Slots</h3>
-                    <p className="text-[26px] font-black text-[#1e2330] tracking-tight">12 Sessions</p>
+                    <h3 className="text-[11px] font-bold text-gray-500 tracking-widest uppercase mb-2">Total Sessions</h3>
+                    <p className="text-[26px] font-black text-[#1e2330] tracking-tight">{totalSlots} Sessions</p>
                 </div>
                 {/* Available */}
                 <div className="bg-[#F0E4D5] rounded-xl p-6 border border-[#E3CDBC]/50 relative overflow-hidden">
-                    <h3 className="text-[11px] font-bold text-gray-500 tracking-widest uppercase mb-2">Available</h3>
-                    <p className="text-[26px] font-black text-[#22C55E] tracking-tight">4 Slots</p>
+                    <h3 className="text-[11px] font-bold text-gray-500 tracking-widest uppercase mb-2">Available Seats</h3>
+                    <p className="text-[26px] font-black text-[#22C55E] tracking-tight">{availableSlots} Seats</p>
                 </div>
                 {/* Pending */}
                 <div className="bg-[#F0E4D5] rounded-xl p-6 border border-[#E3CDBC]/50 relative overflow-hidden">
                     <h3 className="text-[11px] font-bold text-gray-500 tracking-widest uppercase mb-2">Pending Approv.</h3>
                     <p className="text-[26px] font-black text-[#964C2E] tracking-tight relative inline-block">
-                        8 Requests
+                        {pendingRequests} Requests
                         <span className="absolute bottom-1 left-0 w-full h-[3px] bg-[#964C2E] rounded-full"></span>
                     </p>
                 </div>
                 {/* Total Bookings */}
                 <div className="bg-[#F0E4D5] rounded-xl p-6 border border-[#E3CDBC]/50 relative overflow-hidden">
                     <h3 className="text-[11px] font-bold text-gray-500 tracking-widest uppercase mb-2">Total Bookings</h3>
-                    <p className="text-[26px] font-black text-[#1e2330] tracking-tight">42 Riders</p>
+                    <p className="text-[26px] font-black text-[#1e2330] tracking-tight">{totalBookings} Riders</p>
                 </div>
             </div>
 
@@ -64,116 +172,122 @@ const SlotManagement = () => {
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-[20px] font-bold text-[#1e2330]">Morning & Afternoon Sessions</h2>
                     <div className="bg-[#F0E4D5] border border-[#E3CDBC]/50 p-1 rounded-xl flex items-center">
-                        <button className="px-5 py-2 text-[11px] font-bold bg-white text-[#1e2330] shadow-sm rounded-lg flex items-center gap-2">
+                        <button 
+                            onClick={() => setViewMode('grid')}
+                            className={`px-5 py-2 text-[11px] font-bold shadow-sm rounded-lg flex items-center gap-2 transition-all ${viewMode === 'grid' ? 'bg-white text-[#1e2330]' : 'text-gray-500 hover:text-gray-700'}`}
+                        >
+                            <LayoutGrid className="w-3.5 h-3.5" />
                             Grid View
                         </button>
-                        <button className="px-5 py-2 text-[11px] font-bold text-gray-500 hover:text-gray-700 flex items-center gap-2">
+                        <button 
+                            onClick={() => setViewMode('list')}
+                            className={`px-5 py-2 text-[11px] font-bold shadow-sm rounded-lg flex items-center gap-2 transition-all ${viewMode === 'list' ? 'bg-white text-[#1e2330]' : 'text-gray-500 hover:text-gray-700'}`}
+                        >
+                            <List className="w-3.5 h-3.5" />
                             List View
                         </button>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-4 gap-6">
-                    {/* Card 1: Active */}
-                    <div className="bg-[#F3E7D9] border-2 border-[#964C2E] rounded-2xl p-6 shadow-sm flex flex-col justify-between h-[240px]">
-                        <div>
-                            <span className="inline-block bg-[#964C2E] text-[10px] font-black text-white px-3 py-1 mb-4 tracking-wider uppercase">ACTIVE</span>
-                            <h3 className="text-[17px] font-black text-[#1e2330] tracking-tight mb-1">08:00 AM - 09:30 AM</h3>
-                            <p className="text-[13px] font-medium text-gray-500 mb-5">Morning Training - Advanced</p>
-                        </div>
-                        <div>
-                            <div className="flex justify-between text-[11px] font-bold text-gray-600 mb-2">
-                                <span>Capacity Utilization</span>
-                                <span className="text-[#1e2330]">8/10 Riders</span>
+                {loading ? (
+                    <div className="text-center py-10 font-bold text-gray-400">Loading sessions...</div>
+                ) : sessions.length === 0 ? (
+                    <div className="text-center py-10 font-bold text-gray-400">No sessions available.</div>
+                ) : viewMode === 'grid' ? (
+                    <div className="grid grid-cols-4 gap-6">
+                        {sessions.map((session, idx) => (
+                            <div key={session.id || idx} className={`border-2 rounded-2xl p-6 shadow-sm flex flex-col justify-between h-[240px] transition-all ${session.status === 'BLOCKED' ? 'bg-[#FEE2E2] border-[#EF4444]' : 'bg-[#F3E7D9] border-[#964C2E]'}`}>
+                                <div>
+                                    <span className={`inline-block text-[10px] font-black text-white px-3 py-1 mb-4 tracking-wider uppercase ${session.status === 'BLOCKED' ? 'bg-[#EF4444]' : 'bg-[#964C2E]'}`}>
+                                        {session.status || 'ACTIVE'}
+                                    </span>
+                                    <h3 className="text-[17px] font-black text-[#1e2330] tracking-tight mb-1">
+                                        {session.timing || "Invalid Time"}
+                                    </h3>
+                                    <p className="text-[12px] font-bold text-[#964C2E] mb-1">{session.date}</p>
+                                    <p className="text-[13px] font-medium text-gray-500 mb-5">{session.title || 'Session'}</p>
+                                </div>
+                                <div>
+                                    <div className="flex justify-between text-[11px] font-bold text-gray-600 mb-2">
+                                        <span>Capacity Utilization</span>
+                                        <span className="text-[#1e2330]">
+                                            {session.participants?.length || 0}/{session.totalSeats || 10} Riders
+                                        </span>
+                                    </div>
+                                    <div className="w-full bg-[#E5D7C9] h-2 rounded-full mb-6 relative">
+                                        <div 
+                                            className={`h-2 rounded-full ${session.status === 'BLOCKED' ? 'bg-[#EF4444]' : 'bg-[#964C2E]'}`} 
+                                            style={{ width: `${Math.min(100, ((session.participants?.length || 0) / (session.totalSeats || 10)) * 100)}%` }}
+                                        ></div>
+                                    </div>
+                                    <div className="flex gap-3">
+                                        <button onClick={() => handleBlock(session)} className="flex-1 bg-white border border-[#E3CDBC] py-2.5 rounded-xl text-[12px] font-bold text-[#1e2330] flex items-center justify-center gap-2 shadow-sm hover:bg-gray-50 transition-colors">
+                                            <Ban className={`w-3.5 h-3.5 ${session.status === 'BLOCKED' ? 'text-[#EF4444]' : 'text-gray-500'}`} /> 
+                                            {session.status === 'BLOCKED' ? 'Unblock' : 'Block'}
+                                        </button>
+                                        <button onClick={() => { setSessionToEdit(session); setShowModal(true); }} className="flex-1 bg-white border border-[#E3CDBC] py-2.5 rounded-xl text-[12px] font-bold text-[#1e2330] flex items-center justify-center gap-2 shadow-sm hover:bg-gray-50 transition-colors">
+                                            <Edit className="w-3.5 h-3.5 text-gray-500" /> Edit
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="w-full bg-[#E5D7C9] h-2 rounded-full mb-6">
-                                <div className="bg-[#964C2E] h-2 rounded-full" style={{ width: '80%' }}></div>
-                            </div>
-                            <div className="flex gap-3">
-                                <button className="flex-1 bg-white border border-[#E3CDBC] py-2.5 rounded-xl text-[12px] font-bold text-[#1e2330] flex items-center justify-center gap-2 shadow-sm">
-                                    <Ban className="w-3.5 h-3.5 text-gray-500" /> Block
-                                </button>
-                                <button className="flex-1 bg-white border border-[#E3CDBC] py-2.5 rounded-xl text-[12px] font-bold text-[#1e2330] flex items-center justify-center gap-2 shadow-sm">
-                                    <Edit className="w-3.5 h-3.5 text-gray-500" /> Edit
-                                </button>
-                            </div>
-                        </div>
+                        ))}
                     </div>
-
-                    {/* Card 2: Blocked */}
-                    <div className="bg-[#F8F4F0] border border-[#EFE5DC] rounded-2xl p-6 shadow-sm flex flex-col justify-between h-[240px] relative overflow-hidden">
-                        {/* Huge BLOCKED watermark */}
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-                            <span className="text-[50px] font-black tracking-tighter text-[#E5DCD4] -rotate-12 opacity-80">BLOCKED</span>
-                        </div>
-                        <div className="relative z-10 opacity-50">
-                            <h3 className="text-[17px] font-black text-[#1e2330] tracking-tight mb-1 mt-6">10:00 AM - 11:30 AM</h3>
-                            <p className="text-[13px] font-medium text-gray-500 mb-5">Stable Maintenance</p>
-                            <div className="flex justify-between text-[11px] font-bold text-gray-600 mb-2">
-                                <span>Capacity Utilization</span>
-                                <span className="text-[#1e2330]">0/0 Riders</span>
-                            </div>
-                            <div className="w-full bg-[#E5D7C9] h-2 rounded-full mb-6">
-                                <div className="bg-gray-400 h-2 rounded-full" style={{ width: '100%' }}></div>
-                            </div>
-                        </div>
-                        <div className="relative z-10">
-                            <button className="w-full bg-[#C2856E] text-white py-2.5 rounded-xl text-[12px] font-bold flex items-center justify-center gap-2 shadow-sm hover:bg-[#A9705A] transition-colors">
-                                Unblock Slot
-                            </button>
-                        </div>
+                ) : (
+                    /* LIST VIEW */
+                    <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-[#E6D9CC]">
+                        <table className="w-full border-collapse">
+                            <thead>
+                                <tr className="bg-[#F0E4D5] border-b border-[#E6D9CC]">
+                                    <th className="px-6 py-4 text-left text-[11px] font-bold text-[#A59588] tracking-widest uppercase">Timing</th>
+                                    <th className="px-6 py-4 text-left text-[11px] font-bold text-[#A59588] tracking-widest uppercase">Session Type</th>
+                                    <th className="px-6 py-4 text-left text-[11px] font-bold text-[#A59588] tracking-widest uppercase">Utilization</th>
+                                    <th className="px-6 py-4 text-left text-[11px] font-bold text-[#A59588] tracking-widest uppercase">Status</th>
+                                    <th className="px-6 py-4 text-right text-[11px] font-bold text-[#A59588] tracking-widest uppercase">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {sessions.map((session, idx) => (
+                                    <tr key={session.id || idx} className="border-b border-gray-50 last:border-0 hover:bg-[#FDF9F4] transition-colors">
+                                        <td className="px-6 py-4">
+                                            <div className="text-[14px] font-black text-[#1e2330]">{session.timing}</div>
+                                            <div className="text-[11px] font-bold text-[#964C2E] uppercase">{session.date}</div>
+                                        </td>
+                                        <td className="px-6 py-4 font-bold text-[#1e2330]">{session.title}</td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-24 bg-[#E5D7C9] h-2 rounded-full relative overflow-hidden">
+                                                    <div 
+                                                        className="bg-[#964C2E] h-2 rounded-full" 
+                                                        style={{ width: `${Math.min(100, ((session.participants?.length || 0) / (session.totalSeats || 10)) * 100)}%` }}
+                                                    ></div>
+                                                </div>
+                                                <span className="text-[12px] font-bold text-[#1e2330]">
+                                                    {session.participants?.length || 0}/{session.totalSeats}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider ${session.status === 'BLOCKED' ? 'bg-[#FEE2E2] text-[#EF4444]' : 'bg-[#D1FAE5] text-[#059669]'}`}>
+                                                {session.status || 'ACTIVE'}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-right">
+                                            <div className="flex justify-end gap-2">
+                                                <button onClick={() => handleBlock(session)} className="p-2 bg-gray-50 text-gray-400 hover:text-[#EF4444] rounded-lg transition-all" title={session.status === 'BLOCKED' ? 'Unblock' : 'Block'}>
+                                                    <Ban className="w-4 h-4" />
+                                                </button>
+                                                <button onClick={() => { setSessionToEdit(session); setShowModal(true); }} className="p-2 bg-gray-50 text-gray-400 hover:text-[#964C2E] rounded-lg transition-all" title="Edit Session">
+                                                    <Edit className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
-
-                    {/* Card 3: Normal */}
-                    <div className="bg-[#F5EBE1] border border-[#E6D9CC] rounded-2xl p-6 shadow-sm flex flex-col justify-between h-[240px]">
-                        <div>
-                            <h3 className="text-[17px] font-black text-[#1e2330] tracking-tight mb-1 mt-6">12:00 PM - 01:30 PM</h3>
-                            <p className="text-[13px] font-medium text-gray-500 mb-5">Intermediate Jumping</p>
-                        </div>
-                        <div>
-                            <div className="flex justify-between text-[11px] font-bold text-gray-600 mb-2">
-                                <span>Capacity Utilization</span>
-                                <span className="text-[#1e2330]">4/12 Riders</span>
-                            </div>
-                            <div className="w-full bg-[#E5D7C9] h-2 rounded-full mb-6">
-                                <div className="bg-[#964C2E] h-2 rounded-full" style={{ width: '33%' }}></div>
-                            </div>
-                            <div className="flex gap-3">
-                                <button className="flex-1 bg-[#F9F4EE] border border-[#E6D9CC] py-2.5 rounded-xl text-[12px] font-bold text-[#1e2330] flex items-center justify-center gap-2 hover:bg-white transition-colors">
-                                    <Ban className="w-3.5 h-3.5 text-gray-500" /> Block
-                                </button>
-                                <button className="flex-1 bg-[#F9F4EE] border border-[#E6D9CC] py-2.5 rounded-xl text-[12px] font-bold text-[#1e2330] flex items-center justify-center gap-2 hover:bg-white transition-colors">
-                                    <Edit className="w-3.5 h-3.5 text-gray-500" /> Edit
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Card 4: Full */}
-                    <div className="bg-[#F5EBE1] border border-[#E6D9CC] rounded-2xl p-6 shadow-sm flex flex-col justify-between h-[240px]">
-                        <div>
-                            <h3 className="text-[17px] font-black text-[#1e2330] tracking-tight mb-1 mt-6">02:00 PM - 03:30 PM</h3>
-                            <p className="text-[13px] font-medium text-gray-500 mb-5">Pony Club (Kids)</p>
-                        </div>
-                        <div>
-                            <div className="flex justify-between text-[11px] font-bold text-gray-600 mb-2">
-                                <span>Capacity Utilization</span>
-                                <span className="text-[#EF4444] font-black">FULL</span>
-                            </div>
-                            <div className="w-full bg-[#E5D7C9] h-2 rounded-full mb-6">
-                                <div className="bg-[#EF4444] h-2 rounded-full" style={{ width: '100%' }}></div>
-                            </div>
-                            <div className="flex gap-3">
-                                <button className="flex-1 bg-[#F9F4EE] border border-[#E6D9CC] py-2.5 rounded-xl text-[12px] font-bold text-[#1e2330] flex items-center justify-center gap-1.5 hover:bg-white transition-colors">
-                                    <List className="w-3.5 h-3.5 text-gray-500" /> Modify Cap.
-                                </button>
-                                <button className="flex-1 bg-[#F9F4EE] border border-[#E6D9CC] py-2.5 rounded-xl text-[12px] font-bold text-[#1e2330] flex items-center justify-center gap-1.5 hover:bg-white transition-colors">
-                                    <Edit className="w-3.5 h-3.5 text-gray-500" /> Edit
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                )}
             </div>
 
             {/* Today's Booking Details */}
@@ -207,93 +321,176 @@ const SlotManagement = () => {
 
                 {/* List Body */}
                 <div className="flex flex-col gap-6">
-                    {/* Row 1 - Sarah Jenkins */}
-                    <div className="grid grid-cols-[300px_1fr_1fr_120px_80px_150px] gap-4 items-center bg-[#F6EDE2] border-b border-[#E6D9CC] pb-6">
-                        <div className="flex items-center gap-4 pl-2">
-                            <div className="w-[120px] h-[140px] rounded-sm overflow-hidden border-2 border-white shadow-sm border-b-4 border-b-[#964C2E]">
-                                <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80" alt="Sarah Jenkins" className="w-full h-full object-cover" />
+                    {allParticipants.length === 0 ? (
+                        <div className="text-center py-10 font-bold text-gray-400">No bookings recorded for today.</div>
+                    ) : (
+                        allParticipants.map((p, idx) => (
+                            <div key={idx} className="grid grid-cols-[300px_1fr_1fr_120px_80px_150px] gap-4 items-center bg-[#F6EDE2] border-b border-[#E6D9CC] pb-6">
+                                <div className="flex items-center gap-4 pl-2">
+                                    <div className="w-[120px] h-[140px] rounded-sm bg-gray-200 overflow-hidden border-2 border-white shadow-sm border-b-4 border-b-[#964C2E] flex items-center justify-center font-black text-gray-400">
+                                        {p.name?.charAt(0) || 'U'}
+                                    </div>
+                                    <div>
+                                        <h4 className="text-[14px] font-black text-[#1e2330] mb-0.5">{p.name}</h4>
+                                        <p className="text-[11px] font-semibold text-gray-500 leading-tight">Member</p>
+                                    </div>
+                                </div>
+                                <div className="text-[13px] font-bold text-[#1e2330] leading-tight">{p.session?.timing}</div>
+                                <div className="text-[13px] font-medium text-gray-500">Assigned</div>
+                                <div className="flex justify-center">
+                                    <span className={`inline-flex max-w-[80px] text-center justify-center px-2.5 py-1.5 rounded-full text-[8px] font-black tracking-widest uppercase shadow-sm ${
+                                        p.status === 'CONFIRMED' ? 'bg-[#D1FAE5] text-[#059669]' : 'bg-[#FEF3C7] text-[#92400E]'
+                                    }`}>
+                                        {p.status || 'PENDING'}
+                                    </span>
+                                </div>
+                                <div className="flex justify-center">
+                                    <CheckCircle2 className={`w-6 h-6 ${p.paid ? 'text-[#22C55E]' : 'text-gray-300'}`} strokeWidth={2} />
+                                </div>
+                                <div className="flex items-center justify-end gap-2">
+                                    {p.status === 'CONFIRMED' ? (
+                                        <button 
+                                            onClick={() => handleBookingStatus(p.session.id, p.riderId, 'REJECTED')}
+                                            className="bg-[#FEF2F2] border border-[#FECACA] text-[#EF4444] px-4 py-2 rounded-xl text-[11px] font-bold shadow-sm hover:bg-[#FEE2E2] transition-colors leading-tight text-center"
+                                        >
+                                            Force<br/>Cancel
+                                        </button>
+                                    ) : (
+                                        <>
+                                            <button 
+                                                onClick={() => handleBookingStatus(p.session.id, p.riderId, 'CONFIRMED')}
+                                                className="bg-green-50 border border-green-200 text-green-600 px-4 py-2 rounded-xl text-[11px] font-bold shadow-sm hover:bg-green-100 transition-colors"
+                                            >
+                                                Approve
+                                            </button>
+                                            <button 
+                                                onClick={() => handleBookingStatus(p.session.id, p.riderId, 'REJECTED')}
+                                                className="bg-gray-50 border border-gray-200 text-gray-500 px-4 py-2 rounded-xl text-[11px] font-bold shadow-sm hover:bg-gray-100 transition-colors"
+                                            >
+                                                Reject
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
                             </div>
-                            <div>
-                                <h4 className="text-[14px] font-black text-[#1e2330] mb-0.5">Sarah<br/>Jenkins</h4>
-                                <p className="text-[11px] font-semibold text-gray-500 leading-tight">Elite<br/>Member</p>
-                            </div>
-                        </div>
-                        <div className="text-[13px] font-bold text-[#1e2330] leading-tight">08:00 AM -<br/>09:30 AM</div>
-                        <div className="text-[13px] font-medium text-gray-500">Midnight<br/>Shadow</div>
-                        <div className="flex justify-center">
-                            <span className="inline-flex max-w-[80px] text-center justify-center px-2.5 py-1.5 rounded-full text-[8px] font-black tracking-widest uppercase bg-[#FEF3C7] text-[#92400E] shadow-sm">
-                                PENDING<br/>APPROVAL
-                            </span>
-                        </div>
-                        <div className="flex justify-center">
-                            <CheckCircle2 className="w-6 h-6 text-[#22C55E]" strokeWidth={2} />
-                        </div>
-                        <div className="flex items-center justify-end gap-1.5 relative top-1">
-                            <div className="flex flex-col items-center">
-                                <button className="text-[13px] font-bold text-[#964C2E] hover:text-[#7A3D24]">Override<br/>Approval</button>
-                                <div className="w-full bg-[#964C2E] h-[2px] mt-1"></div>
-                            </div>
-                            <Info className="w-3.5 h-3.5 text-gray-400 -mt-3 relative" />
-                        </div>
-                    </div>
-
-                    {/* Row 2 - Michael Chen */}
-                    <div className="grid grid-cols-[300px_1fr_1fr_120px_80px_150px] gap-4 items-center bg-[#F6EDE2] border-b border-[#E6D9CC] pb-6">
-                        <div className="flex items-center gap-4 pl-2">
-                            <div className="w-[120px] h-[140px] rounded-sm overflow-hidden border-2 border-white shadow-sm border-b-4 border-b-[#964C2E]">
-                                <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80" alt="Michael Chen" className="w-full h-full object-cover" />
-                            </div>
-                            <div>
-                                <h4 className="text-[14px] font-black text-[#1e2330] mb-0.5">Michael<br/>Chen</h4>
-                                <p className="text-[11px] font-semibold text-gray-500 leading-tight">Standard<br/>Member</p>
-                            </div>
-                        </div>
-                        <div className="text-[13px] font-bold text-[#1e2330] leading-tight">08:00 AM -<br/>09:30 AM</div>
-                        <div className="text-[13px] font-medium text-gray-500">Apollo's Pride</div>
-                        <div className="flex justify-center">
-                            <span className="inline-flex max-w-[80px] text-center justify-center px-4 py-1.5 rounded-full text-[9px] font-black tracking-widest uppercase bg-[#D1FAE5] text-[#059669] shadow-sm">
-                                CONFIRMED
-                            </span>
-                        </div>
-                        <div className="flex justify-center">
-                            <CheckCircle2 className="w-6 h-6 text-[#22C55E]" strokeWidth={2} />
-                        </div>
-                        <div className="flex items-center justify-end gap-1">
-                            <button className="bg-[#FEF2F2] border border-[#FECACA] text-[#EF4444] px-4 py-2 rounded-xl text-[11px] font-bold shadow-sm hover:bg-[#FEE2E2] transition-colors leading-tight text-center">
-                                Force<br/>Cancel
-                            </button>
-                            <MoreVertical className="w-4 h-4 text-gray-400 ml-1" />
-                        </div>
-                    </div>
-
-                    {/* Row 3 - Emma Wilson */}
-                    <div className="grid grid-cols-[300px_1fr_1fr_120px_80px_150px] gap-4 items-center bg-[#F6EDE2] pb-6">
-                        <div className="flex items-center gap-4 pl-2">
-                            <div className="w-[120px] h-[140px] rounded-sm overflow-hidden border-2 border-white shadow-sm border-b-4 border-b-[#964C2E]">
-                                <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80" alt="Emma Wilson" className="w-full h-full object-cover" />
-                            </div>
-                            <div>
-                                <h4 className="text-[14px] font-black text-[#1e2330] mb-0.5">Emma<br/>Wilson</h4>
-                                <p className="text-[11px] font-semibold text-gray-500 leading-tight">Trial<br/>Class</p>
-                            </div>
-                        </div>
-                        <div className="text-[13px] font-bold text-[#1e2330] leading-tight">12:00 PM -<br/>01:30 PM</div>
-                        <div className="text-[13px] font-medium text-gray-500">Desert Rose</div>
-                        <div className="flex justify-center">
-                            <span className="inline-flex max-w-[80px] text-center justify-center px-3 py-1.5 rounded-full text-[9px] font-black tracking-widest uppercase bg-[#DBEAFE] text-[#2563EB] shadow-sm">
-                                CHECKED IN
-                            </span>
-                        </div>
-                        <div className="flex justify-center">
-                            <Circle className="w-6 h-6 text-[#D5C9B9]" strokeWidth={2} />
-                        </div>
-                        <div className="flex items-center justify-end gap-1 w-full translate-y-1">
-                            <span className="text-[12px] font-bold text-[#A59588] tracking-wide inline-flex text-right mr-3">
-                                Session Live
-                            </span>
-                        </div>
-                    </div>
+                        ))
+                    )}
                 </div>
+            </div>
+
+            {showModal && <SessionModal sessionToEdit={sessionToEdit} trainers={trainers} location={stableName} setShowModal={setShowModal} onSuccess={fetchData} />}
+        </div>
+    );
+};
+
+
+const SessionModal = ({ sessionToEdit, trainers, location, setShowModal, onSuccess }) => {
+    const [searchParams] = useSearchParams();
+    const trainerIdParam = searchParams.get("trainerId");
+    const [formData, setFormData] = useState({
+        title: sessionToEdit?.title || "",
+        startTime: sessionToEdit?.timing?.split("-")[0].trim() || "09:00",
+        endTime: sessionToEdit?.timing?.split("-")[1].trim() || "10:30",
+        date: sessionToEdit?.date || new Date().toISOString().split('T')[0],
+        joiningAmount: sessionToEdit?.joiningAmount || 100,
+        trainerId: sessionToEdit?.trainerId || trainerIdParam || "",
+        horseId: sessionToEdit?.horseId || "", 
+        duration: sessionToEdit?.duration || "90 Min",
+        location: sessionToEdit?.location || location,
+        totalSeats: sessionToEdit?.totalSeats || 10,
+    });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        try {
+            // Quick find a horse ID if empty (choosing first available)
+            const horseRes = await apiFunction(getAllHorsesApi, [], {}, "GET", true);
+            const horseId = horseRes?.horses?.[0]?.id || "f47ac10b-58cc-4372-a567-0e02b2c3d479";
+            
+            const formattedTiming = `${formData.startTime} - ${formData.endTime}`;
+            
+            const finalData = { ...formData, timing: formattedTiming, horseId, location: location };
+            
+            let res;
+            if (sessionToEdit) {
+                res = await apiFunction(`${updateSessionApi}/${sessionToEdit.id}`, [], finalData, "PUT", true);
+            } else {
+                res = await apiFunction(createSessionApi, [], finalData, "POST", true);
+            }
+            
+            if (res && res.success) {
+                toast.success(sessionToEdit ? "Session updated" : "Session created successfully");
+                setShowModal(false);
+                if (onSuccess) onSuccess();
+            } else {
+                toast.error(res?.message || "Failed to create session");
+            }
+        } catch (error) {
+            toast.error("Network error. Please check your connection.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="bg-white rounded-3xl p-8 w-[600px] shadow-2xl border border-gray-100 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+                <div className="flex justify-between items-center mb-8 pb-6 border-b border-gray-50">
+                    <div>
+                        <h3 className="text-[22px] font-black text-[#1e2330]">{sessionToEdit ? "Edit Session" : "Add New Session"}</h3>
+                        <p className="text-[13px] font-semibold text-gray-400 mt-1">Schedule a session for {location}.</p>
+                    </div>
+                    <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-[#964C2E] p-2 hover:bg-gray-50 rounded-xl transition-all">
+                        <X className="w-6 h-6" />
+                    </button>
+                </div>
+                
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    <div>
+                        <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Session Title</label>
+                        <input required value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:border-[#964C2E] transition-all" placeholder="e.g. Morning Jumping" />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Start Time</label>
+                            <input type="time" required value={formData.startTime} onChange={(e) => setFormData({...formData, startTime: e.target.value})} className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]" />
+                        </div>
+                        <div>
+                            <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">End Time</label>
+                            <input type="time" required value={formData.endTime} onChange={(e) => setFormData({...formData, endTime: e.target.value})} className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]" />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Date</label>
+                            <input type="date" required value={formData.date} onChange={(e) => setFormData({...formData, date: e.target.value})} className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]" />
+                        </div>
+                        <div>
+                            <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Trainer</label>
+                            <select required value={formData.trainerId} onChange={(e) => setFormData({...formData, trainerId: e.target.value})} className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]">
+                                <option value="">Select Trainer</option>
+                                {trainers.map(t => <option key={t.trainerId} value={t.trainerId}>{t.name}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Total Seats</label>
+                            <input type="number" required value={formData.totalSeats} onChange={(e) => setFormData({...formData, totalSeats: parseInt(e.target.value)})} className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]" />
+                        </div>
+                    </div>
+
+                    <div className="mt-10 flex justify-end gap-4 pt-8 border-t border-gray-50">
+                        <button type="button" onClick={() => setShowModal(false)} className="px-8 py-3.5 rounded-2xl border border-gray-200 text-[#1e2330] text-[14px] font-bold hover:bg-gray-50 transition-all">
+                            Cancel
+                        </button>
+                        <button disabled={isSubmitting} type="submit" className="px-8 py-3.5 rounded-2xl bg-[#964C2E] text-white text-[14px] font-bold shadow-lg hover:bg-[#7D3F25] transition-all disabled:opacity-50">
+                            {isSubmitting ? "Saving..." : (sessionToEdit ? "Save Changes" : "Schedule Session")}
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     );

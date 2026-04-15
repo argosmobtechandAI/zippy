@@ -7,8 +7,9 @@ import { ChessKnight, HeartPlus, Home, List, User } from "lucide-react-native";
 import PatientListScreen from "../screens/PatientListScreen";
 
 
+const Tabs = createBottomTabNavigator();
+
 const MainTabsStack = () => {
-    const Tabs = createBottomTabNavigator();
     return (
         <Tabs.Navigator initialRouteName="Home" screenOptions={{ headerShown: false }}>
             <Tabs.Screen name="Home" component={HomeScreen} options={{title: "Home" , tabBarIcon: ({color, size}) => (<Home size={size} color={color} />)}} />

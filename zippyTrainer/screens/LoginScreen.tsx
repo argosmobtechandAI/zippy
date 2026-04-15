@@ -63,6 +63,7 @@ export default function LoginScreen() {
 
       if (res.success) {
         await AsyncStorage.setItem("token", res.token);
+        await AsyncStorage.setItem("user", JSON.stringify(res.user));
         console.log("Token saved:", res.token);
 
         navigation.navigate("Tabs");

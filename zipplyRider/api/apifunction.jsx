@@ -14,20 +14,21 @@ export const apiFunction = async (api, params = [], data = {}, method, withAuth)
   }
 
   let response;
+  const fullURL = params.length > 0 ? `${api}/${params.join('/')}` : api;
 
   switch (method) {
     case 'GET':
-      response = await axios.get(`${api}/${params.join('/')}`, { headers });
+      response = await axios.get(fullURL, { headers });
       break;
     case 'POST':
-      response = await axios.post(`${api}/${params.join('/')}`, { data }, { headers });
+      response = await axios.post(fullURL, { data }, { headers });
       break;
 
     case 'PUT':
-      response = await axios.put(`${api}/${params.join('/')}`, { data }, { headers });
+      response = await axios.put(fullURL, { data }, { headers });
       break;
     case 'DELETE':
-      response = await axios.delete(`${api}/${params.join('/')}`, { headers });
+      response = await axios.delete(fullURL, { headers });
       break;
     default:
       throw new Error('Invalid HTTP method');

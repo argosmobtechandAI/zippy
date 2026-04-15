@@ -1,52 +1,43 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, Image, ActivityIndicator } from 'react-native';
 import { ArrowLeft, Search, Filter, Stethoscope, AlertTriangle, CheckCircle2, ChevronRight } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
+import { apiFunction } from '../api/apiFunction';
+import { getAllHorsesApi } from '../api/api';
 
 export default function PatientListScreen() {
     const navigation = useNavigation();
     const [activeTab, setActiveTab] = useState('All');
+    const [horses, setHorses] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState("");
 
-    const patients = [
-        {
-            id: 'ZE-7782',
-            name: 'Copper Blaze',
-            owner: 'Zippy Equestrian',
-            status: 'Critical',
-            condition: 'Post-operative eval',
-            lastVisit: 'Today',
-            image: 'https://images.unsplash.com/photo-1553026131-ab106511fa48?q=80&w=200&auto=format&fit=crop'
-        },
-        {
-            id: 'ZE-2299',
-            name: 'Thunder Dash',
-            owner: 'Sarah Connor',
-            status: 'Monitoring',
-            condition: 'Vaccine Due',
-            lastVisit: '3 Days Ago',
-            image: 'https://images.unsplash.com/photo-1594911874499-28c0c4a4f896?q=80&w=200&auto=format&fit=crop'
-        },
-        {
-            id: 'ZE-1104',
-            name: 'Midnight Rose',
-            owner: 'Zippy Equestrian',
-            status: 'Stable',
-            condition: 'Routine Checkup',
-            lastVisit: '1 Week Ago',
-            image: 'https://images.unsplash.com/photo-1598974357801-cbca100e65d3?q=80&w=200&auto=format&fit=crop'
-        },
-        {
-            id: 'ZE-2901',
-            name: 'Thunder Strike',
-            owner: 'Mike Johnson',
-            status: 'Stable',
-            condition: 'Recovery (Lameness)',
-            lastVisit: '2 Weeks Ago',
-            image: 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?q=80&w=200&auto=format&fit=crop'
+    useEffect(() => {
+        fetchHorses();
+    }, []);
+
+    const fetchHorses = async () => {
+        setLoading(true);
+        try {
+            const res = await apiFunction(getAllHorsesApi, [], {}, "GET", true);
+            if (res && res.success) {
+                setHorses(res.horses || []);
+            }
+        } catch (error) {
+            console.error("Fetch horses error:", error);
+        } finally {
+            setLoading(false);
         }
-    ];
+    };
 
     const filterTabs = ['All', 'Critical', 'Monitoring', 'Stable'];
+
+    const filteredPatients = horses.filter(h => {
+        const matchesSearch = h.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                              h.location.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesTab = activeTab === 'All' || h.shoeStatus === activeTab; // Using shoeStatus as a placeholder for status if healthStatus array is just IDs
+        return matchesSearch && matchesTab;
+    });
 
     return (
         <View className="flex-1 bg-[#F5EDDF]">
@@ -61,12 +52,14 @@ export default function PatientListScreen() {
 
             {/* Search Bar */}
             <View className="px-4 mb-4">
-                <View className="bg-white rounded-xl flex-row items-center px-4 py-3 border border-[#e2e8f0] shadow-sm">
-                    <Search color="#94a3b8" size={20} className="mr-2" />
+                <View className="bg-white rounded-xl flex-row items-center px-4 py-2 border border-[#e2e8f0] shadow-sm">
+                    <Search color="#64748b" size={20} className="mr-2" />
                     <TextInput
                         placeholder="Search patient, owner, or ID..."
-                        placeholderTextColor="#94a3b8"
-                        className="flex-1 text-[#1a202c] h-8"
+                        placeholderTextColor="#64748b"
+                        className="flex-1 text-[#1a202c] h-11 text-sm pt-0 pb-0"
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
                     />
                     <TouchableOpacity>
                         <Filter color="#8C4A28" size={20} className="ml-2" />
@@ -93,52 +86,67 @@ export default function PatientListScreen() {
                 </ScrollView>
             </View>
 
-            <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-                {patients.map((patient, index) => (
-                    <TouchableOpacity
-                        key={index}
-                        onPress={() => navigation.navigate("PatientDetail")}
-                        className="bg-white rounded-3xl p-4 shadow-sm border border-[#e2e8f0] mb-4 flex-row items-center"
-                    >
-                        <Image
-                            source={{ uri: patient.image }}
-                            className="w-[70px] h-[70px] rounded-xl mr-4"
-                        />
-                        <View className="flex-1">
-                            <View className="flex-row justify-between items-start mb-1">
-                                <Text className="text-[#1a202c] font-bold text-base">{patient.name}</Text>
+            {loading ? (
+                <View className="flex-1 justify-center items-center">
+                    <ActivityIndicator size="large" color="#8C4A28" />
+                </View>
+            ) : (
+                <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+                    {filteredPatients.map((patient, index) => (
+                        <TouchableOpacity
+                            key={patient.id}
+                            onPress={() => navigation.navigate("PatientDetail", { horse: patient })}
+                            className="bg-white rounded-3xl p-4 shadow-sm border border-[#e2e8f0] mb-4 flex-row items-center"
+                        >
+                            <View className="w-[70px] h-[70px] rounded-xl mr-4 overflow-hidden bg-[#FAF7F2] items-center justify-center border border-[#8C4A28]/10">
+                                {patient.image || patient.imageUrl ? (
+                                    <Image
+                                        source={{ uri: patient.image || patient.imageUrl }}
+                                        className="w-full h-full"
+                                    />
+                                ) : (
+                                    <View className="items-center justify-center">
+                                        <Stethoscope color="#8C4A28" size={24} opacity={0.6} />
+                                        <Text className="text-[8px] font-bold text-[#8C4A28]/40 uppercase mt-1">Zippy</Text>
+                                    </View>
+                                )}
                             </View>
+                            <View className="flex-1">
+                                <View className="flex-row justify-between items-start mb-1">
+                                    <Text className="text-[#1a202c] font-bold text-base">{patient.name}</Text>
+                                </View>
 
-                            <Text className="text-[#64748b] text-[10px] font-semibold mb-2">ID: #{patient.id} • {patient.owner}</Text>
+                                <Text className="text-[#64748b] text-[10px] font-semibold mb-2">ID: #{patient.id.slice(0, 8)} • {patient.location}</Text>
 
-                            <View className="flex-row justify-between items-center">
-                                <Text className="text-[#8C4A28] text-xs font-bold w-[65%]">{patient.condition}</Text>
-                                <View>
-                                    {patient.status === 'Critical' && (
-                                        <View className="bg-red-100 flex-row items-center px-2 py-1 rounded">
-                                            <AlertTriangle color="#ef4444" size={10} className="mr-1" />
-                                            <Text className="text-[#ef4444] text-[9px] font-bold uppercase">{patient.status}</Text>
-                                        </View>
-                                    )}
-                                    {patient.status === 'Monitoring' && (
-                                        <View className="bg-orange-100 flex-row items-center px-2 py-1 rounded">
-                                            <Stethoscope color="#f97316" size={10} className="mr-1" />
-                                            <Text className="text-[#f97316] text-[9px] font-bold uppercase">{patient.status}</Text>
-                                        </View>
-                                    )}
-                                    {patient.status === 'Stable' && (
-                                        <View className="bg-green-100 flex-row items-center px-2 py-1 rounded">
-                                            <CheckCircle2 color="#10b981" size={10} className="mr-1" />
-                                            <Text className="text-[#10b981] text-[9px] font-bold uppercase">{patient.status}</Text>
-                                        </View>
-                                    )}
+                                <View className="flex-row justify-between items-center">
+                                    <Text className="text-[#8C4A28] text-xs font-bold w-[65%]">{patient.title}</Text>
+                                    <View>
+                                        {patient.shoeStatus === 'Critical' && (
+                                            <View className="bg-red-100 flex-row items-center px-2 py-1 rounded">
+                                                <AlertTriangle color="#ef4444" size={10} className="mr-1" />
+                                                <Text className="text-[#ef4444] text-[9px] font-bold uppercase">{patient.shoeStatus}</Text>
+                                            </View>
+                                        )}
+                                        {(patient.shoeStatus === 'Monitoring' || !patient.shoeStatus) && (
+                                            <View className="bg-orange-100 flex-row items-center px-2 py-1 rounded">
+                                                <Stethoscope color="#f97316" size={10} className="mr-1" />
+                                                <Text className="text-[#f97316] text-[9px] font-bold uppercase">{patient.shoeStatus || 'Monitoring'}</Text>
+                                            </View>
+                                        )}
+                                        {patient.shoeStatus === 'Stable' && (
+                                            <View className="bg-green-100 flex-row items-center px-2 py-1 rounded">
+                                                <CheckCircle2 color="#10b981" size={10} className="mr-1" />
+                                                <Text className="text-[#10b981] text-[9px] font-bold uppercase">{patient.shoeStatus}</Text>
+                                            </View>
+                                        )}
+                                    </View>
                                 </View>
                             </View>
-                        </View>
-                        <ChevronRight color="#94a3b8" size={20} className="ml-2" />
-                    </TouchableOpacity>
-                ))}
-            </ScrollView>
+                            <ChevronRight color="#94a3b8" size={20} className="ml-2" />
+                        </TouchableOpacity>
+                    ))}
+                </ScrollView>
+            )}
         </View>
     );
 }

@@ -1,29 +1,104 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
 import { ArrowLeft, Info, ArrowUpRight, Calendar, User as UserIcon, Clock, Star } from 'lucide-react-native';
-import { useNavigation } from '@react-navigation/native';
-
-const pendingSessions = [
-  { title: 'Advanced Show Jumping', date: 'Saturday, Oct 28 • 09:30 AM', trainer: 'Sarah Jenkins' },
-  { title: 'Dressage Basics I', date: 'Monday, Oct 30 • 02:00 PM', trainer: 'Michael Thorne' },
-  { title: 'Stable Management 101', date: 'Thursday, Nov 02 • 11:00 AM', trainer: 'Elena Rodriguez' },
-];
-
-const pastSessions = [
-  { title: 'Beginner Trail Ride', date: 'Sunday, Sep 15 • 10:00 AM', trainer: 'Sarah Jenkins', horse: 'Thunderbolt', rating: 5 },
-  { title: 'Dressage Intro', date: 'Friday, Sep 05 • 03:00 PM', trainer: 'Elena Rodriguez', horse: 'Apollo', rating: 4 },
-  { title: 'Stable Orientation', date: 'Wednesday, Aug 20 • 09:00 AM', trainer: 'Michael Thorne', horse: 'N/A', rating: 5 },
-];
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiFunction } from '../api/apifunction';
+import { getSessionsByRiderApi } from '../api/api';
+import { useSelector, useDispatch } from 'react-redux';
+import { fetchUser } from '../redux/getDataSlice';
 
 export default function BookingsScreen() {
   const [tab, setTab] = useState('PENDING');
-  const navigation = useNavigation()
+  const [loading, setLoading] = useState(true);
+  const [sessions, setSessions] = useState([]);
+  const navigation = useNavigation();
+  const dispatch = useDispatch<any>();
+  const { user } = useSelector((state: any) => state.getData);
+
+  const currentRiderId = user?.riderId;
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      console.log("Refreshing Bookings...");
+      fetchBookings();
+    });
+
+    return unsubscribe;
+  }, [navigation, currentRiderId]);
+
+  const fetchBookings = async () => {
+    setLoading(true);
+    try {
+      let activeRiderId = currentRiderId;
+      
+      if (!activeRiderId) {
+        // Try to fetch latest user data (self-healing)
+        const res = await dispatch(fetchUser()).unwrap();
+        activeRiderId = res?.riderId;
+      }
+
+      if (activeRiderId) {
+        const res = await apiFunction(getSessionsByRiderApi(activeRiderId), [], {}, "GET", true);
+        if (res && res.success) {
+          setSessions(res.sessions || []);
+        }
+      }
+    } catch (error) {
+      console.error("Fetch bookings error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Filter sessions based on rider's status in the participants list
+  const isSessionPassed = (date, timing) => {
+    const now = new Date();
+    const sessionDate = new Date(date);
+    
+    if (sessionDate.toDateString() === now.toDateString()) {
+        try {
+          const [startTime] = timing.split(' - ');
+          const [hours, minutes] = startTime.split(':').map(Number);
+          const sessionWithTime = new Date(sessionDate);
+          sessionWithTime.setHours(hours, minutes, 0, 0);
+          return sessionWithTime <= now;
+        } catch (e) {
+          return false;
+        }
+    }
+    return sessionDate < now;
+  };
+
+  // Filter sessions based on rider's status in the participants list
+  const pendingSessions = sessions.filter(s => {
+    const me = s.participants?.find((p: any) => 
+      p.riderId && currentRiderId && String(p.riderId).toLowerCase() === String(currentRiderId).toLowerCase()
+    );
+    const status = me?.status?.toUpperCase();
+    const isActive = status === 'BOOKED' || status === 'PENDING' || status === 'CONFIRMED' || !status;
+    
+    // It must have an active status AND not have passed its time yet
+    return isActive && !isSessionPassed(s.date, s.timing);
+  });
+
+  const pastSessions = sessions.filter(s => {
+    const me = s.participants?.find((p: any) => 
+      p.riderId && currentRiderId && String(p.riderId).toLowerCase() === String(currentRiderId).toLowerCase()
+    );
+    const status = me?.status?.toUpperCase();
+    
+    // It is past if it's explicitly marked as finished OR if its time has passed
+    return status === 'PRESENT' || status === 'NOSHOW' || isSessionPassed(s.date, s.timing);
+  });
 
   return (
     <View className="flex-1 bg-[#F5EDDF]">
       {/* Header */}
-      <View className="flex-row items-center px-10 py-4 bg-white">
-
+      <View className="flex-row items-center px-4 py-4 bg-white">
+        <TouchableOpacity onPress={() => navigation.goBack()} className="mr-4 p-2">
+            <ArrowLeft color="#8C4A28" size={24} />
+        </TouchableOpacity>
         <Text className="text-[#8C4A28] font-bold text-lg">MY BOOKINGS</Text>
       </View>
 
@@ -43,7 +118,18 @@ export default function BookingsScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+      {loading ? (
+        <View className="flex-1 justify-center items-center">
+            <ActivityIndicator size="large" color="#8C4A28" />
+            <Text className="mt-4 text-[#8C4A28] font-bold">Fetching your bookings...</Text>
+        </View>
+      ) : (
+      <ScrollView 
+        contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+        refreshControl={
+          <RefreshControl refreshing={loading} onRefresh={fetchBookings} colors={['#8C4A28']} />
+        }
+      >
         {tab === 'PENDING' ? (
           <>
             {/* Cancellation Policy Alert */}
@@ -69,11 +155,17 @@ export default function BookingsScreen() {
             </View>
 
             <View className="space-y-4">
-              {pendingSessions.map((session, idx) => (
+              {pendingSessions.length === 0 ? (
+                  <View className="p-8 items-center justify-center">
+                      <Text className="text-[#64748b] font-bold">No pending sessions found.</Text>
+                  </View>
+              ) : pendingSessions.map((session, idx) => (
                 <View key={idx} className="bg-white rounded-2xl p-4 border border-[#e2e8f0] shadow-sm mb-4">
                   <View className="flex-row justify-between items-start mb-3">
-                    <View className="bg-[#fceddf] px-2 py-1 rounded">
-                      <Text className="text-[#8C4A28] font-bold text-[8px] tracking-widest uppercase">PENDING</Text>
+                    <View className={`px-2 py-1 rounded ${session.participants?.find((p: any) => p.riderId === currentRiderId)?.status === 'CONFIRMED' ? 'bg-green-100' : 'bg-[#fceddf]'}`}>
+                      <Text className={`font-bold text-[8px] tracking-widest uppercase ${session.participants?.find((p: any) => p.riderId && currentRiderId && String(p.riderId).toLowerCase() === String(currentRiderId).toLowerCase())?.status === 'CONFIRMED' ? 'text-green-700' : 'text-[#8C4A28]'}`}>
+                        {session.participants?.find((p: any) => p.riderId && currentRiderId && String(p.riderId).toLowerCase() === String(currentRiderId).toLowerCase())?.status || 'PENDING'}
+                      </Text>
                     </View>
                     <View className="bg-[#fceddf] p-1.5 rounded-lg">
                       <Calendar color="#8C4A28" size={16} />
@@ -84,16 +176,16 @@ export default function BookingsScreen() {
 
                   <View className="space-y-2 mb-4 mt-2">
                     <View className="flex-row items-center">
-                      <View className="w-6 items-center border border-transparent mr-1">
+                      <View className="w-6 items-center mr-1">
                         <Calendar color="#8C4A28" size={14} />
                       </View>
-                      <Text className="text-[#64748b] text-xs">{session.date}</Text>
+                      <Text className="text-[#64748b] text-xs">{session.timing} • {session.date}</Text>
                     </View>
                     <View className="flex-row items-center mt-1">
-                      <View className="w-6 items-center border border-transparent mr-1">
+                      <View className="w-6 items-center mr-1">
                         <UserIcon color="#8C4A28" size={14} />
                       </View>
-                      <Text className="text-[#64748b] text-xs">Trainer: {session.trainer}</Text>
+                      <Text className="text-[#64748b] text-xs">Location: {session.location}</Text>
                     </View>
                   </View>
 
@@ -103,7 +195,7 @@ export default function BookingsScreen() {
                     <TouchableOpacity>
                       <Text className="text-[#94a3b8] font-bold text-xs tracking-wider uppercase">✕ Cancel Request</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => navigation.navigate("Sessions", { screen: "SessionDetail" })} className="bg-[#8C4A28] py-2 px-4 rounded-lg">
+                    <TouchableOpacity onPress={() => navigation.navigate("SessionDetail", { session })} className="bg-[#8C4A28] py-2 px-4 rounded-lg">
                       <Text className="text-white font-bold text-xs">View Details</Text>
                     </TouchableOpacity>
                   </View>
@@ -112,13 +204,8 @@ export default function BookingsScreen() {
             </View>
           </>
         ) : (
-          <View className="flex-1 bg-[#F5EDDF]">
-
-
-            <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}>
-
+          <View className="flex-1">
               <View className="flex-row items-center mb-6 mt-2">
-
                 <View>
                   <Text className="text-[#1a202c] font-bold text-xl">Past Sessions</Text>
                   <Text className="text-[#64748b] text-sm">Review your previous rides and ratings.</Text>
@@ -126,7 +213,11 @@ export default function BookingsScreen() {
               </View>
 
               <View className="space-y-4">
-                {pastSessions.map((session, idx) => (
+                {pastSessions.length === 0 ? (
+                  <View className="p-8 items-center justify-center">
+                      <Text className="text-[#64748b] font-bold">No past sessions found.</Text>
+                  </View>
+                ) : pastSessions.map((session, idx) => (
                   <View key={idx} className="bg-white rounded-3xl p-5 shadow-sm border border-[#e2e8f0] mb-4">
                     <View className="flex-row justify-between items-start mb-3">
                       <Text className="text-[#1a202c] font-bold text-lg flex-1 mr-2">{session.title}</Text>
@@ -136,18 +227,20 @@ export default function BookingsScreen() {
                     </View>
 
                     <View className="flex-row items-center space-x-2 mb-4">
-                      <Calendar color="#64748b" size={16} />
-                      <Text className="text-[#64748b] text-sm ml-2">{session.date}</Text>
+                      <Clock color="#64748b" size={16} />
+                      <Text className="text-[#64748b] text-sm ml-2">{session.timing} • {session.date}</Text>
                     </View>
 
                     <View className="flex-row justify-between items-center bg-[#f8fafc] p-3 rounded-2xl mb-4">
                       <View className="flex-1 border-r border-[#e2e8f0]">
-                        <Text className="text-[#94a3b8] text-[10px] uppercase font-bold tracking-wider mb-1">Trainer</Text>
-                        <Text className="text-[#1a202c] font-semibold text-sm">{session.trainer}</Text>
+                        <Text className="text-[#94a3b8] text-[10px] uppercase font-bold tracking-wider mb-1">Location</Text>
+                        <Text className="text-[#1a202c] font-semibold text-sm">{session.location}</Text>
                       </View>
                       <View className="flex-1 pl-4">
-                        <Text className="text-[#94a3b8] text-[10px] uppercase font-bold tracking-wider mb-1">Horse</Text>
-                        <Text className="text-[#1a202c] font-semibold text-sm">{session.horse}</Text>
+                        <Text className="text-[#94a3b8] text-[10px] uppercase font-bold tracking-wider mb-1">Status</Text>
+                        <Text className="text-[#1a202c] font-semibold text-sm capitalize">
+                            {session.participants?.find((p: any) => p.riderId)?.status || 'Completed'}
+                        </Text>
                       </View>
                     </View>
 
@@ -156,22 +249,21 @@ export default function BookingsScreen() {
                         <Text className="text-xs text-[#64748b] mr-2">Your Rating:</Text>
                         <View className="flex-row">
                           {[...Array(5)].map((_, i) => (
-                            <Star key={i} size={12} color={i < session.rating ? '#f59e0b' : '#cbd5e1'} fill={i < session.rating ? '#f59e0b' : 'transparent'} />
+                            <Star key={i} size={12} color={i < 5 ? '#f59e0b' : '#cbd5e1'} fill={i < 5 ? '#f59e0b' : 'transparent'} />
                           ))}
                         </View>
                       </View>
-                      <TouchableOpacity>
-                        <Text className="text-[#8C4A28] font-bold text-sm">View Notes →</Text>
+                      <TouchableOpacity onPress={() => navigation.navigate("SessionDetail", { session })}>
+                        <Text className="text-[#8C4A28] font-bold text-sm">View Details →</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
                 ))}
               </View>
-
-            </ScrollView>
           </View>
         )}
       </ScrollView>
+      )}
     </View>
   );
 }

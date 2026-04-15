@@ -2,9 +2,9 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import SessionsScreen from "../screens/SessionsScreen";
 import SessionDetailScreen from "../screens/SessionDetailScreen";
 
-const SessionStack = () => {
+const Stack = createNativeStackNavigator();
 
-    const Stack = createNativeStackNavigator();
+const SessionStack = () => {
     return (
         <Stack.Navigator
             screenOptions={{

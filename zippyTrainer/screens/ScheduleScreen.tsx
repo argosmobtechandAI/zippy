@@ -1,24 +1,160 @@
-import React, { useState } from 'react';
-import { View, Text, SafeAreaView, ScrollView, TouchableOpacity, Image } from 'react-native';
-import { Menu, Bell, MapPin, CheckCircle2, XCircle, Clock, ChevronRight, Calendar as CalendarIcon, MoreVertical, Loader } from 'lucide-react-native';
-import { useNavigation } from '@react-navigation/native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, SafeAreaView, ScrollView, TouchableOpacity, Image, RefreshControl, ActivityIndicator, Modal, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getSessionsByTrainerApi, getAllHorsesApi, createSessionApi } from '../api/api';
+import { apiFunction } from '../api/apiFunction';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { Plus, Menu, Bell, MapPin, CheckCircle2, XCircle, Clock, ChevronRight, Calendar as CalendarIcon, MoreVertical, Loader, X } from 'lucide-react-native';
 
 export default function ScheduleScreen() {
-  
-   const [selectedDay, setSelectedDay] = useState('18');
-   const navigation = useNavigation()
+   
+   // Generate next 7 days dynamically
+   const generateNext7Days = () => {
+      const days = [];
+      const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+      for (let i = 0; i < 7; i++) {
+         const date = new Date();
+         date.setDate(date.getDate() + i);
+         
+         const year = date.getFullYear();
+         const month = String(date.getMonth() + 1).padStart(2, '0');
+         const day = String(date.getDate()).padStart(2, '0');
+         const localDateString = `${year}-${month}-${day}`;
+
+         days.push({
+            day: dayNames[date.getDay()],
+            dateNumber: String(date.getDate()).padStart(2, '0'),
+            fullDate: localDateString
+         });
+      }
+      return days;
+   };
+
+   const upcomingDays = generateNext7Days();
+   const [selectedDate, setSelectedDate] = useState(upcomingDays[0].fullDate);
+   const [sessions, setSessions] = useState([]);
+   const [loading, setLoading] = useState(true);
+   const [refreshing, setRefreshing] = useState(false);
+   const [showAddModal, setShowAddModal] = useState(false);
+   const [assignedHorses, setAssignedHorses] = useState<any[]>([]);
+   const navigation = useNavigation();
+
+   useFocusEffect(
+      React.useCallback(() => {
+         fetchSessions();
+      }, [])
+   );
+
+   const fetchSessions = async (isRefresh = false) => {
+      if (isRefresh) setRefreshing(true);
+      else setLoading(true);
+      
+      try {
+         const userData = await AsyncStorage.getItem('user');
+         if (userData) {
+            const parsedUser = JSON.parse(userData);
+            const userId = parsedUser.id;
+            const trainerId = parsedUser.trainerId;
+            if (userId) {
+               const res = await apiFunction(getSessionsByTrainerApi(trainerId || userId), [], {}, "GET", true);
+               if (res && res.success) {
+                  setSessions(res.sessions || []);
+               }
+               
+               // Also fetch horses for the picker
+               const horseRes = await apiFunction(getAllHorsesApi, [], {}, "GET", true);
+               if (horseRes && horseRes.success) {
+                  const filtered = (horseRes.horses || []).filter((h: any) => h.trainerId === (trainerId || userId));
+                  setAssignedHorses(filtered);
+               }
+            }
+         }
+      } catch (e) {
+         console.error("Failed to fetch trainer sessions", e);
+      } finally {
+         setLoading(false);
+         setRefreshing(false);
+      }
+   };
+
+   const [newSession, setNewSession] = useState({
+      title: '',
+      date: selectedDate,
+      timing: '',
+      location: '',
+      joiningAmount: '0',
+      totalSeats: '10',
+      duration: '1 hr',
+      horseId: '',
+      note: ''
+   });
+
+   const handleCreateSession = async () => {
+      try {
+         const userData = await AsyncStorage.getItem('user');
+         if (!userData) return;
+         const user = JSON.parse(userData);
+
+         if (!newSession.title || !newSession.horseId) {
+            Alert.alert("Missing Info", "Please provide at least a title and assign a horse.");
+            return;
+         }
+
+         const payload = {
+            ...newSession,
+            trainerId: user.id,
+            joiningAmount: parseInt(newSession.joiningAmount),
+            totalSeats: parseInt(newSession.totalSeats)
+         };
+
+         const res = await apiFunction(createSessionApi, [], { data: payload }, "POST", true);
+         if (res && res.success) {
+            Alert.alert("Success", "Session created successfully!");
+            setShowAddModal(false);
+            fetchSessions();
+         } else {
+            Alert.alert("Error", res?.message || "Failed to create session");
+         }
+      } catch (e) {
+         Alert.alert("Error", "Network error while creating session");
+      }
+   };
+
+   // Filter sessions by the currently selected fullDate (compare only YYYY-MM-DD) and exclude blocked ones
+   const filteredSessions = sessions.filter(s => {
+       if (!s.date || s.status === 'BLOCKED') return false;
+       const sessionDate = s.date.includes('T') ? s.date.split('T')[0] : s.date;
+       return sessionDate === selectedDate;
+   });
+   
+   // Formatter for nicer date display - prevent UTC shifting
+   const formatDateFriendly = (dateString) => {
+       if (!dateString) return 'Today';
+       const [year, month, day] = dateString.split('-').map(Number);
+       const dateObj = new Date(year, month - 1, day);
+       return dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' });
+   };
 
    return (
       <View className="flex-1 bg-[#F5EDDF]">
          {/* Header */}
          <View className="flex-row justify-between items-center px-4 py-4 mb-2">
-            
             <Text className="text-lg font-bold text-[#1a202c]">Schedule</Text>
-           
+            <TouchableOpacity 
+               onPress={() => setShowAddModal(true)}
+               className="w-10 h-10 bg-[#8C4A28] rounded-full items-center justify-center shadow-sm"
+            >
+               <Plus color="white" size={20} />
+            </TouchableOpacity>
          </View>
 
-
-         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+         <ScrollView 
+            contentContainerStyle={{ padding: 16, paddingBottom: 40 }} 
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+               <RefreshControl refreshing={refreshing} onRefresh={() => fetchSessions(true)} colors={["#8C4A28"]} />
+            }
+         >
             
 
             
@@ -26,8 +162,8 @@ export default function ScheduleScreen() {
                   {/* Calendar / Date Selector */}
                   <View className="flex-row justify-between items-center mb-6">
                      <View>
-                        <Text className="text-2xl font-bold text-[#1a202c] mb-1">October 2026</Text>
-                        <Text className="text-[#64748b] text-sm">Week 3 • 14 Sessions Scheduled</Text>
+                        <Text className="text-2xl font-bold text-[#1a202c] mb-1">{new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</Text>
+                        <Text className="text-[#64748b] text-sm">{filteredSessions.length} Sessions Scheduled</Text>
                      </View>
                      <TouchableOpacity onPress={()=> navigation.navigate("Pending")}  className="bg-white p-2 rounded-xl flex flex-row gap-2 items-center border border-[#e2e8f0]">
                         <Loader color="#8C4A28" size={20} />
@@ -37,33 +173,25 @@ export default function ScheduleScreen() {
 
                   {/* Horizontal Day Selector */}
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-6">
-                     {[
-                        { day: 'MON', date: '16' },
-                        { day: 'TUE', date: '17' },
-                        { day: 'WED', date: '18' },
-                        { day: 'THU', date: '19' },
-                        { day: 'FRI', date: '20' },
-                        { day: 'SAT', date: '21' },
-                        { day: 'SUN', date: '22' }
-                     ].map((item, index) => (
+                     {upcomingDays.map((item, index) => (
                         <TouchableOpacity
                            key={index}
-                           onPress={() => setSelectedDay(item.date)}
+                           onPress={() => setSelectedDate(item.fullDate)}
                            className={`rounded-2xl p-4 items-center mr-3 min-w-[70px] ${
-                              selectedDay === item.date 
+                              selectedDate === item.fullDate 
                                  ? 'bg-[#8C4A28]' 
                                  : 'bg-white border border-[#e2e8f0]'
                            }`}
                         >
                            <Text className={`text-[10px] font-bold mb-2 ${
-                              selectedDay === item.date ? 'text-white opacity-80' : 'text-[#94a3b8]'
+                              selectedDate === item.fullDate ? 'text-white opacity-80' : 'text-[#94a3b8]'
                            }`}>
                               {item.day}
                            </Text>
                            <Text className={`font-bold text-xl ${
-                              selectedDay === item.date ? 'text-white' : 'text-[#1a202c]'
+                              selectedDate === item.fullDate ? 'text-white' : 'text-[#1a202c]'
                            }`}>
-                              {item.date}
+                              {item.dateNumber}
                            </Text>
                         </TouchableOpacity>
                      ))}
@@ -72,135 +200,161 @@ export default function ScheduleScreen() {
                   {/* Sessions List */}
                   <View className="mb-6">
                      <Text className="text-lg font-bold text-[#1a202c] mb-4">
-                        {
-                           selectedDay === '16' ? "Monday's Sessions" :
-                           selectedDay === '17' ? "Tuesday's Sessions" :
-                           selectedDay === '18' ? "Wednesday's Sessions" :
-                           selectedDay === '19' ? "Thursday's Sessions" :
-                           selectedDay === '20' ? "Friday's Sessions" :
-                           selectedDay === '21' ? "Saturday's Sessions" :
-                           "Sunday's Sessions"
-                        }
+                        Selected Date Sessions
                      </Text>
                      
-                     {/* Session 1 */}
-                     <TouchableOpacity onPress={() => navigation.navigate("SessionDetail")} activeOpacity={0.7} className="bg-white rounded-3xl p-4 shadow-sm border border-[#e2e8f0] mb-4 flex-row">
-                        {/* Time column */}
-                        <View className="items-center mr-4 w-12">
-                           <Text className="text-[#1a202c] font-bold text-base">08:00</Text>
-                           <Text className="text-[#94a3b8] font-semibold text-[10px] mb-1">AM</Text>
-                           <View className="w-[2px] h-10 bg-[#e2e8f0] my-1 rounded-full"></View>
-                           <Text className="text-[#94a3b8] font-bold text-xs mt-1">09:30</Text>
-                        </View>
-                        
-                        {/* Content */}
-                        <View className="flex-1 bg-[#F5EDDF] rounded-2xl p-3 border border-[#e6d0b3]">
-                           <View className="flex-row justify-between mb-2">
-                              <Text className="bg-white px-2 py-1 rounded-md text-[#8C4A28] text-[10px] font-bold">Dressage</Text>
-                              <TouchableOpacity>
-                                 <MoreVertical color="#8C4A28" size={16} />
-                              </TouchableOpacity>
-                           </View>
-                           <Text className="text-[#1a202c] font-bold text-lg mb-1">Emma Wilson</Text>
-                           <View className="flex-row items-center mb-3">
-                              <Clock color="#8C4A28" size={12} className="mr-1" />
-                              <Text className="text-[#8C4A28] text-xs font-semibold mr-3">1.5 hrs</Text>
-                              <MapPin color="#8C4A28" size={12} className="mr-1" />
-                              <Text className="text-[#8C4A28] text-xs font-semibold">Arena B</Text>
-                           </View>
-                           <View className="flex-row items-center bg-white p-2 rounded-xl">
-                              <Image 
-                                 source={{ uri: 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?q=80&w=200&auto=format&fit=crop' }}
-                                 className="w-8 h-8 rounded-lg mr-2"
-                              />
-                              <View>
-                                 <Text className="text-[#1a202c] font-bold text-xs">Bella</Text>
-                                 <Text className="text-[#94a3b8] text-[10px]">Mare • Stall B04</Text>
-                              </View>
-                           </View>
-                        </View>
-                     </TouchableOpacity>
-
-                     {/* Session 2 */}
-                     <TouchableOpacity onPress={() => navigation.navigate("SessionDetail")} activeOpacity={0.7} className="bg-white rounded-3xl p-4 shadow-sm border border-[#e2e8f0] mb-4 flex-row">
-                        {/* Time column */}
-                        <View className="items-center mr-4 w-12">
-                           <Text className="text-[#1a202c] font-bold text-base">10:30</Text>
-                           <Text className="text-[#94a3b8] font-semibold text-[10px] mb-1">AM</Text>
-                           <View className="w-[2px] h-10 bg-[#e2e8f0] my-1 rounded-full"></View>
-                           <Text className="text-[#94a3b8] font-bold text-xs mt-1">11:30</Text>
-                        </View>
-                        
-                        {/* Content */}
-                        <View className="flex-1 bg-[#ebf8ff] rounded-2xl p-3 border border-[#bee3f8]">
-                           <View className="flex-row justify-between mb-2">
-                              <Text className="bg-white px-2 py-1 rounded-md text-[#2b6cb0] text-[10px] font-bold">Show Jumping</Text>
-                              <TouchableOpacity>
-                                 <MoreVertical color="#2b6cb0" size={16} />
-                              </TouchableOpacity>
-                           </View>
-                           <Text className="text-[#1a202c] font-bold text-lg mb-1">Liam Noah</Text>
-                           <View className="flex-row items-center mb-3">
-                              <Clock color="#2b6cb0" size={12} className="mr-1" />
-                              <Text className="text-[#2b6cb0] text-xs font-semibold mr-3">1 hr</Text>
-                              <MapPin color="#2b6cb0" size={12} className="mr-1" />
-                              <Text className="text-[#2b6cb0] text-xs font-semibold">Main Arena</Text>
-                           </View>
-                           <View className="flex-row items-center bg-white p-2 rounded-xl">
-                              <Image 
-                                 source={{ uri: 'https://images.unsplash.com/photo-1598974357801-cbca100e65d3?q=80&w=200&auto=format&fit=crop' }}
-                                 className="w-8 h-8 rounded-lg mr-2"
-                              />
-                              <View>
-                                 <Text className="text-[#1a202c] font-bold text-xs">Thunder</Text>
-                                 <Text className="text-[#94a3b8] text-[10px]">Gelding • Stall A12</Text>
-                              </View>
-                           </View>
-                        </View>
-                     </TouchableOpacity>
-
-                     {/* Session 3 */}
-                     <TouchableOpacity onPress={() => navigation.navigate("SessionDetail")} activeOpacity={0.7} className="bg-white rounded-3xl p-4 shadow-sm border border-[#e2e8f0] flex-row">
-                        {/* Time column */}
-                        <View className="items-center mr-4 w-12">
-                           <Text className="text-[#1a202c] font-bold text-base">02:00</Text>
-                           <Text className="text-[#94a3b8] font-semibold text-[10px] mb-1">PM</Text>
-                           <View className="w-[2px] h-10 bg-[#e2e8f0] my-1 rounded-full"></View>
-                           <Text className="text-[#94a3b8] font-bold text-xs mt-1">04:00</Text>
-                        </View>
-                        
-                        {/* Content */}
-                        <View className="flex-1 bg-[#f0fff4] rounded-2xl p-3 border border-[#c6f6d5]">
-                           <View className="flex-row justify-between mb-2">
-                              <Text className="bg-white px-2 py-1 rounded-md text-[#2f855a] text-[10px] font-bold">Trail Ride</Text>
-                              <TouchableOpacity>
-                                 <MoreVertical color="#2f855a" size={16} />
-                              </TouchableOpacity>
-                           </View>
-                           <Text className="text-[#1a202c] font-bold text-lg mb-1">Sophia Grace</Text>
-                           <View className="flex-row items-center mb-3">
-                              <Clock color="#2f855a" size={12} className="mr-1" />
-                              <Text className="text-[#2f855a] text-xs font-semibold mr-3">2 hrs</Text>
-                              <MapPin color="#2f855a" size={12} className="mr-1" />
-                              <Text className="text-[#2f855a] text-xs font-semibold">Forest Trail</Text>
-                           </View>
-                           <View className="flex-row items-center bg-white p-2 rounded-xl">
-                              <Image 
-                                 source={{ uri: 'https://images.unsplash.com/photo-1553026131-ab106511fa48?q=80&w=200&auto=format&fit=crop' }}
-                                 className="w-8 h-8 rounded-lg mr-2"
-                              />
-                              <View>
-                                 <Text className="text-[#1a202c] font-bold text-xs">Spirit</Text>
-                                 <Text className="text-[#94a3b8] text-[10px]">Stallion • Stall C01</Text>
-                              </View>
-                           </View>
-                        </View>
-                     </TouchableOpacity>
+                     {filteredSessions.length === 0 && (
+                         <Text className="text-center text-[#94a3b8] mt-4">No sessions scheduled.</Text>
+                     )}
+                     {filteredSessions.map((session, idx) => (
+                         <TouchableOpacity 
+                           key={session.id || idx} 
+                           onPress={() => navigation.navigate("SessionDetail", { session })} 
+                           activeOpacity={0.7} 
+                           className="bg-white rounded-3xl p-4 shadow-sm border border-[#e2e8f0] mb-4 flex-row"
+                        >
+                            {/* Time column */}
+                            <View className="items-center mr-4 w-12 pt-2">
+                               <Text className="text-[#1a202c] font-bold text-base">{session.timing?.split('-')[0] || '12:00 PM'}</Text>
+                            </View>
+                            
+                            {/* Content */}
+                            <View className="flex-1 bg-[#F5EDDF] rounded-2xl p-3 border border-[#e6d0b3]">
+                               <View className="flex-row justify-between mb-2">
+                                  <Text className="bg-white px-2 py-1 rounded-md text-[#8C4A28] text-[10px] font-bold">{session.title || 'Session'}</Text>
+                                  <TouchableOpacity>
+                                     <MoreVertical color="#8C4A28" size={16} />
+                                  </TouchableOpacity>
+                               </View>
+                               <Text className="text-[#1a202c] font-bold text-lg mb-1">{formatDateFriendly(session.date)}</Text>
+                               <View className="flex-row items-center mb-3">
+                                  <Clock color="#8C4A28" size={12} className="mr-1" />
+                                  <Text className="text-[#8C4A28] text-xs font-semibold mr-3">{session.duration || '1 hr'}</Text>
+                                  <MapPin color="#8C4A28" size={12} className="mr-1" />
+                                  <Text className="text-[#8C4A28] text-xs font-semibold">{session.location || 'Arena'}</Text>
+                               </View>
+                               <View className="flex-row items-center bg-white p-2 rounded-xl">
+                                  <Image 
+                                     source={{ uri: assignedHorses.find(h => h.id === session.horseId)?.imageUrl || 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?q=80&w=200&auto=format&fit=crop' }}
+                                     className="w-8 h-8 rounded-lg mr-2"
+                                  />
+                                  <View>
+                                     <Text className="text-[#1a202c] font-bold text-xs">
+                                        {assignedHorses.find(h => h.id === session.horseId)?.name || 'Unassigned'}
+                                     </Text>
+                                  </View>
+                               </View>
+                            </View>
+                         </TouchableOpacity>
+                     ))}
 
                   </View>
                </View>
             
          </ScrollView>
+
+         {/* Add Session Modal */}
+         <Modal visible={showAddModal} animationType="slide" transparent={true}>
+            <View className="flex-1 bg-black/60 justify-end">
+               <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="bg-[#F5EDDF] rounded-t-[3rem] p-6 max-h-[90%]">
+                  <View className="flex-row justify-between items-center mb-6">
+                     <View>
+                        <Text className="text-2xl font-bold text-[#1a202c]">New Session</Text>
+                        <Text className="text-xs font-semibold text-[#64748b]">Schedule a new training slot</Text>
+                     </View>
+                     <TouchableOpacity onPress={() => setShowAddModal(false)} className="bg-white p-2 rounded-full border border-[#e2e8f0]">
+                        <X color="#1a202c" size={24} />
+                     </TouchableOpacity>
+                  </View>
+
+                  <ScrollView showsVerticalScrollIndicator={false} className="mb-6">
+                     <Text className="text-[#64748b] text-[10px] font-bold tracking-widest uppercase mb-2 ml-1">Session Title</Text>
+                     <View className="bg-white rounded-2xl px-4 py-1 border border-[#e2e8f0] mb-4 shadow-sm">
+                        <TextInput 
+                           placeholder="e.g. Morning Dressage" 
+                           className="py-3 text-[#1a202c] font-semibold"
+                           value={newSession.title}
+                           onChangeText={(t) => setNewSession(prev => ({ ...prev, title: t }))}
+                        />
+                     </View>
+
+                     <View className="flex-row justify-between">
+                        <View className="flex-1 mr-2">
+                           <Text className="text-[#64748b] text-[10px] font-bold tracking-widest uppercase mb-2 ml-1">Timing</Text>
+                           <View className="bg-white rounded-2xl px-4 py-1 border border-[#e2e8f0] mb-4 shadow-sm">
+                              <TextInput 
+                                 placeholder="08:00 AM" 
+                                 className="py-3 text-[#1a202c] font-semibold"
+                                 value={newSession.timing}
+                                 onChangeText={(t) => setNewSession(prev => ({ ...prev, timing: t }))}
+                              />
+                           </View>
+                        </View>
+                        <View className="flex-1 ml-2">
+                           <Text className="text-[#64748b] text-[10px] font-bold tracking-widest uppercase mb-2 ml-1">Seats</Text>
+                           <View className="bg-white rounded-2xl px-4 py-1 border border-[#e2e8f0] mb-4 shadow-sm">
+                              <TextInput 
+                                 placeholder="10" 
+                                 keyboardType="numeric"
+                                 className="py-3 text-[#1a202c] font-semibold"
+                                 value={newSession.totalSeats}
+                                 onChangeText={(t) => setNewSession(prev => ({ ...prev, totalSeats: t }))}
+                              />
+                           </View>
+                        </View>
+                     </View>
+
+                     <Text className="text-[#64748b] text-[10px] font-bold tracking-widest uppercase mb-2 ml-1">Location</Text>
+                     <View className="bg-white rounded-2xl px-4 py-1 border border-[#e2e8f0] mb-4 shadow-sm">
+                        <TextInput 
+                           placeholder="Main Arena / Paddock B" 
+                           className="py-3 text-[#1a202c] font-semibold"
+                           value={newSession.location}
+                           onChangeText={(t) => setNewSession(prev => ({ ...prev, location: t }))}
+                        />
+                     </View>
+
+                     <Text className="text-[#64748b] text-[10px] font-bold tracking-widest uppercase mb-2 ml-1">Assign Horse</Text>
+                     <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4">
+                        {assignedHorses.map((horse) => (
+                           <TouchableOpacity 
+                              key={horse.id} 
+                              onPress={() => setNewSession(prev => ({ ...prev, horseId: horse.id }))}
+                              className={`mr-3 p-2 rounded-2xl border ${newSession.horseId === horse.id ? 'bg-[#8C4A28] border-[#8C4A28]' : 'bg-white border-[#e2e8f0]'} items-center w-24`}
+                           >
+                              <Image 
+                                 source={{ uri: horse.imageUrl }} 
+                                 className="w-16 h-16 rounded-xl mb-2" 
+                              />
+                              <Text className={`text-[10px] font-bold text-center ${newSession.horseId === horse.id ? 'text-white' : 'text-[#1a202c]'}`} numberOfLines={1}>
+                                 {horse.name}
+                              </Text>
+                           </TouchableOpacity>
+                        ))}
+                     </ScrollView>
+
+                     <Text className="text-[#64748b] text-[10px] font-bold tracking-widest uppercase mb-2 ml-1">Training Notes</Text>
+                     <View className="bg-white rounded-2xl px-4 py-3 border border-[#e2e8f0] mb-6 shadow-sm">
+                        <TextInput 
+                           placeholder="Focus on..." 
+                           multiline 
+                           numberOfLines={3}
+                           className="text-[#1a202c] font-semibold text-sm"
+                           value={newSession.note}
+                           onChangeText={(t) => setNewSession(prev => ({ ...prev, note: t }))}
+                        />
+                     </View>
+
+                     <TouchableOpacity 
+                        onPress={handleCreateSession}
+                        className="bg-[#8C4A28] py-4 rounded-2xl items-center shadow-lg shadow-[#8C4A28]/40 mb-10"
+                     >
+                        <Text className="text-white font-bold text-base">Generate Session</Text>
+                     </TouchableOpacity>
+                  </ScrollView>
+               </KeyboardAvoidingView>
+            </View>
+         </Modal>
       </View>
    );
 }

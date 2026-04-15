@@ -1,6 +1,8 @@
 {
   "extends": "@react-native/typescript-config",
   "compilerOptions": {
+    "target": "ES6",
+    "lib": ["ES2015"],
     "types": [
       "jest"
     ]

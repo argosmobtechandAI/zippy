@@ -1,19 +1,41 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator } from 'react-native';
 import { ArrowLeft, Trophy, Medal, Star, Award } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
+import { apiFunction } from '../api/apifunction';
+import { getRiderApi } from '../api/api';
 
-const trophiesList = [
-  { id: 1, title: 'Spring Derby 2023', subtitle: '1st Place Gold', icon: Trophy, color: '#f59e0b', date: 'May 12, 2023', desc: 'Won the regional spring derby with Thunderbolt. A flawless performance in show jumping.' },
-  { id: 2, title: 'Mountain Trail', subtitle: 'Completed Achievement', icon: Medal, color: '#3b82f6', date: 'Aug 05, 2022', desc: 'Successfully completed the challenging 50-mile mountain trail in record time.' },
-  { id: 3, title: 'Horse Whisperer', subtitle: '10 Successful Tames', icon: Star, color: '#8b5cf6', date: 'Dec 20, 2021', desc: 'Awarded for demonstrating exceptional calmness and taming 10 unridden horses.' },
-  { id: 4, title: 'Winter Gala', subtitle: 'Silver Runner-up', icon: Award, color: '#94a3b8', date: 'Jan 15, 2022', desc: 'Placed second out of 50 competitors in the annual winter jumping gala.' },
-  { id: 5, title: 'Speed Demon', subtitle: 'Fastest Sprint', icon: Trophy, color: '#ef4444', date: 'Jul 04, 2023', desc: 'Recorded the fastest sprint time of the entire summer racing season.' },
-  { id: 6, title: 'Perfect Form', subtitle: 'Dressage Mastery', icon: Award, color: '#10b981', date: 'Sep 22, 2023', desc: 'Achieved a flawless score from all judges in the intermediate dressage event.' },
-];
+const iconMap: Record<string, any> = {
+  'Trophy': Trophy,
+  'Medal': Medal,
+  'Star': Star,
+  'Award': Award,
+};
 
 export default function TrophiesScreen() {
   const navigation = useNavigation();
+  const [loading, setLoading] = useState(true);
+  const [rider, setRider] = useState<any>(null);
+
+  useEffect(() => {
+    fetchRiderData();
+  }, []);
+
+  const fetchRiderData = async () => {
+    setLoading(true);
+    try {
+      const res = await apiFunction(getRiderApi, [], {}, "GET", true);
+      if (res && res.success) {
+        setRider(res.rider);
+      }
+    } catch (error) {
+      console.error("Fetch rider trophies error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const trophies = rider?.trophies || [];
 
   return (
     <SafeAreaView className="flex-1 bg-[#F5EDDF]">
@@ -25,13 +47,18 @@ export default function TrophiesScreen() {
         <Text className="text-[#8C4A28] font-bold text-xl">My Trophies</Text>
       </View>
 
+      {loading ? (
+        <View className="flex-1 justify-center items-center">
+            <ActivityIndicator size="large" color="#8C4A28" />
+        </View>
+      ) : (
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         
         {/* Summary Card */}
         <View className="bg-[#8C4A28] rounded-3xl p-6 mb-8 flex-row items-center justify-between shadow-md">
           <View>
             <Text className="text-[#fceddf] opacity-80 text-xs font-bold tracking-widest mb-1 uppercase">Total Awards</Text>
-            <Text className="text-white text-4xl font-bold">12</Text>
+            <Text className="text-white text-4xl font-bold">{trophies.length}</Text>
           </View>
           <View className="bg-white/20 w-16 h-16 rounded-full items-center justify-center">
             <Trophy color="white" size={32} />
@@ -40,14 +67,18 @@ export default function TrophiesScreen() {
 
         {/* Trophies List */}
         <View className="space-y-4">
-          {trophiesList.map((trophy) => {
-            const IconComp = trophy.icon;
+          {trophies.length === 0 ? (
+              <View className="py-10 items-center">
+                  <Text className="text-[#64748b] font-bold">No trophies earned yet. Keep riding!</Text>
+              </View>
+          ) : trophies.map((trophy: any, index: number) => {
+            const IconComp = iconMap[trophy.icon] || Trophy;
             return (
-              <View key={trophy.id} className="bg-white rounded-3xl p-5 shadow-sm border border-[#e2e8f0] flex-row items-center mb-4 relative overflow-hidden">
+              <View key={index} className="bg-white rounded-3xl p-5 shadow-sm border border-[#e2e8f0] flex-row items-center mb-4 relative overflow-hidden">
                 <View className="absolute -right-6 -bottom-6 w-24 h-24 bg-[#F5EDDF] rounded-full opacity-40" />
                 
                 <View className="w-16 h-16 bg-[#fceddf] rounded-2xl items-center justify-center mr-4">
-                  <IconComp color={trophy.color} size={32} />
+                  <IconComp color={trophy.color || "#f59e0b"} size={32} />
                 </View>
                 
                 <View className="flex-1">
@@ -64,6 +95,7 @@ export default function TrophiesScreen() {
         </View>
 
       </ScrollView>
+      )}
     </SafeAreaView>
   );
 }

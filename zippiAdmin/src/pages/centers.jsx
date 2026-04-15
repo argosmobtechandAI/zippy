@@ -3,8 +3,39 @@ import {
     Filter, ChevronDown, Trees, Droplet, Hammer, Star, 
     ArrowRight, ChevronLeft, ChevronRight
 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { apiFunction } from '../api/apiFunction';
+import { getAllStablesApi, getGlobalStatsApi, createStableApi } from '../api/apis';
+import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { X } from 'lucide-react';
 
 const Centers = () => {
+    const [centers, setCenters] = useState([]);
+    const [stats, setStats] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [showModal, setShowModal] = useState(false);
+    const navigate = useNavigate();
+
+    const fetchData = async () => {
+        setLoading(true);
+        // Fetch Centers
+        const centerRes = await apiFunction(getAllStablesApi, [], {}, "GET", true);
+        if (centerRes && centerRes.success) {
+            setCenters(centerRes.stables || []);
+        }
+
+        // Fetch Global Stats
+        const statsRes = await apiFunction(getGlobalStatsApi, [], {}, "GET", true);
+        if (statsRes && statsRes.success) {
+            setStats(statsRes.stats);
+        }
+        setLoading(false);
+    }
+
+    useEffect(() => {
+        fetchData();
+    }, []);
     return (
         <div className="p-10 max-w-[1400px] mx-auto min-h-full bg-[#fbf6f0] w-full font-sans">
             {/* Top Bar */}
@@ -13,7 +44,10 @@ const Centers = () => {
                     <h1 className="text-[34px] font-black text-[#1e2330] leading-none mb-3 tracking-tight">Equestrian Centers</h1>
                     <p className="text-[14px] font-medium text-gray-500">Monitor performance across your facility network.</p>
                 </div>
-                <button className="bg-[#964C2E] text-white text-[13px] font-bold px-6 py-4 rounded-xl shadow-md flex items-center gap-2 hover:bg-[#7D3F25] transition-all">
+                <button 
+                    onClick={() => setShowModal(true)}
+                    className="bg-[#964C2E] text-white text-[13px] font-bold px-6 py-4 rounded-xl shadow-md flex items-center gap-2 hover:bg-[#7D3F25] transition-all"
+                >
                     <Plus className="w-5 h-5" strokeWidth={2.5} />
                     Add New Center
                 </button>
@@ -26,7 +60,7 @@ const Centers = () => {
                     <div className="flex justify-between items-start">
                         <div>
                             <h3 className="text-[11px] font-bold text-gray-400 tracking-widest uppercase mb-2">Total Centers</h3>
-                            <p className="text-[36px] font-black text-[#1e2330] leading-none tracking-tight">04</p>
+                            <p className="text-[36px] font-black text-[#1e2330] leading-none tracking-tight">{centers.length.toString().padStart(2, '0')}</p>
                         </div>
                         <div className="w-10 h-10 rounded-full bg-[#EFF6FF] flex items-center justify-center text-[#3B82F6]">
                             <Building2 className="w-5 h-5" />
@@ -34,7 +68,7 @@ const Centers = () => {
                     </div>
                     <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#22C55E]">
                         <TrendingUp className="w-4 h-4" />
-                        2 centers added this year
+                        Live Status Active
                     </div>
                 </div>
 
@@ -43,7 +77,7 @@ const Centers = () => {
                     <div className="flex justify-between items-start">
                         <div>
                             <h3 className="text-[11px] font-bold text-gray-400 tracking-widest uppercase mb-2">Active Horses</h3>
-                            <p className="text-[36px] font-black text-[#1e2330] leading-none tracking-tight">84</p>
+                            <p className="text-[36px] font-black text-[#1e2330] leading-none tracking-tight">{stats?.totalHorses || 0}</p>
                         </div>
                         <div className="w-10 h-10 rounded-full bg-[#FFF7ED] flex items-center justify-center text-[#F97316]">
                             <PawPrint className="w-5 h-5" />
@@ -59,7 +93,7 @@ const Centers = () => {
                     <div className="flex justify-between items-start">
                         <div>
                             <h3 className="text-[11px] font-bold text-gray-400 tracking-widest uppercase mb-2">Daily Revenue</h3>
-                            <p className="text-[36px] font-black text-[#1e2330] leading-none tracking-tight">$2,500</p>
+                            <p className="text-[36px] font-black text-[#1e2330] leading-none tracking-tight">${Number(stats?.totalRevenue || 0).toLocaleString()}</p>
                         </div>
                         <div className="w-10 h-10 rounded-full bg-[#F0FDF4] flex items-center justify-center text-[#22C55E]">
                             <Banknote className="w-5 h-5" />
@@ -67,7 +101,7 @@ const Centers = () => {
                     </div>
                     <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#22C55E]">
                         <TrendingUp className="w-4 h-4" />
-                        +12.5% increase
+                        {stats?.revenueGrowth || '+0%'}
                     </div>
                 </div>
             </div>
@@ -102,109 +136,41 @@ const Centers = () => {
 
                 {/* Table Body */}
                 <div className="flex flex-col">
-                    {/* Row 1 - Meadowbrook */}
-                    <div className="grid grid-cols-[300px_120px_1fr_1fr_1fr_150px] gap-4 items-center border-b border-[#F0E6D8] py-5 px-10 hover:bg-[#FDFBF9] transition-colors">
-                        <div className="flex items-center gap-5">
-                            <div className="w-12 h-12 rounded-full bg-[#FAF0EB] flex items-center justify-center text-[#964C2E] flex-shrink-0">
-                                <Trees className="w-6 h-6" />
+                    {loading ? (
+                        <div className="text-center py-10 font-bold text-gray-400">Loading centers...</div>
+                    ) : centers.length === 0 ? (
+                        <div className="text-center py-10 font-bold text-gray-400">No centers found.</div>
+                    ) : (
+                        centers.map((center, idx) => (
+                            <div key={center.id || idx} className="grid grid-cols-[300px_120px_1fr_1fr_1fr_150px] gap-4 items-center border-b border-[#F0E6D8] py-5 px-10 hover:bg-[#FDFBF9] transition-colors">
+                                <div className="flex items-center gap-5">
+                                    <div className="w-12 h-12 rounded-full bg-[#FAF0EB] flex items-center justify-center text-[#964C2E] flex-shrink-0">
+                                        <Building2 className="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-[15px] font-black text-[#1e2330] mb-0.5">{center.name}</h4>
+                                        <p className="text-[11px] font-semibold text-gray-400 leading-tight truncate w-32">{center.location}</p>
+                                    </div>
+                                </div>
+                                <div className="flex justify-center">
+                                    <span className="inline-flex max-w-[80px] text-center justify-center px-4 py-1.5 rounded-full text-[9px] font-black tracking-widest uppercase bg-[#E0F8EC] text-[#059669]">
+                                        ACTIVE
+                                    </span>
+                                </div>
+                                <div className="text-center text-[14px] font-bold text-[#1e2330]">{center.horseCount || 0}</div>
+                                <div className="text-center text-[14px] font-bold text-[#1e2330]">{center.trainerCount || 0}</div>
+                                <div className="text-center text-[14px] font-black text-[#1e2330] tracking-wide">${center.totalRevenue || 0}</div>
+                                <div className="flex justify-end">
+                                    <button 
+                                        onClick={() => navigate(`/slotManagement?id=${center.id}`)}
+                                        className="flex items-center gap-1.5 text-[12px] font-bold text-[#964C2E] hover:text-[#7D3F25] transition-colors text-right"
+                                    >
+                                        Manage<br/>Center <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                                    </button>
+                                </div>
                             </div>
-                            <div>
-                                <h4 className="text-[15px] font-black text-[#1e2330] mb-0.5">Meadowbrook Stables</h4>
-                                <p className="text-[11px] font-semibold text-gray-400 leading-tight">North Region • 124<br/>Equestrian Dr</p>
-                            </div>
-                        </div>
-                        <div className="flex justify-center">
-                            <span className="inline-flex max-w-[80px] text-center justify-center px-4 py-1.5 rounded-full text-[9px] font-black tracking-widest uppercase bg-[#E0F8EC] text-[#059669]">
-                                ACTIVE
-                            </span>
-                        </div>
-                        <div className="text-center text-[14px] font-bold text-[#1e2330]">24</div>
-                        <div className="text-center text-[14px] font-bold text-[#1e2330]">06</div>
-                        <div className="text-center text-[14px] font-black text-[#1e2330] tracking-wide">$1,200</div>
-                        <div className="flex justify-end">
-                            <button className="flex items-center gap-1.5 text-[12px] font-bold text-[#964C2E] hover:text-[#7D3F25] transition-colors text-right">
-                                Manage<br/>Center <ArrowRight className="w-3.5 h-3.5 ml-1" />
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Row 2 - Riverside Arena */}
-                    <div className="grid grid-cols-[300px_120px_1fr_1fr_1fr_150px] gap-4 items-center border-b border-[#F0E6D8] py-5 px-10 hover:bg-[#FDFBF9] transition-colors">
-                        <div className="flex items-center gap-5">
-                            <div className="w-12 h-12 rounded-full bg-[#FAF0EB] flex items-center justify-center text-[#964C2E] flex-shrink-0">
-                                <Droplet className="w-6 h-6" />
-                            </div>
-                            <div>
-                                <h4 className="text-[15px] font-black text-[#1e2330] mb-0.5">Riverside Arena</h4>
-                                <p className="text-[11px] font-semibold text-gray-400 leading-tight">South Region • 88 River<br/>Road</p>
-                            </div>
-                        </div>
-                        <div className="flex justify-center">
-                            <span className="inline-flex max-w-[80px] text-center justify-center px-4 py-1.5 rounded-full text-[9px] font-black tracking-widest uppercase bg-[#E0F8EC] text-[#059669]">
-                                ACTIVE
-                            </span>
-                        </div>
-                        <div className="text-center text-[14px] font-bold text-[#1e2330]">18</div>
-                        <div className="text-center text-[14px] font-bold text-[#1e2330]">04</div>
-                        <div className="text-center text-[14px] font-black text-[#1e2330] tracking-wide">$850</div>
-                        <div className="flex justify-end">
-                            <button className="flex items-center gap-1.5 text-[12px] font-bold text-[#964C2E] hover:text-[#7D3F25] transition-colors text-right">
-                                Manage<br/>Center <ArrowRight className="w-3.5 h-3.5 ml-1" />
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Row 3 - Oak Ridge Farm */}
-                    <div className="grid grid-cols-[300px_120px_1fr_1fr_1fr_150px] gap-4 items-center border-b border-[#F0E6D8] py-5 px-10 hover:bg-[#FDFBF9] transition-colors">
-                        <div className="flex items-center gap-5">
-                            <div className="w-12 h-12 rounded-full bg-[#FAF0EB] flex items-center justify-center text-[#964C2E] flex-shrink-0">
-                                <Hammer className="w-6 h-6" />
-                            </div>
-                            <div>
-                                <h4 className="text-[15px] font-black text-[#1e2330] mb-0.5">Oak Ridge Farm</h4>
-                                <p className="text-[11px] font-semibold text-gray-400 leading-tight">West Region • 22 Ridge<br/>Ln</p>
-                            </div>
-                        </div>
-                        <div className="flex justify-center">
-                            <span className="inline-flex max-w-[100px] text-center justify-center px-4 py-1.5 rounded-full text-[9px] font-black tracking-widest uppercase bg-[#FFF3DC] text-[#B45309]">
-                                MAINTENANCE
-                            </span>
-                        </div>
-                        <div className="text-center text-[14px] font-bold text-[#1e2330]">30</div>
-                        <div className="text-center text-[14px] font-bold text-[#1e2330]">08</div>
-                        <div className="text-center text-[14px] font-black text-gray-300 tracking-wide">$0</div>
-                        <div className="flex justify-end">
-                            <button className="flex items-center gap-1.5 text-[12px] font-bold text-[#964C2E] hover:text-[#7D3F25] transition-colors text-right">
-                                Manage<br/>Center <ArrowRight className="w-3.5 h-3.5 ml-1" />
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Row 4 - Sunrise Heights */}
-                    <div className="grid grid-cols-[300px_120px_1fr_1fr_1fr_150px] gap-4 items-center border-b border-[#F0E6D8] py-5 px-10 hover:bg-[#FDFBF9] transition-colors">
-                        <div className="flex items-center gap-5">
-                            <div className="w-12 h-12 rounded-full bg-[#FAF0EB] flex items-center justify-center text-[#964C2E] flex-shrink-0">
-                                <Star className="w-6 h-6" />
-                            </div>
-                            <div>
-                                <h4 className="text-[15px] font-black text-[#1e2330] mb-0.5">Sunrise Heights</h4>
-                                <p className="text-[11px] font-semibold text-gray-400 leading-tight">East Region • 55<br/>Viewcrest</p>
-                            </div>
-                        </div>
-                        <div className="flex justify-center">
-                            <span className="inline-flex max-w-[80px] text-center justify-center px-4 py-1.5 rounded-full text-[9px] font-black tracking-widest uppercase bg-[#EBF5FF] text-[#2563EB]">
-                                NEW
-                            </span>
-                        </div>
-                        <div className="text-center text-[14px] font-bold text-[#1e2330]">12</div>
-                        <div className="text-center text-[14px] font-bold text-[#1e2330]">03</div>
-                        <div className="text-center text-[14px] font-black text-[#1e2330] tracking-wide">$450</div>
-                        <div className="flex justify-end">
-                            <button className="flex items-center gap-1.5 text-[12px] font-bold text-[#964C2E] hover:text-[#7D3F25] transition-colors text-right">
-                                Manage<br/>Center <ArrowRight className="w-3.5 h-3.5 ml-1" />
-                            </button>
-                        </div>
-                    </div>
+                        ))
+                    )}
                 </div>
 
                 {/* Pagination */}
@@ -224,6 +190,90 @@ const Centers = () => {
                         </button>
                     </div>
                 </div>
+                {showModal && <CreateCenterModal setShowModal={setShowModal} onSuccess={fetchData} />}
+            </div>
+        </div>
+    );
+};
+
+const CreateCenterModal = ({ setShowModal, onSuccess }) => {
+    const [formData, setFormData] = useState({
+        name: "",
+        location: "",
+        totalRevenue: 0,
+    });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        const res = await apiFunction(createStableApi, [], formData, "POST", true);
+        if (res && res.success) {
+            toast.success("Center created successfully");
+            setShowModal(false);
+            if (onSuccess) onSuccess();
+        } else {
+            toast.error(res?.message || "Failed to create center");
+        }
+        setIsSubmitting(false);
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="bg-white rounded-3xl p-8 w-[500px] shadow-2xl border border-gray-100 animate-in zoom-in-95 duration-200">
+                <div className="flex justify-between items-center mb-8 pb-6 border-b border-gray-50">
+                    <div>
+                        <h3 className="text-[22px] font-black text-[#1e2330]">Add New Center</h3>
+                        <p className="text-[13px] font-semibold text-gray-400 mt-1">Register a new equestrian facility.</p>
+                    </div>
+                    <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-[#964C2E] p-2 hover:bg-gray-50 rounded-xl transition-all">
+                        <X className="w-6 h-6" />
+                    </button>
+                </div>
+                
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    <div>
+                        <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Center Name</label>
+                        <input 
+                            required
+                            name="name" 
+                            value={formData.name} 
+                            onChange={(e) => setFormData({...formData, name: e.target.value})}
+                            className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E] focus:bg-white transition-all" 
+                            placeholder="e.g. Lexington Stables"
+                        />
+                    </div>
+                    <div>
+                        <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Location / Address</label>
+                        <input 
+                            required
+                            name="location" 
+                            value={formData.location} 
+                            onChange={(e) => setFormData({...formData, location: e.target.value})}
+                            className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E] focus:bg-white transition-all" 
+                            placeholder="e.g. Kentucky, USA"
+                        />
+                    </div>
+                    <div>
+                        <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Initial Revenue ($)</label>
+                        <input 
+                            type="number"
+                            name="totalRevenue" 
+                            value={formData.totalRevenue} 
+                            onChange={(e) => setFormData({...formData, totalRevenue: parseInt(e.target.value) || 0})}
+                            className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E] focus:bg-white transition-all" 
+                        />
+                    </div>
+
+                    <div className="mt-10 flex justify-end gap-4 pt-8 border-t border-gray-50">
+                        <button type="button" onClick={() => setShowModal(false)} className="px-8 py-3.5 rounded-2xl border border-gray-200 text-[#1e2330] text-[14px] font-bold hover:bg-gray-50 transition-all">
+                            Cancel
+                        </button>
+                        <button disabled={isSubmitting} type="submit" className="px-8 py-3.5 rounded-2xl bg-[#964C2E] text-white text-[14px] font-bold shadow-lg hover:bg-[#7D3F25] transition-all disabled:opacity-50">
+                            {isSubmitting ? "Creating..." : "Add Center"}
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     );

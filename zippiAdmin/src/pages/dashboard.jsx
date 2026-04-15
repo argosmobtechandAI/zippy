@@ -3,8 +3,34 @@ import {
     MoreHorizontal, History, ChevronLeft, ChevronRight, 
     MapPin, Wallet, Zap
 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { apiFunction } from '../api/apiFunction';
+import { getGlobalStatsApi } from '../api/apis';
 
 const Dashboard = () => {
+    const [stats, setStats] = useState({
+        totalRevenue: 0,
+        totalRiders: 0,
+        totalHorses: 0,
+        utilization: 0,
+        revenueGrowth: "0%",
+        riderGrowth: "0%",
+        horseGrowth: "0%",
+        utilizationTrend: "0%"
+    });
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            const res = await apiFunction(getGlobalStatsApi, [], {}, "GET", true);
+            if (res && res.success) {
+                setStats(res.stats);
+            }
+            setLoading(false);
+        }
+        fetchStats();
+    }, []);
+
     return (
         <div className="p-8 max-w-[1400px] mx-auto h-full overflow-y-auto w-full">
             {/* Top Bar */}
@@ -40,12 +66,12 @@ const Dashboard = () => {
                             <Wallet className="w-6 h-6" strokeWidth={2} />
                         </div>
                         <span className="flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold bg-[#DCFCE7] text-[#166534]">
-                            +12.5%
+                            {stats.revenueGrowth}
                         </span>
                     </div>
                     <div>
                         <h3 className="text-[12px] font-semibold text-[#818C99] mb-1">Total Revenue</h3>
-                        <p className="text-[28px] font-black text-[#1e2330] leading-none tracking-tight">$124,500</p>
+                        <p className="text-[28px] font-black text-[#1e2330] leading-none tracking-tight">${Number(stats.totalRevenue).toLocaleString()}</p>
                     </div>
                 </div>
 
@@ -56,12 +82,12 @@ const Dashboard = () => {
                             <Users className="w-6 h-6" strokeWidth={2} />
                         </div>
                         <span className="flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold bg-[#DCFCE7] text-[#166534]">
-                            +5.2%
+                            {stats.riderGrowth}
                         </span>
                     </div>
                     <div>
                         <h3 className="text-[12px] font-semibold text-[#818C99] mb-1">Total Riders</h3>
-                        <p className="text-[28px] font-black text-[#1e2330] leading-none tracking-tight">1,240</p>
+                        <p className="text-[28px] font-black text-[#1e2330] leading-none tracking-tight">{stats.totalRiders}</p>
                     </div>
                 </div>
 
@@ -72,12 +98,12 @@ const Dashboard = () => {
                             <Zap className="w-6 h-6" strokeWidth={2} />
                         </div>
                         <span className="flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold bg-[#DCFCE7] text-[#166534]">
-                            +2.1%
+                            {stats.horseGrowth}
                         </span>
                     </div>
                     <div>
                         <h3 className="text-[12px] font-semibold text-[#818C99] mb-1">Active Horses</h3>
-                        <p className="text-[28px] font-black text-[#1e2330] leading-none tracking-tight">85</p>
+                        <p className="text-[28px] font-black text-[#1e2330] leading-none tracking-tight">{stats.totalHorses}</p>
                     </div>
                 </div>
 
@@ -88,12 +114,12 @@ const Dashboard = () => {
                             <Gauge className="w-6 h-6" strokeWidth={2} />
                         </div>
                         <span className="flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold bg-[#FEE2E2] text-[#B91C1C]">
-                            -1.5%
+                            {stats.utilizationTrend}
                         </span>
                     </div>
                     <div>
                         <h3 className="text-[12px] font-semibold text-[#818C99] mb-1">Center Utilization</h3>
-                        <p className="text-[28px] font-black text-[#1e2330] leading-none tracking-tight">92%</p>
+                        <p className="text-[28px] font-black text-[#1e2330] leading-none tracking-tight">{stats.utilization}%</p>
                     </div>
                 </div>
             </div>
@@ -120,138 +146,49 @@ const Dashboard = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {/* Row 1 */}
-                            <tr className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                                <td className="py-4 px-8">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-500">
-                                            <MapPin className="w-5 h-5" />
+                            {(stats.centers || []).map((center, idx) => (
+                                <tr key={center.id || idx} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                                    <td className="py-4 px-8">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-500">
+                                                <MapPin className="w-5 h-5" />
+                                            </div>
+                                            <div>
+                                                <div className="font-bold text-[#1e2330]">{center.name}</div>
+                                                <div className="text-[11px] font-semibold text-gray-400">{center.location}</div>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <div className="font-bold text-[#1e2330]">Lexington Valley</div>
-                                            <div className="text-[11px] font-semibold text-gray-400">Kentucky, USA</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td className="py-4 px-6 font-semibold text-[#1e2330]">
-                                    <div>John</div>
-                                    <div>Marston</div>
-                                </td>
-                                <td className="py-4 px-6 font-bold text-[#1e2330]">412</td>
-                                <td className="py-4 px-6 font-bold text-[#1e2330]">$42,800</td>
-                                <td className="py-4 px-6 font-semibold text-[#1e2330]">28</td>
-                                <td className="py-4 px-6">
-                                    <span className="inline-flex max-w-[100px] text-center justify-center px-3 py-1 rounded-full text-[9px] font-black tracking-wider uppercase bg-[#D1FAE5] text-[#065F46]">
-                                        PEAK PERFORMANCE
-                                    </span>
-                                </td>
-                                <td className="py-4 px-8 text-right">
-                                    <button className="text-gray-400 hover:text-gray-600">
-                                        <MoreHorizontal className="w-5 h-5" />
-                                    </button>
-                                </td>
-                            </tr>
-                            {/* Row 2 */}
-                            <tr className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                                <td className="py-4 px-8">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-500">
-                                            <MapPin className="w-5 h-5" />
-                                        </div>
-                                        <div>
-                                            <div className="font-bold text-[#1e2330]">Wellington South</div>
-                                            <div className="text-[11px] font-semibold text-gray-400">Florida, USA</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td className="py-4 px-6 font-semibold text-[#1e2330]">Sadie Adler</td>
-                                <td className="py-4 px-6 font-bold text-[#1e2330]">388</td>
-                                <td className="py-4 px-6 font-bold text-[#1e2330]">$38,200</td>
-                                <td className="py-4 px-6 font-semibold text-[#1e2330]">22</td>
-                                <td className="py-4 px-6">
-                                    <span className="inline-flex max-w-[100px] text-center justify-center px-3 py-1 rounded-full text-[9px] font-black tracking-wider uppercase bg-[#FEF3C7] text-[#92400E]">
-                                        NEAR CAPACITY
-                                    </span>
-                                </td>
-                                <td className="py-4 px-8 text-right">
-                                    <button className="text-gray-400 hover:text-gray-600">
-                                        <MoreHorizontal className="w-5 h-5" />
-                                    </button>
-                                </td>
-                            </tr>
-                            {/* Row 3 */}
-                            <tr className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                                <td className="py-4 px-8">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-500">
-                                            <MapPin className="w-5 h-5" />
-                                        </div>
-                                        <div>
-                                            <div className="font-bold text-[#1e2330]">Ocala Meadows</div>
-                                            <div className="text-[11px] font-semibold text-gray-400">Florida, USA</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td className="py-4 px-6 font-semibold text-[#1e2330]">
-                                    <div>Charles</div>
-                                    <div>Smith</div>
-                                </td>
-                                <td className="py-4 px-6 font-bold text-[#1e2330]">210</td>
-                                <td className="py-4 px-6 font-bold text-[#1e2330]">$24,150</td>
-                                <td className="py-4 px-6 font-semibold text-[#1e2330]">18</td>
-                                <td className="py-4 px-6">
-                                    <span className="inline-flex justify-center px-4 py-1 rounded-full text-[9px] font-black tracking-wider uppercase bg-[#D1FAE5] text-[#065F46]">
-                                        STABLE
-                                    </span>
-                                </td>
-                                <td className="py-4 px-8 text-right">
-                                    <button className="text-gray-400 hover:text-gray-600">
-                                        <MoreHorizontal className="w-5 h-5" />
-                                    </button>
-                                </td>
-                            </tr>
-                            {/* Row 4 */}
-                            <tr className="hover:bg-gray-50/50 transition-colors">
-                                <td className="py-4 px-8">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-500">
-                                            <MapPin className="w-5 h-5" />
-                                        </div>
-                                        <div>
-                                            <div className="font-bold text-[#1e2330]">Middleburg Estates</div>
-                                            <div className="text-[11px] font-semibold text-gray-400">Virginia, USA</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td className="py-4 px-6 font-semibold text-[#1e2330]">
-                                    <div>Abigail</div>
-                                    <div>Roberts</div>
-                                </td>
-                                <td className="py-4 px-6 font-bold text-[#1e2330]">230</td>
-                                <td className="py-4 px-6 font-bold text-[#1e2330]">$19,350</td>
-                                <td className="py-4 px-6 font-semibold text-[#1e2330]">17</td>
-                                <td className="py-4 px-6">
-                                    <span className="inline-flex justify-center px-4 py-1 rounded-full text-[9px] font-black tracking-wider uppercase bg-[#F1F5F9] text-[#475569]">
-                                        UNDER REVIEW
-                                    </span>
-                                </td>
-                                <td className="py-4 px-8 text-right">
-                                    <button className="text-gray-400 hover:text-gray-600">
-                                        <MoreHorizontal className="w-5 h-5" />
-                                    </button>
-                                </td>
-                            </tr>
+                                    </td>
+                                    <td className="py-4 px-6 font-semibold text-[#1e2330]">
+                                        {center.manager}
+                                    </td>
+                                    <td className="py-4 px-6 font-bold text-[#1e2330]">{center.activeRiders}</td>
+                                    <td className="py-4 px-6 font-bold text-[#1e2330]">${Number(center.monthlyRevenue).toLocaleString()}</td>
+                                    <td className="py-4 px-6 font-semibold text-[#1e2330]">{center.horseCount}</td>
+                                    <td className="py-4 px-6">
+                                        <span className={`inline-flex min-w-[100px] text-center justify-center px-3 py-1 rounded-full text-[9px] font-black tracking-wider uppercase ${
+                                            center.status === 'PEEK PERFORMANCE' ? 'bg-[#D1FAE5] text-[#065F46]' :
+                                            center.status === 'NEAR CAPACITY' ? 'bg-[#FEF3C7] text-[#92400E]' :
+                                            center.status === 'UNDER REVIEW' ? 'bg-[#FEE2E2] text-[#B91C1C]' :
+                                            'bg-[#F1F5F9] text-[#475569]'
+                                        }`}>
+                                            {center.status}
+                                        </span>
+                                    </td>
+                                    <td className="py-4 px-8 text-right">
+                                        <button className="text-gray-400 hover:text-gray-600">
+                                            <MoreHorizontal className="w-5 h-5" />
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
                         </tbody>
                     </table>
                 </div>
 
-                {/* Pagination */}
+                {/* Pagination (Simplified for live data) */}
                 <div className="p-6 flex justify-center items-center gap-2 border-t border-gray-100/80">
-                    <button className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-[#964C2E] transition-colors"><ChevronLeft className="w-4 h-4" /></button>
                     <button className="w-8 h-8 rounded-lg bg-[#964C2E] text-white text-xs font-bold shadow-sm">1</button>
-                    <button className="w-8 h-8 rounded-lg text-gray-500 hover:bg-gray-100 text-xs font-bold transition-colors">2</button>
-                    <button className="w-8 h-8 rounded-lg text-gray-500 hover:bg-gray-100 text-xs font-bold transition-colors">3</button>
-                    <button className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-[#964C2E] transition-colors"><ChevronRight className="w-4 h-4" /></button>
                 </div>
             </div>
 
@@ -265,46 +202,25 @@ const Dashboard = () => {
                     </div>
                     
                     <div className="flex flex-col gap-0">
-                        {/* Item 1 */}
-                        <div className="flex gap-4">
-                            <div className="flex flex-col items-center">
-                                <div className="w-1.5 h-6 rounded-full bg-[#964C2E]"></div>
-                                <div className="w-[1.5px] h-12 bg-[#964C2E]/20 mt-1"></div>
+                        {(stats.recentActivity || []).length === 0 ? (
+                            <p className="text-xs font-bold text-gray-400 text-center py-10">No recent activity detected.</p>
+                        ) : (stats.recentActivity || []).map((activity, idx) => (
+                            <div key={idx} className="flex gap-4">
+                                <div className="flex flex-col items-center">
+                                    <div className={`w-1.5 h-6 rounded-full ${idx === 0 ? 'bg-[#964C2E]' : 'bg-[#DFB390]'}`}></div>
+                                    {idx !== (stats.recentActivity.length - 1) && <div className="w-[1.5px] h-12 bg-[#964C2E]/20 mt-1"></div>}
+                                </div>
+                                <div className="pb-6 w-full -mt-0.5">
+                                    <h4 className="text-[13px] font-bold text-[#1e2330] mb-0.5">{activity.title}</h4>
+                                    <p className="text-[11px] font-medium text-gray-400">{activity.desc} • {activity.time}</p>
+                                </div>
                             </div>
-                            <div className="pb-6 w-full -mt-0.5">
-                                <h4 className="text-[13px] font-bold text-[#1e2330] mb-0.5">New Trainer Certified</h4>
-                                <p className="text-[11px] font-medium text-gray-400">Marston Center • 2 hours ago</p>
-                            </div>
-                        </div>
-
-                        {/* Item 2 */}
-                        <div className="flex gap-4">
-                            <div className="flex flex-col items-center">
-                                <div className="w-1.5 h-6 rounded-full bg-[#DFB390]"></div>
-                                <div className="w-[1.5px] h-12 bg-[#964C2E]/20 mt-1"></div>
-                            </div>
-                            <div className="pb-6 w-full -mt-0.5">
-                                <h4 className="text-[13px] font-bold text-[#1e2330] mb-0.5">Horse Health Check Alert</h4>
-                                <p className="text-[11px] font-medium text-gray-400">Wellington • 5 hours ago</p>
-                            </div>
-                        </div>
-
-                        {/* Item 3 */}
-                        <div className="flex gap-4">
-                            <div className="flex flex-col items-center">
-                                <div className="w-1.5 h-6 rounded-full bg-[#DFB390]"></div>
-                            </div>
-                            <div className="pb-2 w-full -mt-0.5">
-                                <h4 className="text-[13px] font-bold text-[#1e2330] mb-0.5">Subscription Milestone</h4>
-                                <p className="text-[11px] font-medium text-gray-400">Ocala • 1 day ago</p>
-                            </div>
-                        </div>
+                        ))}
                     </div>
                 </div>
 
                 {/* Chart Card */}
                 <div className="bg-[#2B1B15] col-span-2 rounded-2xl p-8 shadow-md flex flex-col justify-between overflow-hidden relative">
-                    {/* Background glow effect hidden but implied by Tailwind */}
                     <div className="absolute inset-0 bg-gradient-to-tr from-[#964C2E]/10 to-transparent pointer-events-none"></div>
                     
                     <div className="flex justify-between items-center mb-10 relative z-10">
@@ -316,7 +232,7 @@ const Dashboard = () => {
                     </div>
 
                     <div className="flex-1 flex items-end gap-4 px-2 relative z-10">
-                        {/* Custom Bars */}
+                        {/* Bars corresponding to mock growth trends or real aggregations */}
                         {[
                             { val: "30%", lbl: "JAN", highlight: false },
                             { val: "40%", lbl: "FEB", highlight: false },
@@ -328,17 +244,16 @@ const Dashboard = () => {
                         ].map((item, idx) => (
                             <div key={idx} className="flex-1 flex flex-col justify-end group items-center">
                                 <div className={`w-full max-w-[50px] transition-all rounded-t-lg relative ${item.highlight ? 'bg-[#964B29]' : 'bg-[#5f301a] group-hover:bg-[#72391e]'}`} style={{ height: item.val }}>
-                                    {/* Overlay for subtle 3D effect */}
                                     <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent rounded-t-lg"></div>
                                 </div>
                                 <span className={`text-[10px] font-black tracking-wider uppercase mt-6 ${item.highlight ? 'text-[#964B29]' : 'text-[#816B61]'}`}>{item.lbl}</span>
                             </div>
                         ))}
-                    </div>
                 </div>
             </div>
         </div>
-    );
+    </div>
+);
 };
 
 export default Dashboard;

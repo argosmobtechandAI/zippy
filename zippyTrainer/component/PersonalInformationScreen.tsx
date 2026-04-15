@@ -1,20 +1,78 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from 'react-native';
 import { ArrowLeft, User, Mail, Phone, ShieldAlert } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiFunction } from '../api/apiFunction';
+import { updateUserApi } from '../api/api';
 
 export default function PersonalInformationScreen() {
   const navigation = useNavigation();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [user, setUser] = useState<any>(null);
 
   const [form, setForm] = useState({
-    fullName: 'Alex Sterling',
-    email: 'alex.sterling@example.com',
-    phone: '+1 (555) 123-4567',
-    emergencyContact: 'Sarah Sterling (+1 555-012-3456)',
+    fullName: '',
+    email: '',
+    phone: '',
+    emergencyContact: '',
   });
+
+  useEffect(() => {
+    loadUserData();
+  }, []);
+
+  const loadUserData = async () => {
+    setLoading(true);
+    try {
+      const userData = await AsyncStorage.getItem('user');
+      if (userData) {
+        const parsed = JSON.parse(userData);
+        setUser(parsed);
+        setForm({
+          fullName: parsed.name || '',
+          email: parsed.email || '',
+          phone: parsed.mobile || '',
+          emergencyContact: parsed.emergencyContact || '',
+        });
+      }
+    } catch (error) {
+      console.error("Load user data error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const updateForm = (key: string, value: string) => {
     setForm(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleSave = async () => {
+    if (!user?.id) return;
+    setSaving(true);
+    try {
+      const res = await apiFunction(`${updateUserApi}/${user.id}`, [], {
+        name: form.fullName,
+        email: form.email,
+        mobile: form.phone,
+        emergencyContact: form.emergencyContact
+      }, "PUT", true);
+
+      if (res && res.success) {
+        // Update local storage
+        const updatedUser = { ...user, name: form.fullName, email: form.email, mobile: form.phone, emergencyContact: form.emergencyContact };
+        await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+        Alert.alert("Success", "Profile updated successfully!");
+        navigation.goBack();
+      } else {
+        Alert.alert("Error", res?.message || "Failed to update profile.");
+      }
+    } catch (error) {
+      Alert.alert("Error", "Network error. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const renderInput = (icon: any, label: string, value: string, key: string, keyboardType: any = 'default') => {
@@ -36,6 +94,14 @@ export default function PersonalInformationScreen() {
     );
   };
 
+  if (loading) {
+     return (
+        <View className="flex-1 bg-[#F5EDDF] items-center justify-center">
+           <ActivityIndicator size="large" color="#8C4A28" />
+        </View>
+     );
+  }
+
   return (
     <SafeAreaView className="flex-1 bg-[#F5EDDF]">
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1">
@@ -50,8 +116,12 @@ export default function PersonalInformationScreen() {
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
           
           <View className="items-center mb-8 mt-2">
-            <View className="w-24 h-24 bg-[#eabba4] rounded-full items-center justify-center mb-4">
-              <User color="#8C4A28" size={40} />
+            <View className="w-24 h-24 bg-[#eabba4] rounded-full items-center justify-center mb-4 overflow-hidden">
+              {user?.image ? (
+                 <Image source={{ uri: user.image }} className="w-full h-full" />
+              ) : (
+                 <User color="#8C4A28" size={40} />
+              )}
             </View>
             <TouchableOpacity>
               <Text className="text-[#8C4A28] font-bold text-sm underline">Change Profile Picture</Text>
@@ -68,10 +138,15 @@ export default function PersonalInformationScreen() {
         {/* Footer Action */}
         <View className="p-4 bg-white border-t border-[#e2e8f0]">
           <TouchableOpacity 
-            className="bg-[#8C4A28] py-4 rounded-xl items-center shadow-sm"
-            onPress={() => navigation.goBack()}
+            className={`py-4 rounded-xl items-center shadow-sm ${saving ? 'bg-[#94a3b8]' : 'bg-[#8C4A28]'}`}
+            onPress={handleSave}
+            disabled={saving}
           >
-            <Text className="text-white font-bold text-base">Save Changes</Text>
+            {saving ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <Text className="text-white font-bold text-base">Save Changes</Text>
+            )}
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>

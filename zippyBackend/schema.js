@@ -7,12 +7,14 @@ export const userTable = pgTable("users", {
   name: varchar("name", { length: 255 }).notNull(),
   email: varchar("email", { length: 255 }).notNull(),
   mobile: varchar("mobile", { length: 20 }).notNull().unique(),
+  password: varchar("password", { length: 255 }),
   type: varchar("type", { length: 50 }).notNull(),
   dob: varchar("dob", { length: 50 }),
   age: integer("age"),
   weight: integer("weight"),
   parentName: varchar("parent_name", { length: 255 }),
   emergencyContact: varchar("emergency_contact", { length: 20 }),
+  status: varchar("status", { length: 20 }).default("ACTIVE"),
   notifications: jsonb("notifications").default([]),
   createdAt: varchar("created_at", { length: 50 }).default(new Date().toISOString()),
 });
@@ -30,6 +32,7 @@ export const sessionTable = pgTable("sessions", {
   location: varchar("location", { length: 255 }).notNull(),
   totalSeats: integer("total_seats").notNull(),
   note: varchar("note", { length: 500 }),
+  status: varchar("status", { length: 50 }).default("ACTIVE"),
 });
 
 export const trainerTable = pgTable("trainers", {
@@ -41,6 +44,7 @@ export const trainerTable = pgTable("trainers", {
   leaveRequests: jsonb("leaveRequests").default([]),
   experience: varchar("experience", { length: 255 }).notNull(),
   certificates: jsonb("certificates").default([]),
+  stableId: uuid("stable_id").references(() => stableTable.id),
   userId: uuid("user_id").notNull().references(() => userTable.id),
 });
 
@@ -53,10 +57,18 @@ export const horseTable = pgTable("horse", {
   speed: integer("speed").notNull(),
   shoeStatus: varchar("shoe_status", { length: 255 }).notNull(),
   diet: varchar("diet", { length: 255 }).notNull(),
+  imageUrl: varchar("image_url", { length: 1000 }),
+  age: integer("age"),
+  trainerId: uuid("trainer_id").references(() => userTable.id),
   scheduleSessions: uuid("sessions").array().default([]),
   lastVisit: varchar("last_visit", { length: 50 }),
-  healthStatus: uuid("health_status").array().notNull(),
-  vaccinationRecords: uuid("vaccination_records").array().notNull(),
+  status: varchar("status", { length: 50 }).default("Available"), // Available, Resting, Competition, Medical, Training
+  dewormingRecord: varchar("deworming_record", { length: 500 }),
+  shoeingRemarks: varchar("shoeing_remarks", { length: 500 }),
+  healthRemarks: varchar("health_remarks", { length: 500 }),
+  vaccinationSummary: varchar("vaccination_summary", { length: 500 }),
+  healthStatus: uuid("health_status").array(),
+  vaccinationRecords: uuid("vaccination_records").array(),
 });
 
 export const riderTable = pgTable("rider", {
@@ -90,6 +102,7 @@ export const vetTable = pgTable("vet", {
   medals: jsonb("medals").notNull().default([]),
   certificates: jsonb("certificates").notNull().default([]),
   patience: jsonb("patience").notNull().default([]),
+  userId: uuid("user_id").notNull().references(() => userTable.id),
 });
 
 export const healthStatusTable = pgTable("health_status", {
@@ -111,6 +124,17 @@ export const vaccinationRecordsTable = pgTable("vaccination_records", {
   nextDate: varchar("next_date", { length: 50 }).notNull(),
   batchNumber: varchar("batch_number", { length: 255 }).notNull(),
   notes: varchar("notes", { length: 500 }),
+});
+
+export const inventoryTable = pgTable("inventory", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  category: varchar("category", { length: 100 }).notNull(), // Feed, Medicines, Equipment, Consumables
+  currentStock: integer("current_stock").notNull().default(0),
+  unit: varchar("unit", { length: 50 }).notNull(), // Bales, Vials, Bottles, etc.
+  minThreshold: integer("min_threshold").default(10),
+  status: varchar("status", { length: 50 }).default("In Stock"), // In Stock, Low Stock, Out of Stock
+  lastUpdated: varchar("last_updated", { length: 50 }).default(new Date().toISOString()),
 });
 
 export const stableTable = pgTable("stable", {
