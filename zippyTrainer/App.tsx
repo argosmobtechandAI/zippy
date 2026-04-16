@@ -4,9 +4,9 @@ import { StatusBar, useColorScheme } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import Toast from 'react-native-toast-message';
 import "./global.css";
 import WelcomeStack from './stacks/welcomeStack';
-
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
@@ -17,6 +17,7 @@ function App() {
       <NavigationContainer>
         <WelcomeStack />
       </NavigationContainer>
+      <Toast />
     </SafeAreaProvider>
   );
 }
