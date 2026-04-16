@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { ArrowLeft, Settings, Check, Info, AlertOctagon, Stethoscope, ClipboardList, Trophy, Medal, Star, Award } from 'lucide-react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchRider, fetchUser } from '../redux/getDataSlice';
+import { Config } from '../api/config';
 
 const trophies = [
   { title: 'Spring Derby 2023', subtitle: '1st Place Gold', icon: Trophy, color: '#85431E' },
@@ -58,7 +59,7 @@ export default function DashboardProfileScreen() {
           <View className="relative">
             <View className="w-32 h-32 rounded-full border-[6px] border-white shadow-xl items-center justify-center overflow-hidden bg-white">
               <Image
-                source={{ uri: 'https://images.unsplash.com/photo-1579975002161-0f4db23932e6?auto=format&fit=crop&w=300&q=80' }}
+                source={{ uri: user?.profilePicture ? `${Config.API_BASE_URL.replace('/api', '')}${user.profilePicture}` : 'https://images.unsplash.com/photo-1579975002161-0f4db23932e6?auto=format&fit=crop&w=300&q=80' }}
                 className="w-full h-full"
               />
             </View>

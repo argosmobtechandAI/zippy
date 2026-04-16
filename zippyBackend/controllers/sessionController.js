@@ -3,11 +3,11 @@ import { sessionTable, riderTable, userTable } from '../schema.js';
 import { sql, eq } from 'drizzle-orm';
 
 export const createSession = async (req, res) => {
-    const {data} = req.body;
+    const { data } = req.body;
     try {
         const newSession = await db.insert(sessionTable).values(data).returning();
-        if(!newSession.length) {
-            return res.status(400).json({success: false, message: 'Failed to create session'});
+        if (!newSession.length) {
+            return res.status(400).json({ success: false, message: 'Failed to create session' });
         }
 
         // AUTOMATED NOTIFICATION to Trainer
@@ -29,7 +29,7 @@ export const createSession = async (req, res) => {
                         type: "booking",
                         unread: true
                     };
-                    
+
                     // Correct JSONB concatenation for PostgreSQL
                     await db.execute(sql`
                         UPDATE users 
@@ -44,9 +44,9 @@ export const createSession = async (req, res) => {
             }
         }
 
-        res.status(201).json({success: true, session: newSession[0]});
+        res.status(201).json({ success: true, session: newSession[0] });
     } catch (error) {
-        res.status(500).json({success: false, message: `Error: ${error.message}`});
+        res.status(500).json({ success: false, message: `Error: ${error.message}` });
     }
 };
 
@@ -60,7 +60,7 @@ export const getSessions = async (req, res) => {
     }
     try {
         let query = db.select().from(sessionTable);
-        
+
         const conditions = [];
         if (trainerId) {
             conditions.push(eq(sessionTable.trainerId, trainerId));
@@ -87,41 +87,99 @@ export const getSessions = async (req, res) => {
 };
 
 export const getSessionById = async (req, res) => {
-    const {id} = req.params;
+    const { id } = req.params;
+    console.log(id, "id")
     try {
         const session = await db.select().from(sessionTable).where(eq(sessionTable.id, id));
-        if(!session.length) {
-            return res.status(404).json({success: false, message: 'Session not found'});
+        if (!session.length) {
+            return res.status(404).json({ success: false, message: 'Session not found' });
         }
-        res.status(200).json({success: true, session: session[0]});
+        res.status(200).json({ success: true, session: session[0] });
     } catch (error) {
-        res.status(500).json({success: false, message: `Error: ${error.message}`});
+        res.status(500).json({ success: false, message: `Error: ${error.message}` });
     }
 };
 
 export const updateSession = async (req, res) => {
-    const {id} = req.params;
-    const {data} = req.body;
+    const { id } = req.params;
+    const { data } = req.body;
     try {
         const updatedSession = await db.update(sessionTable).set(data).where(eq(sessionTable.id, id)).returning();
-        if(!updatedSession.length) {
-            return res.status(404).json({success: false, message: 'Session not found'});
+        if (!updatedSession.length) {
+            return res.status(404).json({ success: false, message: 'Session not found' });
         }
-        res.status(200).json({success: true, session: updatedSession[0]});
+        res.status(200).json({ success: true, session: updatedSession[0] });
     } catch (error) {
-        res.status(500).json({success: false, message: `Error: ${error.message}`});
+        res.status(500).json({ success: false, message: `Error: ${error.message}` });
     }
 };
 
 export const deleteSession = async (req, res) => {
-    const {id} = req.params;
+    const { id } = req.params;
     try {
         const deletedSession = await db.delete(sessionTable).where(eq(sessionTable.id, id)).returning();
-        if(!deletedSession.length) {
-            return res.status(404).json({success: false, message: 'Session not found'});
+        if (!deletedSession.length) {
+            return res.status(404).json({ success: false, message: 'Session not found' });
         }
-        res.status(200).json({success: true, message: 'Session deleted successfully'});
+        res.status(200).json({ success: true, message: 'Session deleted successfully' });
     } catch (error) {
-        res.status(500).json({success: false, message: `Error: ${error.message}`});
+        res.status(500).json({ success: false, message: `Error: ${error.message}` });
+    }
+};
+
+export const updateSessionStatus = async (req, res) => {
+    const { userId, sessionId } = req.params;
+    const { data } = req.body;
+    const { status } = data
+    console.log(status, "status")
+    try {
+
+        const session = await db.select().from(sessionTable).where(eq(sessionTable.id, sessionId));
+        if (!session.length) {
+            return res.status(404).json({ success: false, message: 'Session not found' });
+        }
+
+        const allParticipants = session[0].participants;
+        allParticipants.map((participant) => {
+            if (participant.riderId === userId) {
+                participant.status = status;
+            }
+        })
+        const updatedSession = await db.update(sessionTable).set({ participants: allParticipants }).where(eq(sessionTable.id, sessionId)).returning();
+        if (!updatedSession.length) {
+            return res.status(404).json({ success: false, message: 'Session not found' });
+        }
+        res.status(200).json({ success: true, session: updatedSession[0] });
+    } catch (error) {
+        res.status(500).json({ success: false, message: `Error: ${error.message}` });
+    }
+};
+
+export const updateAttendance = async (req, res) => {
+    const { riderId, sessionId } = req.params;
+    const { data } = req.body;
+    console.log(data)
+    const { status } = data
+    console.log(status, "status")
+    try {
+
+        const session = await db.select().from(sessionTable).where(eq(sessionTable.id, sessionId));
+        if (!session.length) {
+            return res.status(404).json({ success: false, message: 'Session not found' });
+        }
+
+        const allParticipants = session[0].participants;
+        allParticipants.map((participant) => {
+            if (participant.riderId === riderId) {
+                participant.attendance = status;
+            }
+        })
+        const updatedSession = await db.update(sessionTable).set({ participants: allParticipants }).where(eq(sessionTable.id, sessionId)).returning();
+        if (!updatedSession.length) {
+            return res.status(404).json({ success: false, message: 'Session not found' });
+        }
+        res.status(200).json({ success: true, session: updatedSession[0] });
+    } catch (error) {
+        res.status(500).json({ success: false, message: `Error: ${error.message}` });
     }
 };

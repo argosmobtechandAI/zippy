@@ -1,11 +1,22 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, Image, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Crown, MapPin, ShieldCheck } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function WelcomeScreen() {
   const navigation = useNavigation();
+  const [token, setToken] = useState(null)
+  useEffect(()=>{
+    const checkLogin = async () => {
+      const tokenn = await AsyncStorage.getItem('token');
+      if (tokenn) {
+        setToken(tokenn)
+      }
+    };
+    checkLogin();
+  },[])
   return (
     <View className="flex-1 bg-[#F5EDDF]">
       {/* Top Image Section */}
@@ -36,9 +47,9 @@ export default function WelcomeScreen() {
         <View className="space-y-4 mt-8">
           <TouchableOpacity
             className="w-full bg-[#8C4A28] py-4 rounded-xl items-center shadow-sm"
-            onPress={() => navigation.navigate("Login")}
+            onPress={() => token ? navigation.navigate("Tabs") : navigation.navigate("Login")}
           >
-            <Text className="text-white font-bold text-lg">Get Started</Text>
+            <Text className="text-white font-bold text-lg">{token ? "Go to App" : "Get Started"}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity

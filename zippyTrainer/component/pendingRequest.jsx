@@ -1,114 +1,161 @@
-import { View, Text, TouchableOpacity, ScrollView, Image } from "react-native";
-import { MapPin, CheckCircle2, XCircle, ArrowLeft } from "lucide-react-native";
+import { View, Text, TouchableOpacity, ScrollView, Image, SafeAreaView } from "react-native";
+import { CheckCircle2, XCircle, ArrowLeft, User } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
+import { useEffect, useState } from "react";
+import { apiFunction } from "../api/apiFunction";
+import { updateStatusApi } from "../api/api";
 
-const PendingRequest = () => {
+const PendingRequest = ({ route }) => {
 
     const navigation = useNavigation()
+
+    const { sessions } = route.params || {};
+    const [allRequests, setAllRequests] = useState([])
+
+    useEffect(() => {
+        if (sessions) {
+            let participants = []
+            sessions.forEach(session => {
+                session.participants?.forEach(participant => {
+                    // Include all participants with a status
+                    if (participant?.status) {
+                        participants.push({ ...participant, sessionId: session.id })
+                    }
+                })
+            })
+            
+            // Sort so pending requests are always at the top
+            participants.sort((a, b) => {
+                if (a.status?.toLowerCase() === 'pending' && b.status?.toLowerCase() !== 'pending') return -1;
+                if (a.status?.toLowerCase() !== 'pending' && b.status?.toLowerCase() === 'pending') return 1;
+                return 0;
+            });
+
+            setAllRequests(participants)
+        }
+    }, [sessions])
+
+    const handleStatus = async (status, userId, sessionId) => {
+        try {
+            const res = await apiFunction(updateStatusApi, [userId, sessionId], { status }, "PUT", true)
+            console.log(res, "res")
+            
+            // Update the local state to instantly reflect the new status
+            setAllRequests(prev => prev.map(req => {
+                if (req.riderId === userId && req.sessionId === sessionId) {
+                    return { ...req, status: status };
+                }
+                return req;
+            }));
+        } catch (error) {
+            console.error("Failed to update status", error);
+        }
+    }
+
+    // Filter pending requests to show actionable count correctly based on local state updates
+    const pendingCount = allRequests.filter(req => req.status?.toLowerCase() === "pending").length;
+
     return (
-        <View className="flex p-4">
-            {/* Title Section */}
-            <View className="flex-row justify-between items-center mb-6">
-                <TouchableOpacity onPress={() => navigation.goBack()}><ArrowLeft color="#1a202c" size={24} /></TouchableOpacity>
-                <View>
-                    <Text className="text-2xl font-bold text-[#1a202c] mb-1">Pending Bookings</Text>
-                    <Text className="text-[#64748b] text-sm">You have 4 requests waiting for review</Text>
+        <SafeAreaView className="flex-1 bg-[#F8FAFC]">
+            {/* Header */}
+            <View className="flex-row justify-between items-center px-6 pt-6 pb-2">
+                <TouchableOpacity
+                    onPress={() => navigation.goBack()}
+                    className="w-11 h-11 bg-white rounded-full items-center justify-center shadow-sm border border-gray-100"
+                >
+                    <ArrowLeft color="#1a202c" size={20} strokeWidth={2.5} />
+                </TouchableOpacity>
+                <View className="items-center flex-1">
+                    <Text className="text-lg font-bold text-[#1a202c]">Booking Requests</Text>
                 </View>
-                <View className="bg-[#8C4A28] px-3 py-1.5 rounded-lg">
-                    <Text className="text-white text-[10px] font-bold">4 Actionable</Text>
-                </View>
+                <View className="w-11 h-11"></View>
             </View>
 
-            {/* Card 1 */}
-            <View className="bg-white rounded-3xl p-4 shadow-sm border border-[#e2e8f0] mb-4">
-                <View className="flex-row justify-between mb-4">
-                    <View className="flex-1">
-                        <Text className="text-[#8C4A28] text-[10px] font-bold tracking-widest mb-2">SAT, OCT 14 • 10:00 AM</Text>
-                        <Text className="text-[#1a202c] font-bold text-lg mb-1">Alice Thompson</Text>
-                        <Text className="text-[#64748b] text-xs font-semibold mb-2">Intermediate • Show Jumping</Text>
-
-                        <View className="flex-row items-center">
-                            <MapPin color="#94a3b8" size={14} className="mr-1" />
-                            <Text className="text-[#94a3b8] text-xs">Main Arena</Text>
-                        </View>
+            <ScrollView className="flex-1 px-6 pt-4" showsVerticalScrollIndicator={false}>
+                <View className="mb-6 flex-row justify-between items-end">
+                    <View>
+                        <Text className="text-3xl font-extrabold text-[#1a202c] mb-1">Requests</Text>
+                        <Text className="text-[#64748b] text-base font-medium">You have {pendingCount} new request{pendingCount !== 1 ? 's' : ''} waiting.</Text>
                     </View>
-                    <Image
-                        source={{ uri: 'https://images.unsplash.com/photo-1594911874499-28c0c4a4f896?q=80&w=200&auto=format&fit=crop' }}
-                        className="w-20 h-20 rounded-2xl ml-3"
-                    />
-                </View>
-
-                {/* Actions */}
-                <View className="flex-row justify-between pt-4 border-t border-[#f1f5f9]">
-                    <TouchableOpacity className="flex-1 bg-[#8C4A28] py-3 rounded-xl flex-row justify-center items-center mr-2">
-                        <CheckCircle2 color="white" size={18} className="mr-2" />
-                        <Text className="text-white font-bold">Approve</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity className="flex-1 bg-white border border-[#8C4A28] py-3 rounded-xl flex-row justify-center items-center ml-2">
-                        <XCircle color="#8C4A28" size={18} className="mr-2" />
-                        <Text className="text-[#8C4A28] font-bold">Reject</Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
-
-            {/* Card 2 */}
-            <View className="bg-white rounded-3xl p-4 shadow-sm border border-[#e2e8f0] mb-8">
-                <View className="flex-row justify-between mb-4">
-                    <View className="flex-1">
-                        <Text className="text-[#8C4A28] text-[10px] font-bold tracking-widest mb-2">SUN, OCT 15 • 09:30 AM</Text>
-                        <Text className="text-[#1a202c] font-bold text-lg mb-1">James Miller</Text>
-                        <Text className="text-[#64748b] text-xs font-semibold mb-2">Beginner • Dressage Foundation</Text>
-
-                        <View className="flex-row items-center">
-                            <MapPin color="#94a3b8" size={14} className="mr-1" />
-                            <Text className="text-[#94a3b8] text-xs">Training Paddock</Text>
+                    {pendingCount > 0 && (
+                        <View className="bg-[#8C4A281A] px-4 py-2 rounded-full">
+                            <Text className="text-[#8C4A28] text-xs font-bold uppercase tracking-wider">{pendingCount} Actionable</Text>
                         </View>
+                    )}
+                </View>
+
+                {allRequests?.map((request, index) => (
+                    <View key={`${request?.riderId}-${request?.sessionId}-${index}`} className="bg-white rounded-3xl p-5 shadow-sm shadow-gray-200 border border-gray-100 mb-5">
+                        <View className="flex-row items-center mb-5">
+                            <View className="w-16 h-16 rounded-2xl bg-gray-50 shadow-sm overflow-hidden mr-4 border border-gray-100">
+                                {request?.image ? (
+                                    <Image source={{ uri: request?.image }} className="w-full h-full" resizeMode="cover" />
+                                ) : (
+                                    <View className="flex-1 items-center justify-center bg-[#8C4A281A]">
+                                        <User color="#8C4A28" size={24} />
+                                    </View>
+                                )}
+                            </View>
+                            <View className="flex-1 justify-center">
+                                <Text className="text-xl font-bold text-[#1a202c] mb-1 capitalize">{request?.name || "Unknown User"}</Text>
+                                <View className="flex-row items-center mt-1">
+                                    <View className="bg-[#8C4A281A] px-2 py-1 rounded-md mr-2">
+                                        <Text className="text-[#8C4A28] text-[10px] font-bold uppercase tracking-widest">{request?.type || "Rider"}</Text>
+                                    </View>
+                                </View>
+                            </View>
+                        </View>
+
+                        {/* Actions */}
+                        {request?.status?.toLowerCase() == "pending" && (
+                            <View className="flex-row justify-between pt-4 border-t border-gray-100">
+                                <TouchableOpacity
+                                    onPress={() => handleStatus("rejected", request?.riderId, request?.sessionId)}
+                                    className="flex-1 bg-white border-2 border-red-50 py-3.5 rounded-2xl flex-row justify-center items-center mr-2 shadow-sm shadow-red-100"
+                                >
+                                    <XCircle color="#ef4444" size={20} className="mr-2" />
+                                    <Text className="text-red-500 font-bold text-base">Reject</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    onPress={() => handleStatus("approved", request?.riderId, request?.sessionId)}
+                                    className="flex-1 bg-[#8C4A28] shadow-md shadow-gray-300 py-3.5 rounded-2xl flex-row justify-center items-center ml-2 border border-[#8C4A28]"
+                                >
+                                    <CheckCircle2 color="white" size={20} className="mr-2" />
+                                    <Text className="text-white font-bold text-base">Approve</Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
+
+                        {request?.status?.toLowerCase() == "approved" && (
+                            <View className="flex-row justify-center items-center pt-4 border-t border-gray-100 bg-green-50 rounded-b-3xl -mx-5 -mb-5 pb-5 mt-2">
+                                <CheckCircle2 color="#10b981" size={20} className="mr-2" />
+                                <Text className="text-[#10b981] font-bold text-base">Request Approved</Text>
+                            </View>
+                        )}
+
+                        {request?.status?.toLowerCase() == "rejected" && (
+                            <View className="flex-row justify-center items-center pt-4 border-t border-gray-100 bg-red-50 rounded-b-3xl -mx-5 -mb-5 pb-5 mt-2">
+                                <XCircle color="#ef4444" size={20} className="mr-2" />
+                                <Text className="text-[#ef4444] font-bold text-base">Request Rejected</Text>
+                            </View>
+                        )}
                     </View>
-                    <Image
-                        source={{ uri: 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?q=80&w=200&auto=format&fit=crop' }}
-                        className="w-20 h-20 rounded-2xl ml-3"
-                    />
-                </View>
+                ))}
 
-                {/* Actions */}
-                <View className="flex-row justify-between pt-4 border-t border-[#f1f5f9]">
-                    <TouchableOpacity className="flex-1 bg-[#8C4A28] py-3 rounded-xl flex-row justify-center items-center mr-2">
-                        <CheckCircle2 color="white" size={18} className="mr-2" />
-                        <Text className="text-white font-bold">Approve</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity className="flex-1 bg-white border border-[#8C4A28] py-3 rounded-xl flex-row justify-center items-center ml-2">
-                        <XCircle color="#8C4A28" size={18} className="mr-2" />
-                        <Text className="text-[#8C4A28] font-bold">Reject</Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
+                {allRequests?.length === 0 && (
+                    <View className="items-center justify-center py-10 mt-10">
+                        <View className="w-24 h-24 bg-[#8C4A281A] rounded-full items-center justify-center mb-6">
+                            <CheckCircle2 color="#8C4A28" size={32} opacity={0.5} />
+                        </View>
+                        <Text className="text-xl font-bold text-[#1a202c] mb-2">No Requests Yet</Text>
+                        <Text className="text-[#64748b] text-center text-sm px-6">You don't have any booking requests at the moment.</Text>
+                    </View>
+                )}
 
-            {/* Weekly Schedule Bottom Section */}
-            <View className="flex-row justify-between items-center mb-4">
-                <Text className="text-lg font-bold text-[#1a202c]">Weekly Schedule</Text>
-                <Text className="text-[#8C4A28] font-bold text-sm">Tue - Sun</Text>
-            </View>
-
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4">
-                <View className="bg-white rounded-2xl p-4 items-center mr-3 min-w-[70px] border border-[#e2e8f0]">
-                    <Text className="text-[#94a3b8] text-[10px] font-bold mb-2">TUE</Text>
-                    <Text className="text-[#1a202c] font-bold text-xl">17</Text>
-                </View>
-                <View className="bg-[#8C4A28] rounded-2xl p-4 items-center mr-3 min-w-[70px]">
-                    <Text className="text-white opacity-80 text-[10px] font-bold mb-2">WED</Text>
-                    <Text className="text-white font-bold text-xl">18</Text>
-                </View>
-                <View className="bg-white rounded-2xl p-4 items-center mr-3 min-w-[70px] border border-[#e2e8f0]">
-                    <Text className="text-[#94a3b8] text-[10px] font-bold mb-2">THU</Text>
-                    <Text className="text-[#1a202c] font-bold text-xl">19</Text>
-                </View>
-                <View className="bg-white rounded-2xl p-4 items-center mr-3 min-w-[70px] border border-[#e2e8f0]">
-                    <Text className="text-[#94a3b8] text-[10px] font-bold mb-2">FRI</Text>
-                    <Text className="text-[#1a202c] font-bold text-xl">20</Text>
-                </View>
+                <View className="h-10" />
             </ScrollView>
-        </View>
-
+        </SafeAreaView>
     )
 }
 

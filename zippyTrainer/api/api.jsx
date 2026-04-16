@@ -16,3 +16,7 @@ export const getAllSessionsApi = `${baseURL}/session`;
 export const getSessionsByTrainerApi = (trainerId) => `${baseURL}/session?trainerId=${trainerId}`;
 export const updateSessionApi = `${baseURL}/session`;
 export const getAllHorsesApi = `${baseURL}/horse`;
+export const updateStatusApi = `${baseURL}/session/status`;
+export const updateAttendanceApi = `${baseURL}/session/attendance`;
+export const updateLeaveRequestApi = `${baseURL}/users/leave-request`;
+export const updateLeaveApi = `${baseURL}/users/leave`;

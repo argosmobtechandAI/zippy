@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator, Image } from 'react-native';
 import { ArrowLeft, User, Mail, Phone, ShieldAlert } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchUser } from '../redux/getDataSlice';
 import { apiFunction } from '../api/apifunction';
-import { updateUserApi } from '../api/api';
+import { updateUserApi, uploadProfilePictureApi } from '../api/api';
+import { Config } from '../api/config';
+import { launchImageLibrary } from 'react-native-image-picker';
 import Toast from 'react-native-toast-message';
 
 export default function PersonalInformationScreen() {
@@ -36,6 +38,37 @@ export default function PersonalInformationScreen() {
 
   const updateForm = (key: string, value: string) => {
     setForm(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleChangeProfilePicture = () => {
+    launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, async (response) => {
+      if (response.didCancel || response.errorCode) return;
+      if (response.assets && response.assets.length > 0) {
+        const photo = response.assets[0];
+        
+        const data = new FormData();
+        data.append('photo', {
+          name: photo.fileName || 'photo.jpg',
+          type: photo.type || 'image/jpeg',
+          uri: Platform.OS === 'ios' ? photo.uri.replace('file://', '') : photo.uri,
+        });
+
+        setLoading(true);
+        try {
+          const res = await apiFunction(uploadProfilePictureApi(user.id), [], data, 'POST_FORM', true);
+          if (res && res.success) {
+            Toast.show({ type: 'success', text1: 'Success', text2: 'Profile picture updated' });
+            dispatch(fetchUser());
+          } else {
+            Toast.show({ type: 'error', text1: 'Error', text2: res?.message || 'Upload failed' });
+          }
+        } catch (error) {
+          Toast.show({ type: 'error', text1: 'Error', text2: 'Network error occurred' });
+        } finally {
+          setLoading(false);
+        }
+      }
+    });
   };
 
   const handleSave = async () => {
@@ -109,10 +142,18 @@ export default function PersonalInformationScreen() {
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
           
           <View className="items-center mb-8 mt-2">
-            <View className="w-24 h-24 bg-[#eabba4] rounded-full items-center justify-center mb-4">
-              <User color="#8C4A28" size={40} />
+            <View className="w-24 h-24 bg-[#eabba4] rounded-full items-center justify-center mb-4 overflow-hidden border-2 border-white shadow">
+              {user?.profilePicture ? (
+                <Image 
+                  source={{ uri: `${Config.API_BASE_URL.replace('/api', '')}${user.profilePicture}` }} 
+                  className="w-full h-full" 
+                  resizeMode="cover"
+                />
+              ) : (
+                <User color="#8C4A28" size={40} />
+              )}
             </View>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={handleChangeProfilePicture}>
               <Text className="text-[#8C4A28] font-bold text-sm underline">Change Profile Picture</Text>
             </TouchableOpacity>
           </View>

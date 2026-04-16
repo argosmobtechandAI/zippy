@@ -11,7 +11,7 @@ const SessionStack = () => {
                 headerShown: false,
             }}
         >
-            <Stack.Screen name="Sessions" component={SessionsScreen} />
+            <Stack.Screen name="SessionsScreen" component={SessionsScreen} />
             <Stack.Screen name="SessionDetail" component={SessionDetailScreen} />
         </Stack.Navigator>
     )

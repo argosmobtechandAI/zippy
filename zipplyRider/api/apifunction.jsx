@@ -23,7 +23,11 @@ export const apiFunction = async (api, params = [], data = {}, method, withAuth)
     case 'POST':
       response = await axios.post(fullURL, { data }, { headers });
       break;
-
+    case 'POST_FORM':
+      response = await axios.post(fullURL, data, { 
+        headers: { ...headers, 'Content-Type': 'multipart/form-data' } 
+      });
+      break;
     case 'PUT':
       response = await axios.put(fullURL, { data }, { headers });
       break;

@@ -17,6 +17,8 @@ export const userTable = pgTable("users", {
   status: varchar("status", { length: 20 }).default("ACTIVE"),
   notifications: jsonb("notifications").default([]),
   createdAt: varchar("created_at", { length: 50 }).default(new Date().toISOString()),
+  profilePicture: varchar("profile_picture", { length: 255 }),
+  leaves: jsonb("leaves").default([]),
 });
 
 export const sessionTable = pgTable("sessions", {

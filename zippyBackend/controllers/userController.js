@@ -37,12 +37,13 @@ export const getAllUsers = async (req, res) => {
             status: userTable.status,
             trainerId: trainerTable.id,
             riderId: riderTable.id,
-            vetId: vetTable.id
+            vetId: vetTable.id,
+            profilePicture: userTable.profilePicture
         })
-        .from(userTable)
-        .leftJoin(trainerTable, eq(userTable.id, trainerTable.userId))
-        .leftJoin(riderTable, eq(userTable.id, riderTable.userId))
-        .leftJoin(vetTable, eq(userTable.id, vetTable.userId));
+            .from(userTable)
+            .leftJoin(trainerTable, eq(userTable.id, trainerTable.userId))
+            .leftJoin(riderTable, eq(userTable.id, riderTable.userId))
+            .leftJoin(vetTable, eq(userTable.id, vetTable.userId));
 
         // Data Self-Healing Logic: Ensure all relevant users have role-specific records
         let healed = false;
@@ -80,7 +81,7 @@ export const getAllUsers = async (req, res) => {
             const now = new Date();
             const oneWeekAgo = new Date(); oneWeekAgo.setDate(now.getDate() - 7);
             const startOfMonth = new Date(); startOfMonth.setDate(1);
-            
+
             users.forEach(u => {
                 if (u.type === 'trainer') {
                     const trainerSessions = sessions.filter(s => s.trainerId === u.trainerId);
@@ -122,13 +123,15 @@ export const getUser = async (req, res) => {
             status: userTable.status,
             trainerId: trainerTable.id,
             riderId: riderTable.id,
-            vetId: vetTable.id
+            vetId: vetTable.id,
+            profilePicture: userTable.profilePicture,
+            leaves: userTable.leaves
         })
-        .from(userTable)
-        .leftJoin(trainerTable, eq(userTable.id, trainerTable.userId))
-        .leftJoin(riderTable, eq(userTable.id, riderTable.userId))
-        .leftJoin(vetTable, eq(userTable.id, vetTable.userId))
-        .where(eq(userTable.id, userId));
+            .from(userTable)
+            .leftJoin(trainerTable, eq(userTable.id, trainerTable.userId))
+            .leftJoin(riderTable, eq(userTable.id, riderTable.userId))
+            .leftJoin(vetTable, eq(userTable.id, vetTable.userId))
+            .where(eq(userTable.id, userId));
 
         if (!result.length) {
             return res.status(404).json({ message: 'User not found', success: false });
@@ -144,7 +147,7 @@ export const getUser = async (req, res) => {
                 if (res && res.length > 0) { user.trainerId = res[0].id; healed = true; }
             } catch (e) { console.error(`Failed to heal trainer ${user.id}:`, e.message); }
         }
-        
+
         // Anyone who is NOT a trainer should have a rider profile if they are accessing the system.
         // This ensures Vets, Admins, and multi-role users can still book/test rider sessions.
         if (user.type !== 'trainer' && !user.riderId) {
@@ -153,7 +156,7 @@ export const getUser = async (req, res) => {
                 if (res && res.length > 0) { user.riderId = res[0].id; healed = true; }
             } catch (e) { console.error(`Failed to heal rider ${user.id}:`, e.message); }
         }
-        
+
         if (user.type === 'vet' && !user.vetId) {
             try {
                 const res = await db.insert(vetTable).values({ userId: user.id }).returning();
@@ -173,17 +176,17 @@ export const createUser = async (req, res) => {
 
     try {
         const { name, mobile, email, dob, type, age, weight, password, parentName, title, experience, emergencyContact, allergies, medical, level, instructions, status } = data
-        
+
         let hashedPassword = null;
         if (password) {
             hashedPassword = await bcrypt.hash(password, 10);
         }
 
-        const newUser = await db.insert(userTable).values({ 
+        const newUser = await db.insert(userTable).values({
             name, mobile, type, email, dob, age, weight, parentName, emergencyContact, status,
             password: hashedPassword
         }).returning();
-        
+
         if (!newUser || newUser.length === 0) {
             return res.status(400).json({ message: 'Error creating user - no record returned', success: false });
         }
@@ -238,77 +241,77 @@ export const markNotificationsAsRead = async (req, res) => {
 export const updateUser = async (req, res) => {
     const { id } = req.params;
     const { data } = req.body;
-    
+
     // Separate core user data from role-specific data
-        const { title, experience, level, medical, instructions, allergies, addHorseId, ...coreData } = data;
-        
-        try {
-            // 1. Update Core User Data
-            const updatedUser = await db.update(userTable).set(coreData).where(eq(userTable.id, id)).returning();
-            if (!updatedUser || updatedUser.length === 0) {
-                return res.status(404).json({ message: 'User not found', success: false });
+    const { title, experience, level, medical, instructions, allergies, addHorseId, ...coreData } = data;
+
+    try {
+        // 1. Update Core User Data
+        const updatedUser = await db.update(userTable).set(coreData).where(eq(userTable.id, id)).returning();
+        if (!updatedUser || updatedUser.length === 0) {
+            return res.status(404).json({ message: 'User not found', success: false });
+        }
+
+        const user = updatedUser[0];
+
+        // 2. Update Role-Specific Data
+        if (user.type === "rider") {
+            const riderUpdateData = {};
+            if (level !== undefined) riderUpdateData.level = level;
+            if (medical !== undefined) riderUpdateData.medical = medical;
+            if (instructions !== undefined) riderUpdateData.instructions = instructions;
+            if (allergies !== undefined) riderUpdateData.allergies = allergies;
+
+            if (Object.keys(riderUpdateData).length > 0) {
+                await db.update(riderTable).set(riderUpdateData).where(eq(riderTable.userId, id));
             }
-    
-            const user = updatedUser[0];
-    
-            // 2. Update Role-Specific Data
-            if (user.type === "rider") {
-                const riderUpdateData = {};
-                if (level !== undefined) riderUpdateData.level = level;
-                if (medical !== undefined) riderUpdateData.medical = medical;
-                if (instructions !== undefined) riderUpdateData.instructions = instructions;
-                if (allergies !== undefined) riderUpdateData.allergies = allergies;
+        } else if (user.type === "trainer") {
+            const trainerUpdateData = {};
+            if (title !== undefined) trainerUpdateData.title = title;
+            if (experience !== undefined) trainerUpdateData.experience = experience;
 
-                if (Object.keys(riderUpdateData).length > 0) {
-                    await db.update(riderTable).set(riderUpdateData).where(eq(riderTable.userId, id));
-                }
-            } else if (user.type === "trainer") {
-                const trainerUpdateData = {};
-                if (title !== undefined) trainerUpdateData.title = title;
-                if (experience !== undefined) trainerUpdateData.experience = experience;
-
-                if (Object.keys(trainerUpdateData).length > 0) {
-                    await db.update(trainerTable).set(trainerUpdateData).where(eq(trainerTable.userId, id));
-                }
-
-                if (data.newLeaveRequest) {
-                    const leaveRequest = {
-                        ...data.newLeaveRequest,
-                        id: Date.now().toString(),
-                        submittedAt: new Date().toISOString(),
-                        status: 'PENDING'
-                    };
-                    await db.execute(sql`UPDATE trainers SET "leaveRequests" = COALESCE("leaveRequests", '[]'::jsonb) || ${JSON.stringify([leaveRequest])}::jsonb WHERE user_id = ${id}`);
-                }
-
-                if (addHorseId) {
-                    // Update trainer's array (idempotent)
-                    await db.execute(sql`UPDATE trainers SET "horseId" = array_append("horseId", ${addHorseId}::uuid) WHERE user_id = ${id} AND NOT (${addHorseId}::uuid = ANY("horseId"))`);
-                    // Update horse's director trainerId link
-                    await db.execute(sql`UPDATE horse SET "trainer_id" = ${id} WHERE id = ${addHorseId}`);
-
-                    // AUTOMATED NOTIFICATION
-                    const horseRes = await db.select().from(horseTable).where(eq(horseTable.id, addHorseId));
-                    const horseName = horseRes[0]?.name || 'a new horse';
-                    const newNotif = {
-                        id: Date.now().toString(),
-                        title: "New Horse Assigned",
-                        desc: `${horseName} has been added to your fleet registry.`,
-                        time: "Just Now",
-                        type: "success",
-                        horseName: horseName,
-                        horseBreed: horseRes[0]?.title || 'STANDARD BREED',
-                        unread: true
-                    };
-                    await db.execute(sql`UPDATE users SET notifications = array_append(COALESCE(notifications, '[]'::jsonb), ${JSON.stringify(newNotif)}::jsonb) WHERE id = ${id}`);
-                }
-            } else if (user.type === "vet") {
-                // Ensure vet record exists or update it
-                const existingVet = await db.select().from(vetTable).where(eq(vetTable.userId, id));
-                if (existingVet.length === 0) {
-                    await db.insert(vetTable).values({ userId: id });
-                }
+            if (Object.keys(trainerUpdateData).length > 0) {
+                await db.update(trainerTable).set(trainerUpdateData).where(eq(trainerTable.userId, id));
             }
+
+            if (data.newLeaveRequest) {
+                const leaveRequest = {
+                    ...data.newLeaveRequest,
+                    id: Date.now().toString(),
+                    submittedAt: new Date().toISOString(),
+                    status: 'PENDING'
+                };
+                await db.execute(sql`UPDATE trainers SET "leaveRequests" = COALESCE("leaveRequests", '[]'::jsonb) || ${JSON.stringify([leaveRequest])}::jsonb WHERE user_id = ${id}`);
+            }
+
+            if (addHorseId) {
+                // Update trainer's array (idempotent)
+                await db.execute(sql`UPDATE trainers SET "horseId" = array_append("horseId", ${addHorseId}::uuid) WHERE user_id = ${id} AND NOT (${addHorseId}::uuid = ANY("horseId"))`);
+                // Update horse's director trainerId link
+                await db.execute(sql`UPDATE horse SET "trainer_id" = ${id} WHERE id = ${addHorseId}`);
+
+                // AUTOMATED NOTIFICATION
+                const horseRes = await db.select().from(horseTable).where(eq(horseTable.id, addHorseId));
+                const horseName = horseRes[0]?.name || 'a new horse';
+                const newNotif = {
+                    id: Date.now().toString(),
+                    title: "New Horse Assigned",
+                    desc: `${horseName} has been added to your fleet registry.`,
+                    time: "Just Now",
+                    type: "success",
+                    horseName: horseName,
+                    horseBreed: horseRes[0]?.title || 'STANDARD BREED',
+                    unread: true
+                };
+                await db.execute(sql`UPDATE users SET notifications = array_append(COALESCE(notifications, '[]'::jsonb), ${JSON.stringify(newNotif)}::jsonb) WHERE id = ${id}`);
+            }
+        } else if (user.type === "vet") {
+            // Ensure vet record exists or update it
+            const existingVet = await db.select().from(vetTable).where(eq(vetTable.userId, id));
+            if (existingVet.length === 0) {
+                await db.insert(vetTable).values({ userId: id });
+            }
+        }
 
         return res.status(200).json({ user: updatedUser[0], message: 'User updated successfully', success: true });
     } catch (error) {
@@ -317,6 +320,50 @@ export const updateUser = async (req, res) => {
         return res.status(500).json({ success: false, message: errorMessage });
     }
 };
+
+export const updateLeave = async (req, res) => {
+    const { id } = req.params;
+    const { leaves } = req.body.data;
+
+    try {
+        const user = await db.select().from(userTable).where(eq(userTable.id, id));
+        if (!user || user.length === 0) {
+            return res.status(404).json({ message: 'User not found', success: false });
+        }
+
+        const userLeaves = user[0].leaves;
+        const updatedLeaves = [...userLeaves, leaves];
+        const updatedUser = await db.update(userTable).set({ leaves: updatedLeaves }).where(eq(userTable.id, id)).returning();
+        if (!updatedUser || updatedUser.length === 0) {
+            return res.status(404).json({ message: 'User not found', success: false });
+        }
+
+        if (leaves.sessionId) {
+            const session = await db.select().from(sessionTable).where(eq(sessionTable.id, leaves.sessionId));
+            if (!session || session.length === 0) {
+                return res.status(404).json({ message: 'Session not found', success: false });
+            }
+
+            console.log(session[0].trainerId, "trainerId")
+            const trainer = await db.select().from(trainerTable).where(eq(trainerTable.id, session[0].trainerId));
+            if (!trainer || trainer.length === 0) {
+                return res.status(404).json({ message: 'Trainer not found', success: false });
+            }
+            const trainerLeaves = trainer[0].leaveRequests;
+            console.log(trainerLeaves, "trainerLeaves")
+            const updatedTrainerLeaves = [...trainerLeaves, { ...leaves, name: user[0].name, riderId: user[0].id }];
+            const updatedTrainer = await db.update(trainerTable).set({ leaveRequests: updatedTrainerLeaves }).where(eq(trainerTable.id, trainer[0].id)).returning();
+            console.log(updatedTrainer, "updatedTrainer")
+            if (!updatedTrainer || updatedTrainer.length === 0) {
+                return res.status(404).json({ message: 'Trainer not found', success: false });
+            }
+
+        }
+        return res.status(200).json({ user: updatedUser[0], message: 'User updated successfully', success: true });
+    } catch (error) {
+        return res.status(500).json({ message: `Error: ${error.message}`, success: false });
+    }
+}
 
 export const deleteUser = async (req, res) => {
     const { id } = req.params;
@@ -377,11 +424,11 @@ export const verifyOTP = async (req, res) => {
             if (vet.length > 0) roleData.vetId = vet[0].id;
         }
 
-        return res.status(200).json({ 
-            message: 'OTP verified successfully', 
-            success: true, 
-            token, 
-            user: { ...user[0], ...roleData } 
+        return res.status(200).json({
+            message: 'OTP verified successfully',
+            success: true,
+            token,
+            user: { ...user[0], ...roleData }
         });
     } catch (error) {
         return res.status(500).json({ message: `Error: ${error.message}`, success: false });
@@ -391,7 +438,7 @@ export const verifyOTP = async (req, res) => {
 export const login = async (req, res) => {
     try {
         const { data } = req.body;
-        
+
         if (!data) {
             return res.status(400).json({ message: 'Missing request data', success: false });
         }
@@ -444,11 +491,11 @@ export const login = async (req, res) => {
             if (vet.length > 0) roleData.vetId = vet[0].id;
         }
 
-        return res.status(200).json({ 
-            message: 'Logged in successfully', 
-            success: true, 
-            token, 
-            user: { ...user[0], ...roleData } 
+        return res.status(200).json({
+            message: 'Logged in successfully',
+            success: true,
+            token,
+            user: { ...user[0], ...roleData }
         });
     } catch (error) {
         return res.status(500).json({ message: `Error: ${error.message}`, success: false });
@@ -458,7 +505,7 @@ export const login = async (req, res) => {
 export const notifyUser = async (req, res) => {
     const { id } = req.params;
     const { title, desc, type } = req.body.data;
-    
+
     try {
         const notification = {
             id: Math.random().toString(36).substr(2, 9),
@@ -471,7 +518,7 @@ export const notifyUser = async (req, res) => {
         };
 
         const result = await db.execute(sql`UPDATE users SET "notifications" = COALESCE("notifications", '[]'::jsonb) || ${JSON.stringify([notification])}::jsonb WHERE id = ${id}`);
-        
+
         res.status(200).json({ success: true, message: 'Notification sent successfully' });
     } catch (error) {
         res.status(500).json({ success: false, message: `Error: ${error.message}` });
@@ -480,7 +527,7 @@ export const notifyUser = async (req, res) => {
 
 export const notifyAllUsers = async (req, res) => {
     const { title, desc, type } = req.body.data;
-    
+
     try {
         const notification = {
             id: Math.random().toString(36).substr(2, 9),
@@ -494,7 +541,7 @@ export const notifyAllUsers = async (req, res) => {
 
         // Broadcast to all users using atomic jsonb append
         await db.execute(sql`UPDATE users SET "notifications" = COALESCE("notifications", '[]'::jsonb) || ${JSON.stringify([notification])}::jsonb`);
-        
+
         res.status(200).json({ success: true, message: 'Global broadcast signal dispatched successfully' });
     } catch (error) {
         res.status(500).json({ success: false, message: `Error: ${error.message}` });
@@ -507,5 +554,31 @@ export const runTrainerMigrations = async () => {
         console.log("Trainer table migration complete.");
     } catch (error) {
         console.error("Trainer migration error:", error.message);
+    }
+};
+
+export const updateLeaveRequest = async (req, res) => {
+    const { riderId, trainerId } = req.params;
+    const { status } = req.body.data;
+
+    try {
+        const trainer = await db.select().from(trainerTable).where(eq(trainerTable.id, trainerId));
+        if (trainer.length === 0) {
+            return res.status(404).json({ success: false, message: 'Trainer not found' });
+        }
+
+        const pendingRequests = trainer[0].pendingRequests;
+        const updatedPendingRequests = pendingRequests.map(request => {
+            if (request.riderId === riderId) {
+                return { ...request, status, submittedAt: new Date().toISOString() };
+            }
+            return request;
+        });
+
+        const result = await db.update(trainerTable).set({ pendingRequests: updatedPendingRequests }).where(eq(trainerTable.id, trainerId));
+
+        res.status(200).json({ success: true, message: 'Leave request updated successfully' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: `Error: ${error.message}` });
     }
 };

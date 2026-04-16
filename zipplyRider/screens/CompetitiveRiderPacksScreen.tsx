@@ -43,7 +43,7 @@ export default function CompetitiveRiderPacksScreen() {
                     user.plan = res.rider?.plan;
                     await AsyncStorage.setItem('user', JSON.stringify(user));
                 }
-                navigation.navigate('Success');
+                navigation.navigate('RiderPlanManagement');
             } else {
                 alert(res.message || "Enrollment failed");
             }
@@ -59,7 +59,7 @@ export default function CompetitiveRiderPacksScreen() {
         <SafeAreaView className="flex-1 bg-[#F5EDDF]">
             <View className="px-6 pt-6 pb-2 flex-row items-center justify-between">
                 <View className="flex-row items-center">
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         className="w-10 h-10 items-center justify-center mr-2"
                         onPress={() => {
                             if (navigation.canGoBack()) navigation.goBack();
@@ -79,106 +79,105 @@ export default function CompetitiveRiderPacksScreen() {
                     <ActivityIndicator size="large" color="#8C4A28" />
                 </View>
             ) : (
-            <ScrollView className="flex-1 px-5" showsVerticalScrollIndicator={false}>
-                {/* Hero Banner */}
-                <View className="relative w-full h-[140px] rounded-2xl overflow-hidden mt-3 shadow-sm">
-                    <ImageBackground 
-                        source={{ uri: 'https://images.unsplash.com/photo-1598532213005-592bb21532f6?w=600&auto=format&fit=crop' }}
-                        className="w-full h-full justify-end"
-                        resizeMode="cover"
-                    >
-                        <View className="absolute inset-0 bg-black/40" />
-                        <View className="p-4 z-10 pb-5">
-                            <Text className="text-white text-2xl font-black mb-1 tracking-wide">Zippy Equestrian</Text>
-                            <Text className="text-white/90 text-xs font-semibold">Master the art of competitive riding</Text>
-                        </View>
-                    </ImageBackground>
-                </View>
-
-                {/* Section Title */}
-                <View className="mt-6 mb-4">
-                    <Text className="text-[#1a202c] text-lg font-black mb-[2px]">Select Your Pack</Text>
-                    <Text className="text-[#64748b] text-[11px] font-semibold">Monthly subscription plans for every level</Text>
-                </View>
-
-                {/* Packs List */}
-                <View className="pb-4">
-                    {plans.length === 0 ? (
-                        <View className="py-10 items-center">
-                            <Text className="text-[#64748b] font-bold">No active packs available.</Text>
-                        </View>
-                    ) : plans.map((pack) => (
-                        <View 
-                            key={pack.id} 
-                            className={`bg-white rounded-[20px] p-5 mb-4 shadow-sm border border-[#e2d5c3] ${
-                                pack.level === 'Intermediate' ? 'border border-[#8C4A28] pb-6 pt-6' : ''
-                            }`}
+                <ScrollView className="flex-1 px-5" showsVerticalScrollIndicator={false}>
+                    {/* Hero Banner */}
+                    <View className="relative w-full h-[140px] rounded-2xl overflow-hidden mt-3 shadow-sm">
+                        <ImageBackground
+                            source={{ uri: 'https://images.unsplash.com/photo-1598532213005-592bb21532f6?w=600&auto=format&fit=crop' }}
+                            className="w-full h-full justify-end"
+                            resizeMode="cover"
                         >
-                            <View className="flex-row justify-between items-center mb-4">
-                                <Text className="text-[#1a202c] text-[16px] font-black">{pack.name}</Text>
-                                <View className={`bg-[#8C4A28] px-3 py-1 rounded shadow-sm`}>
-                                    <Text className={`text-white text-[8px] font-black uppercase tracking-widest`}>{pack.level}</Text>
+                            <View className="absolute inset-0 bg-black/40" />
+                            <View className="p-4 z-10 pb-5">
+                                <Text className="text-white text-2xl font-black mb-1 tracking-wide">Zippy Equestrian</Text>
+                                <Text className="text-white/90 text-xs font-semibold">Master the art of competitive riding</Text>
+                            </View>
+                        </ImageBackground>
+                    </View>
+
+                    {/* Section Title */}
+                    <View className="mt-6 mb-4">
+                        <Text className="text-[#1a202c] text-lg font-black mb-[2px]">Select Your Pack</Text>
+                        <Text className="text-[#64748b] text-[11px] font-semibold">Monthly subscription plans for every level</Text>
+                    </View>
+
+                    {/* Packs List */}
+                    <View className="pb-4">
+                        {plans.length === 0 ? (
+                            <View className="py-10 items-center">
+                                <Text className="text-[#64748b] font-bold">No active packs available.</Text>
+                            </View>
+                        ) : plans.map((pack) => (
+                            <View
+                                key={pack.id}
+                                className={`bg-white rounded-[20px] p-5 mb-4 shadow-sm border border-[#e2d5c3] ${pack.level === 'Intermediate' ? 'border border-[#8C4A28] pb-6 pt-6' : ''
+                                    }`}
+                            >
+                                <View className="flex-row justify-between items-center mb-4">
+                                    <Text className="text-[#1a202c] text-[16px] font-black">{pack.name}</Text>
+                                    <View className={`bg-[#8C4A28] px-3 py-1 rounded shadow-sm`}>
+                                        <Text className={`text-white text-[8px] font-black uppercase tracking-widest`}>{pack.level}</Text>
+                                    </View>
+                                </View>
+
+                                <View className="flex-row items-baseline mb-5">
+                                    <Text className="text-[#1a202c] text-[38px] font-black leading-10">{pack.sessionsCount}</Text>
+                                    <Text className="text-[#64748b] text-[12px] font-bold ml-1">sessions / {pack.validity}</Text>
+                                </View>
+
+                                <TouchableOpacity
+                                    className={`w-full py-4 rounded-xl items-center justify-center mb-6 shadow-sm ${enrolling === pack.id ? 'bg-[#8C4A28]/70' : 'bg-[#8C4A28]'}`}
+                                    onPress={() => handleEnrollment(pack.id)}
+                                    disabled={enrolling !== null}
+                                >
+                                    {enrolling === pack.id ? (
+                                        <ActivityIndicator size="small" color="white" />
+                                    ) : (
+                                        <Text className={`font-black text-[13px] text-white`}>Enroll for ${pack.amount}</Text>
+                                    )}
+                                </TouchableOpacity>
+
+                                <View>
+                                    {(pack.rules || ['Professional training', 'Stable access', 'Competition prep']).map((feature: string, idx: number) => (
+                                        <View key={idx} className="flex-row items-center mb-[10px]">
+                                            <CheckCircle2 color="#8C4A28" size={14} />
+                                            <Text className="text-[#475569] text-[11px] font-semibold ml-2">{feature}</Text>
+                                        </View>
+                                    ))}
                                 </View>
                             </View>
+                        ))}
+                    </View>
 
-                            <View className="flex-row items-baseline mb-5">
-                                <Text className="text-[#1a202c] text-[38px] font-black leading-10">{pack.sessionsCount}</Text>
-                                <Text className="text-[#64748b] text-[12px] font-bold ml-1">sessions / {pack.validity}</Text>
-                            </View>
-
-                            <TouchableOpacity 
-                                className={`w-full py-4 rounded-xl items-center justify-center mb-6 shadow-sm ${enrolling === pack.id ? 'bg-[#8C4A28]/70' : 'bg-[#8C4A28]'}`}
-                                onPress={() => handleEnrollment(pack.id)}
-                                disabled={enrolling !== null}
-                            >
-                                {enrolling === pack.id ? (
-                                    <ActivityIndicator size="small" color="white" />
-                                ) : (
-                                    <Text className={`font-black text-[13px] text-white`}>Enroll for ${pack.amount}</Text>
-                                )}
-                            </TouchableOpacity>
-
-                            <View>
-                                {(pack.rules || ['Professional training', 'Stable access', 'Competition prep']).map((feature: string, idx: number) => (
-                                    <View key={idx} className="flex-row items-center mb-[10px]">
-                                        <CheckCircle2 color="#8C4A28" size={14} />
-                                        <Text className="text-[#475569] text-[11px] font-semibold ml-2">{feature}</Text>
-                                    </View>
-                                ))}
-                            </View>
+                    {/* Rules & Terms */}
+                    <View className="bg-[#e2d5c3]/60 rounded-2xl p-6 mb-8 mt-2">
+                        <View className="flex-row items-center mb-5">
+                            <Gavel color="#1a202c" size={16} />
+                            <Text className="text-[#1a202c] text-[12px] font-black ml-2 uppercase tracking-widest">Pack Rules & Terms</Text>
                         </View>
-                    ))}
-                </View>
 
-                {/* Rules & Terms */}
-                <View className="bg-[#e2d5c3]/60 rounded-2xl p-6 mb-8 mt-2">
-                    <View className="flex-row items-center mb-5">
-                        <Gavel color="#1a202c" size={16} />
-                        <Text className="text-[#1a202c] text-[12px] font-black ml-2 uppercase tracking-widest">Pack Rules & Terms</Text>
-                    </View>
+                        <View className="flex-row items-center mb-4">
+                            <CalendarClock color="#8C4A28" size={14} />
+                            <Text className="text-[#475569] text-[10px] font-bold ml-3">Sessions auto-created on enrollment</Text>
+                        </View>
 
-                    <View className="flex-row items-center mb-4">
-                        <CalendarClock color="#8C4A28" size={14} />
-                        <Text className="text-[#475569] text-[10px] font-bold ml-3">Sessions auto-created on enrollment</Text>
-                    </View>
-                    
-                    <View className="flex-row items-center mb-4">
-                        <Calendar color="#8C4A28" size={14} />
-                        <Text className="text-[#475569] text-[10px] font-bold ml-3">Valid for selected month only</Text>
-                    </View>
-                    
-                    <View className="flex-row items-center mb-4">
-                        <Ban color="#8C4A28" size={14} />
-                        <Text className="text-[#475569] text-[10px] font-bold ml-3">No carry forward of unused sessions</Text>
+                        <View className="flex-row items-center mb-4">
+                            <Calendar color="#8C4A28" size={14} />
+                            <Text className="text-[#475569] text-[10px] font-bold ml-3">Valid for selected month only</Text>
+                        </View>
+
+                        <View className="flex-row items-center mb-4">
+                            <Ban color="#8C4A28" size={14} />
+                            <Text className="text-[#475569] text-[10px] font-bold ml-3">No carry forward of unused sessions</Text>
+                        </View>
+
+                        <View className="flex-row items-center">
+                            <Clock color="#8C4A28" size={14} />
+                            <Text className="text-[#475569] text-[10px] font-bold ml-3">Sessions auto-expire at month end</Text>
+                        </View>
                     </View>
 
-                    <View className="flex-row items-center">
-                        <Clock color="#8C4A28" size={14} />
-                        <Text className="text-[#475569] text-[10px] font-bold ml-3">Sessions auto-expire at month end</Text>
-                    </View>
-                </View>
-
-            </ScrollView>
+                </ScrollView>
             )}
         </SafeAreaView>
     );

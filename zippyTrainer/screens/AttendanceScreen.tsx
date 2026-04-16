@@ -3,7 +3,8 @@ import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, ActivityInd
 import { ArrowLeft, Calendar, MapPin, Clock, CheckCircle2, XCircle, AlertTriangle, CalendarOff, CalendarRange, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiFunction } from '../api/apiFunction';
-import { getSessionsByTrainerApi, updateSessionApi } from '../api/api';
+import { getSessionsByTrainerApi, getUserApi, updateAttendanceApi, updateLeaveApi, updateLeaveRequestApi, updateSessionApi } from '../api/api';
+import RNDateTimePicker from '@react-native-community/datetimepicker';
 
 export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
   const [sessions, setSessions] = useState<any[]>([]);
@@ -16,11 +17,14 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
   const [userId, setUserId] = useState<string | null>(null);
   const [trainerData, setTrainerData] = useState<any>(null);
   const [showLeaveForm, setShowLeaveForm] = useState(false);
+  const [leaveRequests, setLeaveRequests] = useState<any[]>([]);
+  const [showDatePicker, setShowDatePicker] = useState(null);
+  const [date, setDate] = useState(new Date());
   const [leaveForm, setLeaveForm] = useState({
-    type: 'Annual Vacation',
+    reason: '',
     startDate: '',
     endDate: '',
-    reason: ''
+    status: 'pending',
   });
   const [requesting, setRequesting] = useState(false);
 
@@ -35,9 +39,11 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
       if (userData) {
         const user = JSON.parse(userData);
         setUserId(user.id);
-        const res = await apiFunction(`/users`, [], {}, "GET", true);
+        const res = await apiFunction(getUserApi, [], {}, "GET", true);
         if (res && res.success) {
+          console.log(res.user, "ress")
           setTrainerData(res.user);
+          setLeaveRequests(res.user.leaveRequests);
         }
       }
     } catch (error) {
@@ -84,8 +90,13 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
 
   const currentSession = sessions.find(s => s.id === selectedSessionId);
 
-  const handleAttendance = (id: string, status: 'present' | 'noshow') => {
-    setAttendance(prev => ({ ...prev, [id]: status }));
+  const handleAttendance = async (riderId: string, sessionId: string, status: 'present' | 'noshow') => {
+    console.log(sessionId, riderId, status)
+    const res = await apiFunction(updateAttendanceApi, [sessionId, riderId], { status }, "PUT", true);
+    console.log(res, "ress")
+    if (res && res.success) {
+      setAttendance(prev => ({ ...prev, [riderId]: status }));
+    }
   };
 
   const handleSaveSession = async () => {
@@ -98,11 +109,11 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
         status: attendance[p.riderId] || p.status
       }));
 
-      const res = await apiFunction(updateSessionApi, [selectedSessionId], { 
-        data: { 
+      const res = await apiFunction(updateSessionApi, [selectedSessionId], {
+        data: {
           participants: updatedParticipants,
-          note: remarks 
-        } 
+          note: remarks
+        }
       }, "PUT", true);
 
       if (res && res.success) {
@@ -131,20 +142,17 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
 
     setRequesting(true);
     try {
-      const res = await apiFunction(`/users/${userId}`, [], {
-        data: {
-          newLeaveRequest: leaveForm
-        }
+      const res = await apiFunction(updateLeaveApi, [userId], {
+        leaves: leaveForm
       }, "PUT", true);
 
       if (res && res.success) {
         Alert.alert("Success", "Leave request submitted successfully.");
         setShowLeaveForm(false);
         setLeaveForm({
-          type: 'Annual Vacation',
+          reason: '',
           startDate: '',
           endDate: '',
-          reason: ''
         });
         fetchTrainerData();
       } else {
@@ -157,42 +165,61 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
     }
   };
 
+  console.log(trainerData, "trainerData")
+
+  const handleApproveLeave = async (riderId: string, trainerId: string, status: string) => {
+    try {
+      const res = await apiFunction(updateLeaveRequestApi, [riderId, trainerId], {
+        status
+      }, "PUT", true);
+
+      if (res && res.success) {
+        Alert.alert("Success", "Leave request approved successfully.");
+        fetchTrainerData();
+      } else {
+        Alert.alert("Error", res?.message || "Failed to approve request.");
+      }
+    } catch (error) {
+      Alert.alert("Error", "An unexpected error occurred.");
+    }
+  };
+
   return (
     <View className="flex-1 bg-[#F5EDDF]">
       {/* Custom Header */}
       <View className="flex-row items-center justify-start px-4 py-4 mb-2">
         <TouchableOpacity onPress={onBack} className="p-2">
-           <ArrowLeft color="#8C4A28" size={24} />
+          <ArrowLeft color="#8C4A28" size={24} />
         </TouchableOpacity>
         <Text className="text-lg font-bold text-[#1a202c]">Session Attendance</Text>
-      
+
       </View>
 
       <View className="flex-row border-b border-[#e2e8f0] mb-6">
-         <TouchableOpacity 
-           className={`flex-1 items-center pb-3 ${activeTab === 'Attendance' ? 'border-b-2 border-[#1a202c]' : ''}`}
-           onPress={() => setActiveTab('Attendance')}
-         >
-           <Text className={`font-bold ${activeTab === 'Attendance' ? 'text-[#1a202c]' : 'text-[#64748b]'}`}>
-             Attendance
-           </Text>
-         </TouchableOpacity>
-         <TouchableOpacity 
-           className={`flex-1 items-center pb-3 ${activeTab === 'Leave Requests' ? 'border-b-2 border-[#1a202c]' : ''}`}
-           onPress={() => setActiveTab('Leave Requests')}
-         >
-           <Text className={`font-bold ${activeTab === 'Leave Requests' ? 'text-[#1a202c]' : 'text-[#64748b]'}`}>
-             Leave Requests
-           </Text>
-         </TouchableOpacity>
-         <TouchableOpacity 
-           className={`flex-1 items-center pb-3 ${activeTab === 'Apply Leave' ? 'border-b-2 border-[#1a202c]' : ''}`}
-           onPress={() => setActiveTab('Apply Leave')}
-         >
-           <Text className={`font-bold ${activeTab === 'Apply Leave' ? 'text-[#1a202c]' : 'text-[#64748b]'}`}>
-             Apply Leave
-           </Text>
-         </TouchableOpacity>
+        <TouchableOpacity
+          className={`flex-1 items-center pb-3 ${activeTab === 'Attendance' ? 'border-b-2 border-[#1a202c]' : ''}`}
+          onPress={() => setActiveTab('Attendance')}
+        >
+          <Text className={`font-bold ${activeTab === 'Attendance' ? 'text-[#1a202c]' : 'text-[#64748b]'}`}>
+            Attendance
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          className={`flex-1 items-center pb-3 ${activeTab === 'Leave Requests' ? 'border-b-2 border-[#1a202c]' : ''}`}
+          onPress={() => setActiveTab('Leave Requests')}
+        >
+          <Text className={`font-bold ${activeTab === 'Leave Requests' ? 'text-[#1a202c]' : 'text-[#64748b]'}`}>
+            Leave Requests
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          className={`flex-1 items-center pb-3 ${activeTab === 'Apply Leave' ? 'border-b-2 border-[#1a202c]' : ''}`}
+          onPress={() => setActiveTab('Apply Leave')}
+        >
+          <Text className={`font-bold ${activeTab === 'Apply Leave' ? 'text-[#1a202c]' : 'text-[#64748b]'}`}>
+            Apply Leave
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {loading ? (
@@ -209,169 +236,164 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
       ) : activeTab === "Attendance" && <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         {/* Session Selector */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-6">
-           {sessions.map(session => (
-              <TouchableOpacity
-                 key={session.id}
-                 onPress={() => setSelectedSessionId(session.id)}
-                 className={`mr-3 px-4 py-3 rounded-2xl border ${
-                    selectedSessionId === session.id ? 'bg-[#8C4A28] border-[#8C4A28]' : 'bg-white border-[#e2e8f0]'
-                 }`}
-              >
-                 <Text className={`font-bold ${selectedSessionId === session.id ? 'text-white' : 'text-[#1a202c]'}`}>
-                    {session.timing ? (session.timing.includes(',') ? session.timing.split(',')[1].split('-')[0].trim() : session.timing.split('-')[0].trim()) : 'N/A'}
-                 </Text>
-                 <Text className={`text-xs mt-1 ${selectedSessionId === session.id ? 'text-[#e6d0b3]' : 'text-[#64748b]'}`}>
-                    {session.title}
-                 </Text>
-              </TouchableOpacity>
-           ))}
+          {sessions.map(session => (
+            <TouchableOpacity
+              key={session.id}
+              onPress={() => setSelectedSessionId(session.id)}
+              className={`mr-3 px-4 py-3 rounded-2xl border ${selectedSessionId === session.id ? 'bg-[#8C4A28] border-[#8C4A28]' : 'bg-white border-[#e2e8f0]'
+                }`}
+            >
+              <Text className={`font-bold ${selectedSessionId === session.id ? 'text-white' : 'text-[#1a202c]'}`}>
+                {session.timing ? (session.timing.includes(',') ? session.timing.split(',')[1].split('-')[0].trim() : session.timing.split('-')[0].trim()) : 'N/A'}
+              </Text>
+              <Text className={`text-xs mt-1 ${selectedSessionId === session.id ? 'text-[#e6d0b3]' : 'text-[#64748b]'}`}>
+                {session.title}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </ScrollView>
 
         {/* Session Details Card */}
         <View className="bg-white rounded-3xl p-4 shadow-sm border border-[#e2e8f0] mb-6">
-           <View className="flex-row items-center mb-3">
-              <View className="bg-[#facc15]/20 px-2 py-1 rounded">
-                 <Text className="text-[#8C4A28] text-[10px] font-bold tracking-widest uppercase">{currentSession?.level || 'STANDARD'}</Text>
-              </View>
-              <Text className="text-[#94a3b8] text-[10px] font-bold ml-2">SESSION DETAILS</Text>
-           </View>
-           <Text className="text-[#1a202c] text-xl font-bold mb-3">{currentSession?.title}</Text>
-           
-           <View className="flex-row items-center mb-2">
-              <View className="w-5 items-center mr-1">
-                 <Clock color="#64748b" size={14} />
-              </View>
-              <Text className="text-[#64748b] text-sm">{currentSession?.timing} • {currentSession?.date}</Text>
-           </View>
-           <View className="flex-row items-center mb-4">
-              <View className="w-5 items-center mr-1">
-                 <MapPin color="#64748b" size={14} />
-              </View>
-              <Text className="text-[#64748b] text-sm">{currentSession?.location}</Text>
-           </View>
+          <View className="flex-row items-center mb-3">
+            <View className="bg-[#facc15]/20 px-2 py-1 rounded">
+              <Text className="text-[#8C4A28] text-[10px] font-bold tracking-widest uppercase">{currentSession?.level || 'STANDARD'}</Text>
+            </View>
+            <Text className="text-[#94a3b8] text-[10px] font-bold ml-2">SESSION DETAILS</Text>
+          </View>
+          <Text className="text-[#1a202c] text-xl font-bold mb-3">{currentSession?.title}</Text>
 
-           <Image 
-             source={{ uri: currentSession?.image || 'https://images.unsplash.com/photo-1594911874499-28c0c4a4f896?q=80&w=600&auto=format&fit=crop' }} 
-             className="w-full h-40 rounded-xl"
-           />
+          <View className="flex-row items-center mb-2">
+            <View className="w-5 items-center mr-1">
+              <Clock color="#64748b" size={14} />
+            </View>
+            <Text className="text-[#64748b] text-sm">{currentSession?.timing} • {currentSession?.date}</Text>
+          </View>
+          <View className="flex-row items-center mb-4">
+            <View className="w-5 items-center mr-1">
+              <MapPin color="#64748b" size={14} />
+            </View>
+            <Text className="text-[#64748b] text-sm">{currentSession?.location}</Text>
+          </View>
+
+          <Image
+            source={{ uri: currentSession?.image || 'https://images.unsplash.com/photo-1594911874499-28c0c4a4f896?q=80&w=600&auto=format&fit=crop' }}
+            className="w-full h-40 rounded-xl"
+          />
         </View>
 
         {/* Rider List */}
         <View className="flex-row justify-between items-center mb-4">
-           <Text className="text-lg font-bold text-[#1a202c]">Rider List</Text>
-           <Text className="text-[#64748b] text-sm font-semibold">{currentSession?.participants?.length || 0} Registered</Text>
+          <Text className="text-lg font-bold text-[#1a202c]">Rider List</Text>
+          <Text className="text-[#64748b] text-sm font-semibold">{currentSession?.participants?.length || 0} Registered</Text>
         </View>
 
         <View className="bg-white rounded-3xl p-4 shadow-sm border border-[#e2e8f0] mb-8">
-           {currentSession?.participants?.map((rider: any, index: number) => (
-             <View key={rider.riderId} className={`flex-row items-center py-4 ${index !== currentSession.participants.length - 1 ? 'border-b border-[#e2e8f0]' : ''}`}>
-               <Image source={{ uri: rider.image || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop' }} className="w-12 h-12 rounded-full mr-3" />
-               <View className="flex-1">
-                  <Text className="text-[#1a202c] font-bold text-[15px] mb-0.5">{rider.name}</Text>
-                  <Text className="text-[#94a3b8] text-xs font-semibold">
-                    Role: <Text className="text-[#8C4A28]">{rider.type || 'Rider'}</Text>
-                  </Text>
-               </View>
-               <View className="flex-row gap-2">
-                 <TouchableOpacity 
-                    className={`px-4 py-2 rounded-lg items-center justify-center border ${
-                      attendance[rider.riderId] === 'present' 
-                        ? 'bg-[#8C4A28] border-[#8C4A28]' 
-                        : 'bg-[#f8fafc] border-[#e2e8f0]'
+          {currentSession?.participants?.map((rider: any, index: number) => (
+            <View key={rider.riderId} className={`flex-row items-center py-4 ${index !== currentSession.participants.length - 1 ? 'border-b border-[#e2e8f0]' : ''}`}>
+              <Image source={{ uri: rider.image || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop' }} className="w-12 h-12 rounded-full mr-3" />
+              <View className="flex-1">
+                <Text className="text-[#1a202c] font-bold text-[15px] mb-0.5">{rider.name}</Text>
+                <Text className="text-[#94a3b8] text-xs font-semibold">
+                  Role: <Text className="text-[#8C4A28]">{rider.type || 'Rider'}</Text>
+                </Text>
+              </View>
+              <View className="flex-row gap-2">
+                <TouchableOpacity
+                  className={`px-4 py-2 rounded-lg items-center justify-center border ${(attendance[rider.riderId] === "present" || rider.attendance.toLowerCase() === "present")
+                    ? 'bg-[#8C4A28] border-[#8C4A28]'
+                    : 'bg-[#f8fafc] border-[#e2e8f0]'
                     }`}
-                    onPress={() => handleAttendance(rider.riderId, 'present')}
-                 >
-                    <Text className={`text-xs font-bold ${
-                      attendance[rider.riderId] === 'present' ? 'text-white' : 'text-[#64748b]'
+                  onPress={() => handleAttendance(rider.riderId, currentSession.id, 'present')}
+                >
+                  <Text className={`text-xs font-bold ${(attendance[rider.riderId] === "present" || rider.attendance.toLowerCase() === "present") ? 'text-white' : 'text-[#64748b]'
                     }`}>Present</Text>
-                 </TouchableOpacity>
-                 <TouchableOpacity 
-                    className={`px-4 py-2 rounded-lg items-center justify-center border ${
-                      attendance[rider.riderId] === 'noshow' 
-                        ? 'bg-red-500 border-red-500' 
-                        : 'bg-[#f8fafc] border-[#e2e8f0]'
+                </TouchableOpacity>
+                <TouchableOpacity
+                  className={`px-4 py-2 rounded-lg items-center justify-center border ${(attendance[rider.riderId] === "noshow" || rider.attendance.toLowerCase() === 'noshow')
+                    ? 'bg-red-500 border-red-500'
+                    : 'bg-[#f8fafc] border-[#e2e8f0]'
                     }`}
-                    onPress={() => handleAttendance(rider.riderId, 'noshow')}
-                 >
-                    <Text className={`text-xs font-bold ${
-                      attendance[rider.riderId] === 'noshow' ? 'text-white' : 'text-[#64748b]'
+                  onPress={() => handleAttendance(rider.riderId, currentSession.id, 'noshow')}
+                >
+                  <Text className={`text-xs font-bold ${(attendance[rider.riderId] === "noshow" || rider.attendance.toLowerCase() === 'noshow') ? 'text-white' : 'text-[#64748b]'
                     }`}>No-Show</Text>
-                 </TouchableOpacity>
-               </View>
-             </View>
-           ))}
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))}
         </View>
 
         {/* Trainer Remarks */}
         <View className="mb-4">
-           <Text className="text-lg font-bold text-[#1a202c] mb-4">Trainer Remarks</Text>
-           
-           <View className="bg-white rounded-2xl p-4 shadow-sm border border-[#e2e8f0] mb-4">
-              <TextInput 
-                 className="text-[#1a202c] min-h-[80px]"
-                 placeholder="Enter session notes, performance feedback, or incidents..."
-                 placeholderTextColor="#94a3b8"
-                 multiline
-                 textAlignVertical="top"
-                 value={remarks}
-                 onChangeText={setRemarks}
-              />
-           </View>
+          <Text className="text-lg font-bold text-[#1a202c] mb-4">Trainer Remarks</Text>
 
-           <View className="flex-row flex-wrap mb-8">
-              <TouchableOpacity onPress={() => setRemarks("Good Progress")} className="bg-white border border-[#e2e8f0] rounded-full px-4 py-2 mr-2 mb-2">
-                 <Text className="text-[#64748b] text-xs font-semibold">Good Progress</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => setRemarks("Needs Drill Practice")} className="bg-white border border-[#e2e8f0] rounded-full px-4 py-2 mr-2 mb-2">
-                 <Text className="text-[#64748b] text-xs font-semibold">Needs Drill Practice</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => setRemarks("Equipment Check Required")} className="bg-white border border-[#e2e8f0] rounded-full px-4 py-2 mb-2">
-                 <Text className="text-[#64748b] text-xs font-semibold">Equipment Check Required</Text>
-              </TouchableOpacity>
-           </View>
+          <View className="bg-white rounded-2xl p-4 shadow-sm border border-[#e2e8f0] mb-4">
+            <TextInput
+              className="text-[#1a202c] min-h-[80px]"
+              placeholder="Enter session notes, performance feedback, or incidents..."
+              placeholderTextColor="#94a3b8"
+              multiline
+              textAlignVertical="top"
+              value={remarks}
+              onChangeText={setRemarks}
+            />
+          </View>
+
+          <View className="flex-row flex-wrap mb-8">
+            <TouchableOpacity onPress={() => setRemarks("Good Progress")} className="bg-white border border-[#e2e8f0] rounded-full px-4 py-2 mr-2 mb-2">
+              <Text className="text-[#64748b] text-xs font-semibold">Good Progress</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setRemarks("Needs Drill Practice")} className="bg-white border border-[#e2e8f0] rounded-full px-4 py-2 mr-2 mb-2">
+              <Text className="text-[#64748b] text-xs font-semibold">Needs Drill Practice</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setRemarks("Equipment Check Required")} className="bg-white border border-[#e2e8f0] rounded-full px-4 py-2 mb-2">
+              <Text className="text-[#64748b] text-xs font-semibold">Equipment Check Required</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Action Button */}
-        <TouchableOpacity 
+        <TouchableOpacity
           className={`w-full py-4 rounded-xl items-center flex-row justify-center mb-3 ${saving ? 'bg-[#94a3b8]' : 'bg-[#8C4A28]'}`}
           onPress={handleSaveSession}
           disabled={saving}
         >
-           {saving ? <ActivityIndicator size="small" color="white" /> : <CheckCircle2 color="white" size={20} className="mr-2" />}
-           <Text className="text-white font-bold text-lg ml-2">{saving ? 'Saving...' : 'Complete & Save Session'}</Text>
+          {saving ? <ActivityIndicator size="small" color="white" /> : <CheckCircle2 color="white" size={20} className="mr-2" />}
+          <Text className="text-white font-bold text-lg ml-2">{saving ? 'Saving...' : 'Complete & Save Session'}</Text>
         </TouchableOpacity>
-        
+
         <Text className="text-center text-[#94a3b8] text-xs font-semibold mb-6">
-           Saving will notify riders and update their training logs.
+          Saving will notify riders and update their training logs.
         </Text>
 
       </ScrollView>}
 
 
-      {activeTab === "Apply Leave" && 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+      {activeTab === "Apply Leave" &&
+        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
           {!showLeaveForm ? (
             <>
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => setShowLeaveForm(true)}
                 className="bg-[#8C4A28] flex-row justify-center items-center py-4 rounded-xl mb-6 shadow-sm"
               >
-                  <CalendarRange color="white" size={20} className="mr-2" />
-                  <Text className="text-white font-bold text-lg">Request New Leave</Text>
+                <CalendarRange color="white" size={20} className="mr-2" />
+                <Text className="text-white font-bold text-lg">Request New Leave</Text>
               </TouchableOpacity>
 
               <Text className="text-lg font-bold text-[#1a202c] mb-4">Pending Requests</Text>
-              {trainerData?.leaveRequests?.filter((r: any) => r.status === 'PENDING').length > 0 ? (
-                trainerData.leaveRequests.filter((r: any) => r.status === 'PENDING').map((r: any) => (
+              {trainerData?.leaves?.filter((r: any) => r.status.toLowerCase() === 'pending').length > 0 ? (
+                trainerData.leaves.filter((r: any) => r.status.toLowerCase() === 'pending').map((r: any) => (
                   <View key={r.id} className="bg-white rounded-3xl p-5 shadow-sm border border-[#e2e8f0] mb-4">
                     <View className="flex-row justify-between items-start mb-3">
-                       <View>
-                          <Text className="text-[#1a202c] font-bold text-lg mb-1">{r.type}</Text>
-                          <Text className="text-[#64748b] text-xs font-semibold">{r.startDate} - {r.endDate}</Text>
-                       </View>
-                       <View className="bg-[#fef08a]/40 px-3 py-1.5 rounded-lg border border-[#fef08a]">
-                          <Text className="text-[#ca8a04] text-[10px] font-bold tracking-wider">PENDING</Text>
-                       </View>
+                      <View>
+                        <Text className="text-[#1a202c] font-bold text-lg mb-1">{r.reason}</Text>
+                        <Text className="text-[#64748b] text-xs font-semibold">{r.startDate} - {r.endDate}</Text>
+                      </View>
+                      <View className="bg-[#fef08a]/40 px-3 py-1.5 rounded-lg border border-[#fef08a]">
+                        <Text className="text-[#ca8a04] text-[10px] font-bold tracking-wider">PENDING</Text>
+                      </View>
                     </View>
                     <Text className="text-[#64748b] text-sm mb-2">{r.reason}</Text>
                     <Text className="text-[#94a3b8] text-[10px]">Submitted on {new Date(r.submittedAt).toLocaleDateString()}</Text>
@@ -384,17 +406,17 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
               )}
 
               <Text className="text-lg font-bold text-[#1a202c] mb-4">Leave History</Text>
-              {trainerData?.leaveRequests?.filter((r: any) => r.status !== 'PENDING').length > 0 ? (
-                trainerData.leaveRequests.filter((r: any) => r.status !== 'PENDING').map((r: any) => (
+              {trainerData?.leaves?.length > 0 ? (
+                trainerData.leaves?.map((r: any) => (
                   <View key={r.id} className="bg-white rounded-3xl p-5 shadow-sm border border-[#e2e8f0] mb-4">
                     <View className="flex-row justify-between items-start mb-2">
-                       <View>
-                          <Text className="text-[#1a202c] font-bold text-lg mb-1">{r.type}</Text>
-                          <Text className="text-[#64748b] text-xs font-semibold">{r.startDate} - {r.endDate}</Text>
-                       </View>
-                       <View className={`px-3 py-1.5 rounded-lg border ${r.status === 'APPROVED' ? 'bg-[#f0fff4] border-[#c6f6d5]' : 'bg-red-50 border-red-100'}`}>
-                          <Text className={`text-[10px] font-bold tracking-wider ${r.status === 'APPROVED' ? 'text-[#16a34a]' : 'text-red-600'}`}>{r.status}</Text>
-                       </View>
+                      <View>
+                        <Text className="text-[#1a202c] font-bold text-lg mb-1">{r.reason}</Text>
+                        <Text className="text-[#64748b] text-xs font-semibold">{r.startDate} - {r.endDate}</Text>
+                      </View>
+                      <View className={`px-3 py-1.5 rounded-lg border ${r.status === 'APPROVED' ? 'bg-[#f0fff4] border-[#c6f6d5]' : 'bg-red-50 border-red-100'}`}>
+                        <Text className={`text-[10px] font-bold tracking-wider ${r.status === 'APPROVED' ? 'text-[#16a34a]' : 'text-red-600'}`}>{r.status}</Text>
+                      </View>
                     </View>
                   </View>
                 ))
@@ -414,52 +436,66 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
               </View>
 
               <View className="mb-6">
-                <Text className="text-[#94a3b8] text-[10px] font-bold tracking-widest uppercase mb-2 ml-1">Leave Type</Text>
+                <Text className="text-[#94a3b8] text-[10px] font-bold tracking-widest uppercase mb-2 ml-1">Leave Reason</Text>
                 <View className="bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl overflow-hidden">
-                  <TextInput 
-                    value={leaveForm.type}
-                    onChangeText={t => setLeaveForm({...leaveForm, type: t})}
+                  <TextInput
+                    value={leaveForm.reason}
+                    onChangeText={t => setLeaveForm({ ...leaveForm, reason: t })}
                     placeholder="e.g. Annual Vacation, Medical"
                     className="px-4 py-4 text-[#1a202c] font-bold"
+                    multiline
+                    numberOfLines={4}
                   />
                 </View>
               </View>
 
               <View className="flex-row gap-4 mb-6">
                 <View className="flex-1">
+
                   <Text className="text-[#94a3b8] text-[10px] font-bold tracking-widest uppercase mb-2 ml-1">Start Date</Text>
-                  <TextInput 
-                    value={leaveForm.startDate}
-                    onChangeText={t => setLeaveForm({...leaveForm, startDate: t})}
-                    placeholder="YYYY-MM-DD"
-                    className="bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl px-4 py-4 text-[#1a202c] font-bold"
-                  />
+                  {/* <TouchableOpacity onPress={() => setShowDatePicker('startDate')}> */}
+
+                    <TextInput
+                      value={leaveForm.startDate}
+                      onChangeText={t => setLeaveForm({ ...leaveForm, startDate: t })}
+                      placeholder="YYYY-MM-DD"
+                      className="bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl px-4 py-4 text-[#1a202c] font-bold"
+                    />
+                  {/* </TouchableOpacity> */}
                 </View>
                 <View className="flex-1">
                   <Text className="text-[#94a3b8] text-[10px] font-bold tracking-widest uppercase mb-2 ml-1">End Date</Text>
-                  <TextInput 
-                    value={leaveForm.endDate}
-                    onChangeText={t => setLeaveForm({...leaveForm, endDate: t})}
-                    placeholder="YYYY-MM-DD"
-                    className="bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl px-4 py-4 text-[#1a202c] font-bold"
-                  />
+                  {/* <TouchableOpacity onPress={() => setShowDatePicker('endDate')}> */}
+                    <TextInput
+                      value={leaveForm.endDate}
+                      onChangeText={t => setLeaveForm({ ...leaveForm, endDate: t })}
+                      placeholder="YYYY-MM-DD"
+                      className="bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl px-4 py-4 text-[#1a202c] font-bold"
+                    />
+                  {/* </TouchableOpacity> */}
                 </View>
               </View>
 
-              <View className="mb-8">
-                <Text className="text-[#94a3b8] text-[10px] font-bold tracking-widest uppercase mb-2 ml-1">Reason for Leave</Text>
-                <TextInput 
-                  value={leaveForm.reason}
-                  onChangeText={t => setLeaveForm({...leaveForm, reason: t})}
-                  placeholder="Tell us why you need this leave..."
-                  multiline
-                  numberOfLines={4}
-                  textAlignVertical="top"
-                  className="bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl px-4 py-4 text-[#1a202c] font-bold min-h-[100px]"
+              {/* {showDatePicker && (
+                <RNDateTimePicker
+                  value={date}
+                  display="default"
+                  onValueChange={(event, date) => {
+                    setShowDatePicker(false);
+                    if (date) {
+                      setLeaveForm({
+                        ...leaveForm,
+                        [showDatePicker]: date.toISOString().split('T')[0],
+                    
+                      });
+                    }
+                  }}
                 />
-              </View>
+              )} */}
 
-              <TouchableOpacity 
+
+
+              <TouchableOpacity
                 onPress={handleRequestLeave}
                 disabled={requesting}
                 className={`py-4 rounded-xl items-center justify-center flex-row ${requesting ? 'bg-[#94a3b8]' : 'bg-[#8C4A28]'}`}
@@ -469,89 +505,71 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
               </TouchableOpacity>
             </View>
           )}
-      </ScrollView>
+        </ScrollView>
       }
 
-      {activeTab === "Leave Requests" && 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-         <View className="flex-row justify-between items-center mb-6">
-            <Text className="text-xl font-bold text-[#1a202c]">Pending Requests</Text>
+      {activeTab === "Leave Requests" &&
+        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+          <View className="flex-row justify-between items-center mb-6">
+            <Text className="text-xl font-bold text-[#1a202c]">Leave Requests</Text>
             <View className="bg-[#8C4A28] px-3 py-1.5 rounded-lg">
-               <Text className="text-white text-[10px] font-bold">2 Actionable</Text>
+              <Text className="text-white text-[10px] font-bold">{leaveRequests.length} Actionable</Text>
             </View>
-         </View>
+          </View>
 
-         {/* Request 1 */}
-         <View className="bg-white rounded-3xl p-4 shadow-sm border border-[#e2e8f0] mb-4">
-            <View className="flex-row justify-between mb-4">
-               <View className="flex-1">
-                  <Text className="text-[#8C4A28] text-[10px] font-bold tracking-widest mb-2">NOV 10 - NOV 12</Text>
-                  <Text className="text-[#1a202c] font-bold text-lg mb-1">Emma Wilson</Text>
-                  <Text className="text-[#64748b] text-xs font-semibold mb-2">Reason: Family Vacation</Text>
-               </View>
-               <Image
-                  source={{ uri: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop' }}
-                  className="w-16 h-16 rounded-full ml-3"
-               />
+          {/* Request 1 */}
+          {leaveRequests?.length === 0 ? (
+            <View className="bg-white rounded-3xl p-4 shadow-sm border border-[#e2e8f0] mb-4">
+              <Text className="text-[#1a202c] font-bold text-lg mb-1">No Leave Requests</Text>
             </View>
+          ) : (
+            leaveRequests?.map((request, index) => (
+              <View key={index} className="bg-white rounded-3xl p-4 shadow-sm border border-[#e2e8f0] mb-4">
+                <View className="flex-row justify-between mb-4">
+                  <View className="flex-1">
+                    <Text className="text-[#8C4A28] text-[10px] font-bold tracking-widest mb-2">{request.startDate} - {request.endDate}</Text>
+                    <Text className="text-[#1a202c] font-bold text-lg mb-1">{request.name}</Text>
+                    <Text className="text-[#64748b] text-xs font-semibold mb-2">Reason: {request.reason}</Text>
+                  </View>
+                  <Image
+                    source={{ uri: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop' }}
+                    className="w-16 h-16 rounded-full ml-3"
+                  />
+                </View>
 
-            {/* Actions */}
-            <View className="flex-row justify-between pt-4 border-t border-[#f1f5f9]">
-               <TouchableOpacity className="flex-1 bg-[#8C4A28] py-3 rounded-xl flex-row justify-center items-center mr-2">
-                  <CheckCircle2 color="white" size={18} className="mr-2" />
-                  <Text className="text-white font-bold">Approve</Text>
-               </TouchableOpacity>
-               <TouchableOpacity className="flex-1 bg-white border border-[#8C4A28] py-3 rounded-xl flex-row justify-center items-center ml-2">
-                  <XCircle color="#8C4A28" size={18} className="mr-2" />
-                  <Text className="text-[#8C4A28] font-bold">Reject</Text>
-               </TouchableOpacity>
-            </View>
-         </View>
+                {/* Actions */}
+                <View className="flex-row justify-between pt-4 border-t border-[#f1f5f9]">
+                  <TouchableOpacity onPress={() => handleApproveLeave(request.riderId, trainerData.id, "APPROVED")} className="flex-1 bg-[#8C4A28] py-3 rounded-xl flex-row justify-center items-center mr-2">
+                    <CheckCircle2 color="white" size={18} className="mr-2" />
+                    <Text className="text-white font-bold">Approve</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => handleApproveLeave(request.riderId, trainerData.id, "REJECTED")} className="flex-1 bg-white border border-[#8C4A28] py-3 rounded-xl flex-row justify-center items-center ml-2">
+                    <XCircle color="#8C4A28" size={18} className="mr-2" />
+                    <Text className="text-[#8C4A28] font-bold">Reject</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )))}
 
-         {/* Request 2 */}
-         <View className="bg-white rounded-3xl p-4 shadow-sm border border-[#e2e8f0] mb-8">
-            <View className="flex-row justify-between mb-4">
-               <View className="flex-1">
-                  <Text className="text-[#8C4A28] text-[10px] font-bold tracking-widest mb-2">NOV 15 (Single Day)</Text>
-                  <Text className="text-[#1a202c] font-bold text-lg mb-1">Leo Carter</Text>
-                  <Text className="text-[#64748b] text-xs font-semibold mb-2">Reason: Medical Appointment</Text>
-               </View>
-               <Image
-                  source={{ uri: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop' }}
-                  className="w-16 h-16 rounded-full ml-3"
-               />
-            </View>
 
-            {/* Actions */}
-            <View className="flex-row justify-between pt-4 border-t border-[#f1f5f9]">
-               <TouchableOpacity className="flex-1 bg-[#8C4A28] py-3 rounded-xl flex-row justify-center items-center mr-2">
-                  <CheckCircle2 color="white" size={18} className="mr-2" />
-                  <Text className="text-white font-bold">Approve</Text>
-               </TouchableOpacity>
-               <TouchableOpacity className="flex-1 bg-white border border-[#8C4A28] py-3 rounded-xl flex-row justify-center items-center ml-2">
-                  <XCircle color="#8C4A28" size={18} className="mr-2" />
-                  <Text className="text-[#8C4A28] font-bold">Reject</Text>
-               </TouchableOpacity>
-            </View>
-         </View>
 
-         <View className="flex-row justify-between items-center mb-4">
+          <View className="flex-row justify-between items-center mb-4">
             <Text className="text-lg font-bold text-[#1a202c]">Recently Processed</Text>
-         </View>
+          </View>
 
-         {/* Processed Request */}
-         <View className="bg-white rounded-3xl p-4 shadow-sm border border-[#e2e8f0]">
+          {/* Processed Request */}
+          {/* <View className="bg-white rounded-3xl p-4 shadow-sm border border-[#e2e8f0]">
             <View className="flex-row justify-between mb-2">
-               <View className="flex-1">
-                  <Text className="text-[#1a202c] font-bold text-base mb-1">Sarah Chen</Text>
-                  <Text className="text-[#64748b] text-xs font-semibold">NOV 05 - NOV 06 • School Exams</Text>
-               </View>
-               <View className="bg-[#f0fff4] px-3 py-1.5 rounded-lg border border-[#c6f6d5] self-start">
-                  <Text className="text-[#16a34a] text-[10px] font-bold tracking-wider">APPROVED</Text>
-               </View>
+              <View className="flex-1">
+                <Text className="text-[#1a202c] font-bold text-base mb-1">Sarah Chen</Text>
+                <Text className="text-[#64748b] text-xs font-semibold">NOV 05 - NOV 06 • School Exams</Text>
+              </View>
+              <View className="bg-[#f0fff4] px-3 py-1.5 rounded-lg border border-[#c6f6d5] self-start">
+                <Text className="text-[#16a34a] text-[10px] font-bold tracking-wider">APPROVED</Text>
+              </View>
             </View>
-         </View>
-      </ScrollView>
+          </View> */}
+        </ScrollView>
       }
 
     </View>

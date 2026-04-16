@@ -86,15 +86,15 @@ export default function DashboardHomeScreen() {
         </View>
 
         {/* Alert Banner */}
-        <TouchableOpacity onPress={() => navigation.navigate("Enrollment")} className="bg-[#fceddf] border border-[#eabba4] rounded-2xl p-4 flex-row items-center mb-6">
+        {rider?.sessionCount <=2 && <TouchableOpacity onPress={() => navigation.navigate("Enrollment")} className="bg-[#fceddf] border border-[#eabba4] rounded-2xl p-4 flex-row items-center mb-6">
           <View className="w-10 h-10 bg-[#eabba4] rounded-full items-center justify-center mr-4 opacity-80">
             <AlertTriangle color="#8C4A28" size={20} />
           </View>
           <View className="flex-1">
-            <Text className="text-[#8C4A28] font-bold text-sm mb-1">Low balance! 2 sessions left</Text>
+            <Text className="text-[#8C4A28] font-bold text-sm mb-1">Low balance! {rider?.sessionCount} sessions left</Text>
             <Text className="text-[#8C4A28] opacity-80 text-xs">Consider topping up your plan soon.</Text>
           </View>
-        </TouchableOpacity>
+        </TouchableOpacity>}
 
         {/* Remaining Sessions Card */}
         <TouchableOpacity onPress={() => navigation.navigate("Sessions")} className="bg-[#8C4A28] rounded-3xl p-6 mb-8 flex-row justify-between items-center shadow-md">
@@ -180,7 +180,7 @@ export default function DashboardHomeScreen() {
 
           <TouchableOpacity
             className="flex-1 bg-white rounded-3xl p-6 ml-3 items-center justify-center shadow-sm h-32"
-            onPress={() => navigation.navigate('Profile')}
+            onPress={() => navigation.navigate('DashboardProfile')}
           >
             <View className="mb-2">
               <User color="#8C4A28" size={32} />
