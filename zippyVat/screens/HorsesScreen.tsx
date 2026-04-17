@@ -38,9 +38,12 @@ export default function HorsesScreen() {
     fetchHorses();
   }, []);
 
+  console.log(horses, "horses")
+
   const filteredHorses = horses.filter(h => {
     if (activeTab === 'All Horses') return true;
-    return h.status?.toLowerCase() === activeTab.toLowerCase() || h.shoeStatus?.toLowerCase() === activeTab.toLowerCase();
+    let status = activeTab === "Fit for Work" ? "Fit" : activeTab === "Light Work" ? "Light Work" : "Unfit";
+    return h.healthStatus?.status?.toLowerCase() === status.toLowerCase();
   });
 
   const filterTabs = ['All Horses', 'Fit for Work', 'Light Work', 'Rest Required'];
@@ -59,7 +62,7 @@ export default function HorsesScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView 
+      <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 120 }}
         refreshControl={
@@ -82,9 +85,9 @@ export default function HorsesScreen() {
         </View>
 
         {/* Categories */}
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false} 
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
           className="mb-8"
           contentContainerStyle={{ gap: 12 }}
         >
@@ -92,15 +95,10 @@ export default function HorsesScreen() {
             <TouchableOpacity
               key={tab}
               onPress={() => setActiveTab(tab)}
-              className={`px-6 py-3 rounded-full border ${
-                activeTab === tab 
-                  ? 'bg-[#8C4A28] border-[#8C4A28] shadow-lg shadow-[#8C4A28]/30' 
-                  : 'bg-white border-[#8C4A28]/10'
-              }`}
+              style={{ backgroundColor: activeTab === tab ? "#8C4A28" : "transparent" }}
+              className={`px-6 py-3 rounded-full border`}
             >
-              <Text className={`text-[10px] font-black tracking-widest uppercase ${
-                activeTab === tab ? 'text-white' : 'text-[#8C4A28]'
-              }`}>
+              <Text style={{ color: activeTab === tab ? "white" : "#8C4A28" }} className={`text-[10px] font-black tracking-widest uppercase`}>
                 {tab}
               </Text>
             </TouchableOpacity>
@@ -108,7 +106,7 @@ export default function HorsesScreen() {
         </ScrollView>
 
         {/* Stable Overview Hero */}
-        <TouchableOpacity 
+        <TouchableOpacity
           activeOpacity={0.9}
           className="bg-[#8C4A28] rounded-[2.5rem] p-8 mb-8 shadow-2xl shadow-[#8C4A28]/40 overflow-hidden"
         >
@@ -119,16 +117,16 @@ export default function HorsesScreen() {
           <View className="flex-row justify-between items-end">
             <Text className="text-white text-4xl font-black">{horses.length} Total Horses</Text>
             <View className="flex-row items-center">
-               <View className="flex-row -space-x-4">
-                  {horses.slice(0, 2).map((h, i) => (
-                     <View key={i} className="w-10 h-10 rounded-full border-2 border-[#8C4A28] overflow-hidden bg-white shadow-sm">
-                        <Image source={{ uri: h.imageUrl || 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a' }} className="w-full h-full" />
-                     </View>
-                  ))}
-                  <View className="w-10 h-10 rounded-full border-2 border-white bg-[#FAF7F2] items-center justify-center z-10 shadow-sm">
-                    <Text className="text-[#8C4A28] text-[10px] font-black">+{horses.length > 2 ? horses.length - 2 : 21}</Text>
+              <View className="flex-row -space-x-4">
+                {horses.slice(0, 2).map((h, i) => (
+                  <View key={i} className="w-10 h-10 rounded-full border-2 border-[#8C4A28] overflow-hidden bg-white shadow-sm">
+                    <Image source={{ uri: h.imageUrl || 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a' }} className="w-full h-full" />
                   </View>
-               </View>
+                ))}
+                <View className="w-10 h-10 rounded-full border-2 border-white bg-[#FAF7F2] items-center justify-center z-10 shadow-sm">
+                  <Text className="text-[#8C4A28] text-[10px] font-black">+{horses.length > 2 ? horses.length - 2 : 21}</Text>
+                </View>
+              </View>
             </View>
           </View>
         </TouchableOpacity>
@@ -164,15 +162,15 @@ export default function HorsesScreen() {
                     <Text className="text-[#1a202c] font-black text-lg tracking-tight">{horse.name}</Text>
                     <Text className="text-[10px] font-black text-[#8C4A28] uppercase tracking-wider">{horse.shoeStatus || 'FIT FOR WORK'}</Text>
                   </View>
-                  
+
                   <Text className="text-[#94a3b8] text-[9px] font-black uppercase tracking-[1px] mb-3">
-                     ID: #{horse.id?.substring(0, 8).toUpperCase()} | {horse.title || 'Bay Stallion'}
+                    ID: #{horse.id?.substring(0, 8).toUpperCase()} | {horse.title || 'Bay Stallion'}
                   </Text>
 
                   <View className="flex-row items-center">
                     <Calendar color="#8C4A28" size={12} opacity={0.5} />
                     <Text className="text-[#64748b] text-[10px] font-bold ml-2">
-                       {horse.lastVisit ? `Last Check: ${horse.lastVisit}` : 'Last Check: Today, 09:30 AM'}
+                      {horse.lastVisit ? `Last Check: ${horse.lastVisit}` : 'Last Check: Today, 09:30 AM'}
                     </Text>
                   </View>
                 </View>
@@ -187,7 +185,7 @@ export default function HorsesScreen() {
       </ScrollView>
 
       {/* Floating Action Button */}
-      <TouchableOpacity 
+      <TouchableOpacity
         activeOpacity={0.9}
         onPress={() => navigation.navigate('AddHorse')}
         className="absolute bottom-10 right-8 w-20 h-20 bg-[#8C4A28] rounded-full items-center justify-center shadow-2xl shadow-[#8C4A28]/50 border-4 border-[#FDF5EA]"

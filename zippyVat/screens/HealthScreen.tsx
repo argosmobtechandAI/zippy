@@ -1,59 +1,93 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, SafeAreaView, ScrollView, TouchableOpacity, Image, TextInput, Alert, ActivityIndicator, RefreshControl } from 'react-native';
-import { ArrowLeft, Share2, Pill, Syringe, UploadCloud, Activity, ChevronRight, Stethoscope } from 'lucide-react-native';
+import { ArrowLeft, Share2, Pill, Syringe, UploadCloud, Activity, ChevronRight, Stethoscope, X } from 'lucide-react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { apiFunction } from '../api/apiFunction';
-import { baseURL, updateHealthStatusApi } from '../api/api';
+import { baseURL, getAllHorsesApi, getHorseApi, updateHealthStatusApi } from '../api/api';
 
-export default function HealthScreen() {
-   const navigation = useNavigation();
-   const route = useRoute();
+export default function HealthScreen({ navigation, route }: any) {
    const { horse: initialHorse } = route.params as any;
-   
-   const [currentHorse, setCurrentHorse] = useState(initialHorse);
-   const [healthStatus, setHealthStatus] = useState(initialHorse?.shoeStatus || 'Stable');
+
    const [notesTitle, setNotesTitle] = useState("");
    const [notesContent, setNotesContent] = useState("");
+   const [health, setHealth] = useState("Fit for Work")
+   const [stat, setStat] = useState("Fit for Work")
    const [saving, setSaving] = useState(false);
    const [refreshing, setRefreshing] = useState(false);
+   const [treatment, setTreatment] = useState("");
+   const [medicationInput, setMedicationInput] = useState("");
+   const [medications, setMedications] = useState<string[]>([]);
+
+   const [currentHorse, setCurrentHorse] = useState(null);
+
+   useEffect(() => {
+      const fetchHorse = async () => {
+         try {
+
+            const res = await apiFunction(
+               getAllHorsesApi,
+               [initialHorse.id],
+               {},
+               "GET",
+               true
+            );
+
+            console.log(res.horse, "resssHorse")
+            if (res && res.success && res.horse) {
+
+               setCurrentHorse(res.horse);
+            }
+         } catch (err) {
+            console.log(err);
+         } finally {
+            setRefreshing(false);
+         }
+      };
+
+      fetchHorse();
+   }, [initialHorse, refreshing]);
 
    const onRefresh = async () => {
       setRefreshing(true);
-      try {
-         const res = await apiFunction(`${baseURL}/horse?id=${initialHorse.id}`, [], {}, "GET", true);
-         if (res && res.success && res.horse) {
-            setCurrentHorse(res.horse);
-            setHealthStatus(res.horse.shoeStatus || 'Stable');
-         }
-      } catch (error) {
-         console.error("Refresh health error", error);
-      } finally {
-         setRefreshing(false);
+   };
+
+   const handleAddMedication = () => {
+      if (medicationInput.trim() !== "") {
+         setMedications([...medications, medicationInput.trim()]);
+         setMedicationInput("");
       }
    };
 
+   const handleRemoveMedication = (index: number) => {
+      setMedications(medications.filter((_, i) => i !== index));
+   };
+
    const handleSaveHealth = async () => {
-      if (!notesTitle || !notesContent) {
+      if (!notesTitle || !notesContent || !health) {
          Alert.alert("Error", "Please enter both title and notes.");
          return;
       }
 
       setSaving(true);
+      const status = health === 'Fit for Work' ? 'Fit' : health === 'Light Work' ? 'Light Work' : 'Unfit';
       try {
          const res = await apiFunction(updateHealthStatusApi, [], {
             horseId: initialHorse.id,
             title: notesTitle,
             notes: notesContent,
-            status: healthStatus,
+            status: status,
             date: new Date().toISOString(),
-            treatment: "Routine Observation",
-            medications: []
+            treatment: treatment,
+            medications: medications
          }, "POST", true);
 
          if (res && res.success) {
             Alert.alert("Success", "Health status logged successfully.");
             setNotesTitle("");
             setNotesContent("");
+            setTreatment("");
+            setMedications([]);
+            setMedicationInput("");
          }
       } catch (error) {
          Alert.alert("Error", "Failed to save health logs.");
@@ -61,6 +95,10 @@ export default function HealthScreen() {
          setSaving(false);
       }
    };
+
+
+
+
 
    return (
       <SafeAreaView className="flex-1 bg-[#F5EDDF]">
@@ -75,13 +113,15 @@ export default function HealthScreen() {
             </TouchableOpacity>
          </View>
 
-         <ScrollView 
-            contentContainerStyle={{ padding: 16, paddingBottom: 40 }} 
+
+
+         <ScrollView
+            contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
             showsVerticalScrollIndicator={false}
             refreshControl={
-               <RefreshControl 
-                  refreshing={refreshing} 
-                  onRefresh={onRefresh} 
+               <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
                   tintColor="#8C4A28"
                   colors={["#8C4A28"]}
                />
@@ -119,12 +159,13 @@ export default function HealthScreen() {
             </View>
             <View className="bg-white rounded-xl flex-row p-1 mb-6 border border-[#e2e8f0]">
                {['Fit for Work', 'Light Work', 'Rest Required'].map((status) => (
-                  <TouchableOpacity 
+                  <TouchableOpacity
                      key={status}
-                     onPress={() => setHealthStatus(status)}
-                     className={`flex-1 py-2 rounded-lg items-center ${healthStatus === status ? 'bg-[#8C4A28] shadow-sm' : ''}`}
+                     onPress={() => setHealth(status)}
+                     className={`flex-1 py-2 rounded-lg items-center`}
+                     style={{ backgroundColor: health === status ? '#8C4A28' : 'transparent' }}
                   >
-                     <Text className={`font-bold text-xs ${healthStatus === status ? 'text-white' : 'text-[#8C4A28]'}`}>{status}</Text>
+                     <Text style={{ color: health === status ? "white" : "#8C4A28" }} className={`font-bold text-xs `}>{status}</Text>
                   </TouchableOpacity>
                ))}
             </View>
@@ -136,10 +177,10 @@ export default function HealthScreen() {
                <View className="h-24 justify-end mb-4 bg-[#f8fafc] rounded-xl relative overflow-hidden">
                   <View className="flex-row justify-between items-end px-4 pb-8 w-full h-full">
                      {[40, 60, 45, 80, 50, 70, 65].map((h, i) => (
-                        <View 
-                           key={i} 
-                           style={{ height: `${h}%` }} 
-                           className={`w-2 rounded-full ${i === 3 ? 'bg-[#8C4A28]' : 'bg-[#d1c2a3]'}`} 
+                        <View
+                           key={i}
+                           style={{ height: `${h}%` }}
+                           className={`w-2 rounded-full ${i === 3 ? 'bg-[#8C4A28]' : 'bg-[#d1c2a3]'}`}
                         />
                      ))}
                   </View>
@@ -150,9 +191,9 @@ export default function HealthScreen() {
                   </View>
                </View>
 
-               <Text className="text-[#64748b] text-xs leading-5">
-                  Vitals for {currentHorse?.name} remain stable. Last check recorded {currentHorse?.shoeStatus || 'Stable'} condition. {healthStatus === 'Fit for Work' ? 'Regular training recommended.' : 'Observation period active.'}
-               </Text>
+               {/* <Text className="text-[#64748b] text-xs leading-5">
+                  Vitals for {currentHorse?.name} remain stable. Last check recorded {currentHorse?.shoeStatus || 'Stable'} condition. {health === 'Fit for Work' ? 'Regular training recommended.' : 'Observation period active.'}
+               </Text> */}
             </View>
 
             {/* Veterinary Notes */}
@@ -174,7 +215,40 @@ export default function HealthScreen() {
                onChangeText={setNotesContent}
             />
 
-            <TouchableOpacity 
+            {/* Treatment */}
+            <Text className="text-sm font-bold text-[#1a202c] mb-3 mt-4">Treatment</Text>
+            <TextInput
+               className="bg-white rounded-xl px-4 py-3 mb-3 border border-[#e2e8f0] text-[#1a202c]"
+               placeholder="Treatment provided..."
+               placeholderTextColor="#94a3b8"
+               value={treatment}
+               onChangeText={setTreatment}
+            />
+
+            {/* Medications */}
+            <Text className="text-sm font-bold text-[#1a202c] mb-3">Medications</Text>
+            <TextInput
+               className="bg-white rounded-xl px-4 py-3 mb-2 border border-[#e2e8f0] text-[#1a202c]"
+               placeholder="Enter medication and press Enter..."
+               placeholderTextColor="#94a3b8"
+               value={medicationInput}
+               onChangeText={setMedicationInput}
+               onSubmitEditing={handleAddMedication}
+               returnKeyType="done"
+            />
+
+            <View className="flex-row flex-wrap mb-4">
+               {medications.map((med, index) => (
+                  <View key={index} className="flex-row items-center bg-[#fde1d3] px-3 py-1.5 rounded-full mr-2 mb-2 border border-[#fbd3c1]">
+                     <Text className="text-[#8C4A28] text-xs font-bold mr-2">{med}</Text>
+                     <TouchableOpacity onPress={() => handleRemoveMedication(index)}>
+                        <X color="#8C4A28" size={14} />
+                     </TouchableOpacity>
+                  </View>
+               ))}
+            </View>
+
+            <TouchableOpacity
                disabled={saving}
                onPress={handleSaveHealth}
                className="bg-[#8C4A28] py-3 rounded-xl items-center mb-8"
@@ -193,9 +267,9 @@ export default function HealthScreen() {
                </TouchableOpacity>
             </View>
 
-            <TouchableOpacity 
+            <TouchableOpacity
                activeOpacity={0.8}
-               onPress={() => navigation.navigate("Records", { horseId: currentHorse.id })}
+               onPress={() => navigation.navigate("Records", { horseId: currentHorse?.id })}
                className="bg-white rounded-xl p-4 shadow-sm border border-[#e2e8f0] mb-8 flex-row items-center"
             >
                <View className="w-10 h-10 bg-[#fde1d3] rounded-full items-center justify-center mr-3">

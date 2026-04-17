@@ -1,12 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Image, ActivityIndicator } from 'react-native';
 import { ArrowLeft, Search, Filter, Stethoscope, AlertTriangle, CheckCircle2, ChevronRight } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { apiFunction } from '../api/apiFunction';
-import { getAllHorsesApi } from '../api/api';
+import { getAllHorsesApi, getHorsesByVat } from '../api/api';
 
-export default function PatientListScreen() {
-    const navigation = useNavigation();
+export default function PatientListScreen({ navigation }: any) {
     const [activeTab, setActiveTab] = useState('All');
     const [horses, setHorses] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -19,7 +18,9 @@ export default function PatientListScreen() {
     const fetchHorses = async () => {
         setLoading(true);
         try {
-            const res = await apiFunction(getAllHorsesApi, [], {}, "GET", true);
+            const res = await apiFunction(getHorsesByVat, [], {}, "GET", true);
+
+            console.log("Fetch horses res:", res);
             if (res && res.success) {
                 setHorses(res.horses || []);
             }
@@ -30,14 +31,18 @@ export default function PatientListScreen() {
         }
     };
 
-    const filterTabs = ['All', 'Critical', 'Monitoring', 'Stable'];
 
-    const filteredPatients = horses.filter(h => {
-        const matchesSearch = h.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                              h.location.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesTab = activeTab === 'All' || h.shoeStatus === activeTab; // Using shoeStatus as a placeholder for status if healthStatus array is just IDs
-        return matchesSearch && matchesTab;
-    });
+    const filterTabs = ['All', 'Fit', 'Unfit', 'Light Work'];
+
+    const filteredPatients = useMemo(() => {
+        horses.filter(h => {
+            const matchesSearch = h.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                h.location.toLowerCase().includes(searchQuery.toLowerCase());
+            console.log(h.healthStatus?.status, activeTab, "healthStatus")
+            const matchesTab = activeTab === 'All' || h.healthStatus?.status?.toLowerCase() === activeTab.toLowerCase();
+            return matchesSearch && matchesTab;
+        });
+    }, [horses, searchQuery, activeTab])
 
     return (
         <View className="flex-1 bg-[#F5EDDF]">

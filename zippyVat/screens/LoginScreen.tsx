@@ -4,7 +4,7 @@ import { ArrowLeft, ArrowRight, Smartphone, Mail, ScanLine } from 'lucide-react-
 import { useNavigation } from '@react-navigation/native';
 import { apiFunction } from '../api/apiFunction';
 import { getOTPApi, verifyOTPApi } from '../api/api';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from "@react-native-async-storage/async-storage"
 
 export default function LoginScreen() {
   const [step, setStep] = useState(1);

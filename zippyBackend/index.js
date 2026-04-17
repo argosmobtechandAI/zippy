@@ -19,6 +19,7 @@ app.use(cors());
 
 import path from 'path';
 import { fileURLToPath } from 'url';
+import vatRouter from './routes/vatRoute.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -34,6 +35,7 @@ app.use('/api/session', sessionRoute);
 app.use('/api/stable', stableRoute);
 app.use('/api/stats', statsRoute);
 app.use('/api/inventory', inventoryRoute);
+app.use("/api/vat", vatRouter)
 
 // Auto-migrate schema on startup
 runHorseMigrations();

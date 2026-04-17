@@ -4,7 +4,7 @@ import { Check, Award, FileText, Activity, User, ChevronRight, LogOut, HeartPuls
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiFunction } from '../api/apiFunction';
-import { getAllHorsesApi, getUserApi } from '../api/api';
+import { getAllHorsesApi, getHorsesByVat, getUserApi } from '../api/api';
 
 export default function ProfileScreen() {
    const navigation = useNavigation<any>();
@@ -32,7 +32,7 @@ export default function ProfileScreen() {
          }
 
          // Fetch total patients for stat
-         const horseRes = await apiFunction(getAllHorsesApi, [], {}, "GET", true);
+         const horseRes = await apiFunction(getHorsesByVat, [], {}, "GET", true);
          if (horseRes && horseRes.success) {
             setStats(prev => ({ ...prev, patients: horseRes.horses?.length || 0 }));
          }
@@ -70,10 +70,10 @@ export default function ProfileScreen() {
             <View className="items-center mt-12 mb-10">
                <View className="relative">
                   <View className="w-32 h-32 rounded-full border-[6px] border-white shadow-xl overflow-hidden bg-white">
-                      <Image
-                         source={{ uri: user?.imageUrl || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop' }}
-                         className="w-full h-full"
-                      />
+                     <Image
+                        source={{ uri: user?.imageUrl || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop' }}
+                        className="w-full h-full"
+                     />
                   </View>
                   <View className="absolute bottom-1 right-1 bg-brand-orange w-9 h-9 border-[3px] border-white rounded-full items-center justify-center shadow-lg">
                      <Check color="white" size={18} strokeWidth={3} />
@@ -109,12 +109,12 @@ export default function ProfileScreen() {
             {/* Account Settings */}
             <View className="mb-10">
                <Text className="text-2xl font-display text-brand-brown mb-6">Professional Portal</Text>
-               
+
                <View className="bg-white/70 border border-brand-brown/5 rounded-[40px] p-3 shadow-sm">
-                  <TouchableOpacity 
-                    activeOpacity={0.7}
-                    onPress={() => navigation.navigate("PersonalInformation")} 
-                    className="flex-row items-center p-5 border-b border-brand-brown/5"
+                  <TouchableOpacity
+                     activeOpacity={0.7}
+                     onPress={() => navigation.navigate("PersonalInformation")}
+                     className="flex-row items-center p-5 border-b border-brand-brown/5"
                   >
                      <View className="w-14 h-14 bg-brand-beige rounded-[22px] items-center justify-center mr-5">
                         <User color="#85431E" size={22} strokeWidth={2.5} />
@@ -126,9 +126,9 @@ export default function ProfileScreen() {
                      <ChevronRight color="#85431E" size={20} opacity={0.3} />
                   </TouchableOpacity>
 
-                  <TouchableOpacity 
-                    activeOpacity={0.7}
-                    className="flex-row items-center p-5 border-b border-brand-brown/5"
+                  <TouchableOpacity
+                     activeOpacity={0.7}
+                     className="flex-row items-center p-5 border-b border-brand-brown/5"
                   >
                      <View className="w-14 h-14 bg-brand-orange/10 rounded-[22px] items-center justify-center mr-5">
                         <Award color="#DA7347" size={22} strokeWidth={2.5} />
@@ -140,9 +140,9 @@ export default function ProfileScreen() {
                      <ChevronRight color="#85431E" size={20} opacity={0.3} />
                   </TouchableOpacity>
 
-                  <TouchableOpacity 
-                    activeOpacity={0.7}
-                    className="flex-row items-center p-5"
+                  <TouchableOpacity
+                     activeOpacity={0.7}
+                     className="flex-row items-center p-5"
                   >
                      <View className="w-14 h-14 bg-brand-brown/5 rounded-[22px] items-center justify-center mr-5">
                         <FileText color="#85431E" size={22} strokeWidth={2.5} />
@@ -157,7 +157,7 @@ export default function ProfileScreen() {
             </View>
 
             {/* Logout Section */}
-            <TouchableOpacity 
+            <TouchableOpacity
                activeOpacity={0.8}
                onPress={handleLogout}
                className="bg-brand-brown rounded-[32px] p-6 shadow-xl shadow-brand-brown/20 flex-row items-center justify-center mb-8"

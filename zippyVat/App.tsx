@@ -2,8 +2,8 @@ import React from 'react';
 import { StatusBar, useColorScheme } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import "./global.css";
+import { NavigationContainer } from "@react-navigation/native"
 import WelcomeStack from './stack/welcomeStack';
-import { NavigationContainer } from '@react-navigation/native';
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';

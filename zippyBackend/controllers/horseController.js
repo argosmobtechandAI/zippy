@@ -3,19 +3,19 @@ import { horseTable, healthStatusTable, vaccinationRecordsTable, sessionTable } 
 import { eq, sql } from 'drizzle-orm';
 
 export const createHorse = async (req, res) => {
-    const {data} = req.body;
+    const { data } = req.body;
     console.log("Attempting to create horse with data:", data);
     try {
         const newHorse = await db.insert(horseTable).values(data).returning();
-        if(!newHorse.length) {
+        if (!newHorse.length) {
             console.error("Insert failed: empty return");
-            return res.status(400).json({success: false, message: 'Failed to create horse'});
+            return res.status(400).json({ success: false, message: 'Failed to create horse' });
         }
         console.log("Horse created successfully:", newHorse[0].id);
-        res.status(201).json({success: true, horse: newHorse[0]});
+        res.status(201).json({ success: true, horse: newHorse[0] });
     } catch (error) {
         console.error("Database Error during createHorse:", error);
-        res.status(500).json({success: false, message: `Error: ${error.message}`});
+        res.status(500).json({ success: false, message: `Error: ${error.message}` });
     }
 };
 
@@ -31,10 +31,10 @@ export const getHorses = async (req, res) => {
 
         const horsesWithStats = horses.map(horse => {
             const horseSessions = sessions.filter(s => s.horseId === horse.id);
-            
+
             // Sessions Today
             const sessionsTodayCount = horseSessions.filter(s => s.date === todayStr).length;
-            
+
             // Weekly Load (Last 7 days)
             const sessionsLast7Days = horseSessions.filter(s => {
                 try {
@@ -53,50 +53,50 @@ export const getHorses = async (req, res) => {
             };
         });
 
-        res.status(200).json({success: true, horses: horsesWithStats});
+        res.status(200).json({ success: true, horses: horsesWithStats });
     } catch (error) {
         console.error("Error in getHorses stats aggregation:", error);
-        res.status(500).json({success: false, message: `Error: ${error.message}`});
+        res.status(500).json({ success: false, message: `Error: ${error.message}` });
     }
 };
 
 export const getHorseById = async (req, res) => {
-    const {id} = req.params;
+    const { id } = req.params;
     try {
         const horse = await db.select().from(horseTable).where(eq(horseTable.id, id));
-        if(!horse.length) {
-            return res.status(404).json({success: false, message: 'Horse not found'});
+        if (!horse.length) {
+            return res.status(404).json({ success: false, message: 'Horse not found' });
         }
-        res.status(200).json({success: true, horse: horse[0]});
+        res.status(200).json({ success: true, horse: horse[0] });
     } catch (error) {
-        res.status(500).json({success: false, message: `Error: ${error.message}`});
+        res.status(500).json({ success: false, message: `Error: ${error.message}` });
     }
 };
 
 export const updateHorse = async (req, res) => {
-    const {id} = req.params;
-    const {data} = req.body;
+    const { id } = req.params;
+    const { data } = req.body;
     try {
         const updatedHorse = await db.update(horseTable).set(data).where(eq(horseTable.id, id)).returning();
-        if(!updatedHorse.length) {
-            return res.status(404).json({success: false, message: 'Horse not found'});
+        if (!updatedHorse.length) {
+            return res.status(404).json({ success: false, message: 'Horse not found' });
         }
-        res.status(200).json({success: true, horse: updatedHorse[0]});
+        res.status(200).json({ success: true, horse: updatedHorse[0] });
     } catch (error) {
-        res.status(500).json({success: false, message: `Error: ${error.message}`});
+        res.status(500).json({ success: false, message: `Error: ${error.message}` });
     }
 };
 
 export const deleteHorse = async (req, res) => {
-    const {id} = req.params;
+    const { id } = req.params;
     try {
         const deletedHorse = await db.delete(horseTable).where(eq(horseTable.id, id)).returning();
-        if(!deletedHorse.length) {
-            return res.status(404).json({success: false, message: 'Horse not found'});
+        if (!deletedHorse.length) {
+            return res.status(404).json({ success: false, message: 'Horse not found' });
         }
-        res.status(200).json({success: true, horse: deletedHorse[0]});
+        res.status(200).json({ success: true, horse: deletedHorse[0] });
     } catch (error) {
-        res.status(500).json({success: false, message: `Error: ${error.message}`});
+        res.status(500).json({ success: false, message: `Error: ${error.message}` });
     }
 };
 
@@ -111,15 +111,12 @@ export const logHealthStatus = async (req, res) => {
         };
         const newStatus = await db.insert(healthStatusTable).values(statusData).returning();
         if (newStatus.length > 0) {
-            await db.update(horseTable)
-                .set({ 
-                    healthStatus: sql`array_append(health_status, ${newStatus[0].id})` 
-                })
-                .where(eq(horseTable.id, data.horseId));
+
+            res.status(201).json({ success: true, healthStatus: newStatus[0] });
+        } else {
+            res.status(400).json({ success: false, message: "Failed to log health status" });
         }
-        res.status(201).json({ success: true, healthStatus: newStatus[0] });
     } catch (error) {
-        console.error("Health log error:", error.message);
         res.status(500).json({ success: false, message: `Error: ${error.message}` });
     }
 };
@@ -136,8 +133,8 @@ export const logVaccination = async (req, res) => {
         const newRecord = await db.insert(vaccinationRecordsTable).values(vaccData).returning();
         if (newRecord.length > 0) {
             await db.update(horseTable)
-                .set({ 
-                    vaccinationRecords: sql`array_append(vaccination_records, ${newRecord[0].id})` 
+                .set({
+                    vaccinationRecords: sql`array_append(vaccination_records, ${newRecord[0].id})`
                 })
                 .where(eq(horseTable.id, data.horseId));
         }

@@ -1,8 +1,8 @@
 import { Bell, ChevronRight, Activity, Stethoscope, Loader2, ClipboardCheck, ArrowUpRight } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { apiFunction } from '../api/apiFunction';
-import { getAllHorsesApi } from '../api/api';
+import { getAllHorsesApi, getHorsesByVat } from '../api/api';
 import { View, Text, ScrollView, Image, TouchableOpacity, Dimensions, RefreshControl, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -24,7 +24,8 @@ export default function HomeScreen() {
 
    const fetchHorses = async () => {
       try {
-         const res = await apiFunction(getAllHorsesApi, [], {}, "GET", true);
+         const res = await apiFunction(getHorsesByVat, [], {}, "GET", true);
+         console.log(res)
          if (res && res.success) {
             setHorses(res.horses || []);
          }
@@ -51,15 +52,22 @@ export default function HomeScreen() {
       fetchHorses();
    }, []);
 
+   const criticalHorses = useMemo(() => {
+      if (horses) {
+         return horses.filter((h: any) => h.healthStatus?.status?.toLowerCase() === 'critical')
+      }
+      return []
+   }, [horses])
+
    return (
       <View className="flex-1 bg-brand-beige">
-         <ScrollView 
-            contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 60 }} 
+         <ScrollView
+            contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 60 }}
             showsVerticalScrollIndicator={false}
             refreshControl={
-               <RefreshControl 
-                  refreshing={refreshing} 
-                  onRefresh={onRefresh} 
+               <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
                   tintColor="#85431E"
                   colors={["#85431E"]}
                />
@@ -69,10 +77,10 @@ export default function HomeScreen() {
             <View className="flex-row justify-between items-center mb-10 mt-8">
                <View className="flex-row items-center">
                   <View className="w-16 h-16 rounded-full border-[4px] border-white shadow-xl overflow-hidden bg-white">
-                      <Image
-                         source={{ uri: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop' }}
-                         className="w-full h-full"
-                      />
+                     <Image
+                        source={{ uri: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop' }}
+                        className="w-full h-full"
+                     />
                   </View>
                   <View className="ml-5">
                      <Text className="text-2xl font-display text-brand-brown leading-tight">{user?.name || 'Veterinary User'}</Text>
@@ -82,9 +90,9 @@ export default function HomeScreen() {
                      </View>
                   </View>
                </View>
-               <TouchableOpacity 
+               <TouchableOpacity
                   activeOpacity={0.7}
-                  onPress={() => navigation.navigate('Notification')} 
+                  onPress={() => navigation.navigate('Notification')}
                   className="w-12 h-12 bg-white/50 rounded-2xl items-center justify-center border border-brand-brown/5 shadow-sm"
                >
                   <Bell color="#85431E" size={22} strokeWidth={2.5} />
@@ -100,7 +108,7 @@ export default function HomeScreen() {
                   onPress={() => navigation.navigate('Health')}
                >
                   <View className="absolute -top-12 -right-12 w-36 h-36 bg-white opacity-5 rounded-full" />
-                  
+
                   <View>
                      <View className="bg-white/10 self-start p-3.5 rounded-2xl mb-8 border border-white/10">
                         <Stethoscope color="white" size={26} strokeWidth={2.5} />
@@ -108,7 +116,7 @@ export default function HomeScreen() {
                      <Text className="text-white text-5xl font-display tracking-tighter leading-none">{horses.length}</Text>
                      <Text className="text-white/50 text-[10px] font-display uppercase tracking-[3px] mt-2">Active Fleet</Text>
                   </View>
-                  
+
                   <View className="flex-row items-center gap-2 mt-6">
                      <Text className="text-white/40 text-[9px] font-body uppercase tracking-widest">Live Roster Monitor</Text>
                      <ArrowUpRight color="white" opacity={0.3} size={14} />
@@ -125,11 +133,11 @@ export default function HomeScreen() {
                         <Activity color="#DA7347" size={20} strokeWidth={2.5} />
                      </View>
                      <View>
-                        <Text className="text-brand-brown font-display text-lg tracking-tight leading-tight">3 Care</Text>
+                        <Text className="text-brand-brown font-display text-lg tracking-tight leading-tight">{criticalHorses.length} Care</Text>
                         <Text className="text-brand-brown/40 text-[8px] font-body uppercase tracking-[2px] mt-0.5">Alerts</Text>
                      </View>
                   </TouchableOpacity>
-                  
+
                   <TouchableOpacity
                      activeOpacity={0.8}
                      className="bg-[#FDF8F2] rounded-[28px] p-6 shadow-sm border border-brand-brown/5 flex-col justify-between"
@@ -162,14 +170,14 @@ export default function HomeScreen() {
                   <Loader2 className="w-10 h-10 animate-spin text-brand-brown" />
                   <Text className="mt-4 text-brand-brown/40 font-display text-[10px] uppercase tracking-[3px]">Syncing Laboratory...</Text>
                </View>
-            ) : horses.length === 0 ? (
+            ) : criticalHorses?.length === 0 ? (
                <View className="bg-white/50 rounded-[40px] p-16 items-center border-2 border-dashed border-brand-brown/10">
                   <Stethoscope color="#85431E" opacity={0.1} size={48} className="mb-6" />
                   <Text className="text-brand-brown/40 font-body text-[10px] uppercase tracking-[2.5px] text-center">No Priority cases detected</Text>
                </View>
             ) : (
                <View className="gap-5">
-                  {horses.slice(0, 3).map((horse, idx) => (
+                  {criticalHorses?.map((horse, idx) => (
                      <TouchableOpacity
                         key={horse.id}
                         activeOpacity={0.9}
@@ -187,7 +195,7 @@ export default function HomeScreen() {
                            )}
                            <View className="absolute top-1 right-1 w-5 h-5 bg-emerald-500 rounded-full border-[3px] border-white" />
                         </View>
-                        
+
                         <View className="flex-1 ml-6">
                            <View className="flex-row justify-between items-center mb-1">
                               <Text className="text-brand-brown font-display-reg font-bold text-lg leading-tight tracking-tight">{horse.name}</Text>
@@ -218,10 +226,10 @@ export default function HomeScreen() {
 
             <ScrollView horizontal showsHorizontalScrollIndicator={false} className="overflow-visible">
                {horses.map((horse) => (
-                  <TouchableOpacity 
-                     key={horse.id} 
+                  <TouchableOpacity
+                     key={horse.id}
                      activeOpacity={0.9}
-                     onPress={() => navigation.navigate("HorseDetail", { horse })} 
+                     onPress={() => navigation.navigate("HorseDetail", { horse })}
                      className="bg-white rounded-[40px] p-4 mr-6 shadow-xl shadow-brand-brown/5 border border-brand-brown/5 w-60"
                   >
                      <View className="relative">

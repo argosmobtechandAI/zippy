@@ -120,6 +120,20 @@
       "when": 1776328173386,
       "tag": "0016_nebulous_outlaw_kid",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1776406636908,
+      "tag": "0017_bizarre_switch",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1776408921319,
+      "tag": "0018_powerful_mastermind",
+      "breakpoints": true
     }
   ]
 }
