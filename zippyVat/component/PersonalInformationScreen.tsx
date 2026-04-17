@@ -4,7 +4,9 @@ import { ArrowLeft, User, Mail, Phone, ShieldAlert, Camera, Fingerprint, BadgeCh
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiFunction } from '../api/apiFunction';
-import { getUserApi } from '../api/api';
+import { getUserApi, uploadProfilePictureApi } from '../api/api';
+import { Config } from '../api/config';
+import { launchImageLibrary } from 'react-native-image-picker';
 
 export default function PersonalInformationScreen() {
   const navigation = useNavigation();
@@ -62,6 +64,38 @@ export default function PersonalInformationScreen() {
 
   const updateForm = (key: string, value: string) => {
     setForm(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleChangeProfilePicture = () => {
+    if (!userId) return;
+    launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, async (response) => {
+      if (response.didCancel || response.errorCode) return;
+      if (response.assets && response.assets.length > 0) {
+        const photo = response.assets[0];
+        
+        const data = new FormData();
+        data.append('photo', {
+          name: photo.fileName || 'photo.jpg',
+          type: photo.type || 'image/jpeg',
+          uri: Platform.OS === 'ios' ? photo.uri.replace('file://', '') : photo.uri,
+        });
+
+        setLoading(true);
+        try {
+          const res = await apiFunction(uploadProfilePictureApi(userId), [], data, 'POST_FORM', true);
+          if (res && res.success) {
+            Alert.alert('Success', 'Profile picture updated');
+            loadCurrentData();
+          } else {
+            Alert.alert('Error', res?.message || 'Upload failed');
+          }
+        } catch (error) {
+          Alert.alert('Error', 'Network error occurred');
+        } finally {
+          setLoading(false);
+        }
+      }
+    });
   };
 
   const handleSave = async () => {
@@ -150,13 +184,14 @@ export default function PersonalInformationScreen() {
             <View className="items-center mb-10 mt-4">
               <View className="relative">
                 <View className="w-32 h-32 border-[3px] border-white rounded-full items-center justify-center shadow-xl bg-white overflow-hidden">
-                   {userMetadata?.imageUrl ? (
-                     <Image source={{ uri: userMetadata.imageUrl }} className="w-full h-full" />
+                   {userMetadata?.profilePicture || userMetadata?.imageUrl ? (
+                     <Image source={{ uri: userMetadata?.profilePicture ? `${Config.API_BASE_URL.replace('/api', '')}${userMetadata.profilePicture}` : userMetadata?.imageUrl }} className="w-full h-full" />
                    ) : (
                      <User color="#85431E" opacity={0.08} size={60} />
                    )}
                 </View>
                 <TouchableOpacity 
+                  onPress={handleChangeProfilePicture}
                   activeOpacity={0.9}
                   className="absolute bottom-0 right-0 bg-brand-orange w-10 h-10 border-[3px] border-white rounded-full items-center justify-center shadow-md"
                 >

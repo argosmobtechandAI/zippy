@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, TextInput, Image, ActivityInd
 import { Menu, Bell, Search, ListFilter, Activity, ChevronRight, Plus, ArrowLeft, Calendar, Info } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { apiFunction } from '../api/apiFunction';
-import { getAllHorsesApi } from '../api/api';
+import { getAllHorsesApi, getHorsesByVat } from '../api/api';
 
 const { width } = Dimensions.get('window');
 
@@ -21,7 +21,7 @@ export default function HorsesScreen() {
   const fetchHorses = async () => {
     if (!refreshing) setLoading(true);
     try {
-      const res = await apiFunction(getAllHorsesApi, [], {}, "GET", true);
+      const res = await apiFunction(getHorsesByVat, [], {}, "GET", true);
       if (res && res.success) {
         setHorses(res.horses || []);
       }

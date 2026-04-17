@@ -54,7 +54,7 @@ export default function HomeScreen() {
 
    const criticalHorses = useMemo(() => {
       if (horses) {
-         return horses.filter((h: any) => h.healthStatus?.status?.toLowerCase() === 'critical')
+         return horses.filter((h: any) => h.healthStatus?.status?.toLowerCase() === 'unfit')
       }
       return []
    }, [horses])

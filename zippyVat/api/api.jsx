@@ -7,6 +7,8 @@ export const getUserApi = `${baseURL}/users`;
 export const createUserApi = `${baseURL}/users`;
 export const getOTPApi = `${baseURL}/users/getOTP`;
 export const verifyOTPApi = `${baseURL}/users/verifyOTP`;
+export const uploadProfilePictureApi = (id) => `${baseURL}/users/profile-picture/${id}`;
+
 
 export const getAllHorsesApi = `${baseURL}/horse`;
 export const getHorseApi = (id) => `${baseURL}/horse/${id}`;
