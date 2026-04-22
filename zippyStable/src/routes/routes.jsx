@@ -5,6 +5,9 @@ import Dashboard from "../pages/dashboard";
 import Inventory from "../pages/inventory";
 import StableManagement from "../pages/stableManagement";
 import Lessons from "../pages/lessons";
+import { RouteProtector } from "./routeProtector";
+import Login from "../pages/login";
+import ChooseStable from "../pages/chooseStable";
 
 const Layout = () => {
     return (
@@ -23,12 +26,14 @@ const Layout = () => {
 export const AppRoutes = () => {
     return (
         <Routes>
-            <Route path="/" element={<Layout />}>
+            <Route path="/" element={<RouteProtector><Layout /></RouteProtector>}>
                 <Route index element={<Dashboard />} />
                 <Route path="/inventory" element={<Inventory />} />
                 <Route path="/stable-management" element={<StableManagement />} />
                 <Route path="/lessons" element={<Lessons />} />
             </Route>
+            <Route path="/login" element={<Login />} />
+            <Route path="/choose-stable" element={<ChooseStable />} />
         </Routes>
     );
 };

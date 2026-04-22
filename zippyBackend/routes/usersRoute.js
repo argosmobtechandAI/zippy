@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createUser, deleteUser, getAllUsers, getOTP, getUser, login, notifyUser, notifyAllUsers, updateUser, verifyOTP, markNotificationsAsRead, updateLeaveRequest, updateLeave } from "../controllers/userController.js";
+import { createUser, deleteUser, getAllUsers, getOTP, getUser, login, notifyUser, notifyAllUsers, updateUser, verifyOTP, markNotificationsAsRead, updateLeaveRequest, updateLeave, getAllTrainers, updateTrainerLeaveRequest } from "../controllers/userController.js";
 import { auth } from "../middleware/auth.js";
 import multer from 'multer';
 import path from 'path';
@@ -31,6 +31,8 @@ usersRoute.post("/getOTP", getOTP);
 usersRoute.post("/verifyOTP", verifyOTP);
 usersRoute.put("/leave/:id", auth, updateLeave);
 usersRoute.put("/leave-request/:riderId/:trainerId", auth, updateLeaveRequest);
+usersRoute.get("/trainers", auth, getAllTrainers);
+usersRoute.put("/userLeave/:userId", auth, updateTrainerLeaveRequest)
 
 usersRoute.post('/profile-picture/:id', auth, upload.single('photo'), async (req, res) => {
   try {

@@ -8,10 +8,13 @@ export const updateUserApi = `${baseUrl}/users`;
 export const deleteUserApi = `${baseUrl}/users`;
 export const notifyUserApi = (userId) => `${baseUrl}/users/notify/${userId}`;
 export const notifyAllUsersApi = `${baseUrl}/users/notify-all`;
+export const updateUserLeaveApi = `${baseUrl}/users/userLeave`
 export const markNotificationsAsReadApi = (userId) => `${baseUrl}/users/mark-as-read/${userId}`;
 
 export const getAllStablesApi = `${baseUrl}/stable`;
 export const createStableApi = `${baseUrl}/stable`;
+export const updateStableApi = `${baseUrl}/stable`;
+export const deleteStableApi = `${baseUrl}/stable`;
 
 export const getAllSessionsApi = `${baseUrl}/session`;
 export const createSessionApi = `${baseUrl}/session`;
@@ -33,3 +36,4 @@ export const createInventoryApi = `${baseUrl}/inventory`;
 export const updateInventoryApi = `${baseUrl}/inventory`;
 export const deleteInventoryApi = `${baseUrl}/inventory`;
 export const seedInventoryApi = `${baseUrl}/inventory/seed`;
+export const getAllTrainersApi = `${baseUrl}/users/trainers`;

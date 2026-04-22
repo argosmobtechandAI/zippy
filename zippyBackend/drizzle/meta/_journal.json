@@ -134,6 +134,55 @@
       "when": 1776408921319,
       "tag": "0018_powerful_mastermind",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1776664682705,
+      "tag": "0019_slippery_praxagora",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1776666176163,
+      "tag": "0020_condemned_victor_mancha",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1776668710037,
+      "tag": "0021_common_leader",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1776673035027,
+      "tag": "0022_breezy_chat",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1776673129068,
+      "tag": "0023_overconfident_bullseye",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1776680129710,
+      "tag": "0024_steep_saracen",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1776756071165,
+      "tag": "0025_closed_ender_wiggin",
+      "breakpoints": true
     }
   ]
 }

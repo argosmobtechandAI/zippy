@@ -1,14 +1,31 @@
 import { db } from '../db.js';
-import { sessionTable, riderTable, userTable } from '../schema.js';
+import { sessionTable, riderTable, userTable, trainerTable, horseTable } from '../schema.js';
 import { sql, eq } from 'drizzle-orm';
 
 export const createSession = async (req, res) => {
     const { data } = req.body;
+
     try {
         const newSession = await db.insert(sessionTable).values(data).returning();
         if (!newSession.length) {
             return res.status(400).json({ success: false, message: 'Failed to create session' });
         }
+
+        const horse = await db.select().from(horseTable).where(eq(horseTable.id, data.horseId));
+        if (!horse.length) {
+            return res.status(404).json({ success: false, message: 'Horse not found' });
+        }
+
+
+        const sessions = horse[0].sessions ? [...horse[0].sessions, newSession[0].id] : [newSession[0].id]
+
+
+        const updateHorse = await db.update(horseTable).set({ sessions }).where(eq(horseTable.id, data.horseId)).returning();
+        if (!updateHorse.length) {
+            return res.status(400).json({ success: false, message: 'Failed to update horse status' });
+        }
+
+
 
         // AUTOMATED NOTIFICATION to Trainer
         if (data.trainerId) {
@@ -46,6 +63,7 @@ export const createSession = async (req, res) => {
 
         res.status(201).json({ success: true, session: newSession[0] });
     } catch (error) {
+        console.log(error, "error")
         res.status(500).json({ success: false, message: `Error: ${error.message}` });
     }
 };

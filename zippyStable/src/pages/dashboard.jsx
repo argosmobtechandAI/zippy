@@ -2,16 +2,20 @@ import { useState, useEffect } from 'react';
 import { ChevronRight, Download, Plus, Wheat, Pencil, Trash2, ChevronLeft } from 'lucide-react';
 import { apiFunction } from '../api/apiFunction';
 import { getStableStatsApi, getAllStablesApi, inventoryApi } from '../api/apis';
+import { useSelector } from 'react-redux';
 
 const Dashboard = () => {
     // ... rest of state ...
     const [stocks, setStocks] = useState([]);
+    const { selectedStable } = useSelector((state) => state.getDataReducer)
     const [loading, setLoading] = useState(true);
     const [activeCategory, setActiveCategory] = useState('All Items');
     const [showAddModal, setShowAddModal] = useState(false);
     const [newItem, setNewItem] = useState({ name: '', category: 'Feed', currentStock: 0, unit: '', minThreshold: 10 });
     const [editingItem, setEditingItem] = useState(null);
     const [showEditModal, setShowEditModal] = useState(false);
+
+
 
     const handleDeleteStock = async (id) => {
         if (!window.confirm("Are you sure you want to delete this item?")) return;
@@ -35,7 +39,7 @@ const Dashboard = () => {
                 unit: editingItem.unit,
                 minThreshold: Number(editingItem.minThreshold)
             }, "PUT", true);
-            
+
             if (res && res.success) {
                 setStocks(stocks.map(s => s.id === editingItem.id ? { ...res.item, stock: res.item.currentStock } : s));
                 setShowEditModal(false);
@@ -46,31 +50,23 @@ const Dashboard = () => {
         }
     };
 
+
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                // First, get the list of stables to pick a valid ID
-                const stableListRes = await apiFunction(getAllStablesApi, [], {}, "GET", true);
-                let stableId = "00000000-0000-0000-0000-000000000001";
-                if (stableListRes && stableListRes.success && stableListRes.stables.length > 0) {
-                    stableId = stableListRes.stables[0].id;
-                }
+                if(selectedStable){
 
-                const res = await apiFunction(getStableStatsApi, [stableId], {}, "GET", true);
-                if (res && res.success) {
-                    // console.log("Fetched Stats:", res.stable);
+                    const inventoryRes = await apiFunction(inventoryApi, [selectedStable], {}, "GET", true);
+                 
+                    if (inventoryRes && inventoryRes.success) {
+                        const mappedItems = (inventoryRes.items || []).map(item => ({
+                            ...item,
+                            stock: item.currentStock || 0
+                        })).sort((a, b) => b.id.localeCompare(a.id)); 
+                        setStocks(mappedItems);
+                    }
                 }
-
-                // DIRECT FETCH: Get inventory items from the dedicated API
-                const inventoryRes = await apiFunction(inventoryApi, [], {}, "GET", true);
-                console.log("DASHBOARD_FETCH: Inventory check:", inventoryRes);
-                if (inventoryRes && inventoryRes.success) {
-                    const mappedItems = (inventoryRes.items || []).map(item => ({
-                        ...item,
-                        stock: item.currentStock || 0
-                    })).sort((a, b) => b.id.localeCompare(a.id)); // Simple newest-first sort by ID
-                    setStocks(mappedItems);
-                }
+                
             } catch (err) {
                 console.error("Dashboard data fetch failed:", err);
             } finally {
@@ -84,7 +80,9 @@ const Dashboard = () => {
         e.preventDefault();
         try {
             // FIX: Pass [] instead of {} and use inventoryApi constant
-            const res = await apiFunction(inventoryApi, [], newItem, "POST", true);
+            const stableId = selectedStable;
+
+            const res = await apiFunction(inventoryApi, [], { ...newItem, stableId }, "POST", true);
             console.log("DASHBOARD_ADD_STOCK: Response from API:", res);
             if (res && res.success) {
                 console.log("DASHBOARD_ADD_STOCK: Success! New item added to state.");
@@ -99,8 +97,8 @@ const Dashboard = () => {
         }
     };
 
-    const filteredStocks = activeCategory === 'All Items' 
-        ? stocks 
+    const filteredStocks = activeCategory === 'All Items'
+        ? stocks
         : stocks.filter(item => item.category === activeCategory);
 
     return (
@@ -124,7 +122,7 @@ const Dashboard = () => {
                             <Download className="w-4 h-4" strokeWidth={2.5} />
                             Export CSV
                         </button>
-                        <button 
+                        <button
                             onClick={() => setShowAddModal(true)}
                             className="bg-[#964C2E] text-white text-[13px] font-bold px-6 py-3.5 rounded-xl shadow-md flex items-center gap-2.5 hover:bg-[#7D3F25] transition-all"
                         >
@@ -138,14 +136,13 @@ const Dashboard = () => {
             {/* Filter Tabs */}
             <div className="flex items-center gap-3 mb-6">
                 {['All Items', 'Feed', 'Medicines', 'Equipment', 'Consumables'].map(cat => (
-                    <button 
+                    <button
                         key={cat}
                         onClick={() => setActiveCategory(cat)}
-                        className={`px-6 py-2.5 rounded-full text-[13px] font-bold shadow-sm transition-all ${
-                            activeCategory === cat 
-                                ? 'bg-[#964C2E] text-white' 
-                                : 'bg-white text-gray-600 border border-[#EACDBA]/40 hover:bg-white/70'
-                        }`}
+                        className={`px-6 py-2.5 rounded-full text-[13px] font-bold shadow-sm transition-all ${activeCategory === cat
+                            ? 'bg-[#964C2E] text-white'
+                            : 'bg-white text-gray-600 border border-[#EACDBA]/40 hover:bg-white/70'
+                            }`}
                     >
                         {cat}
                     </button>
@@ -175,12 +172,12 @@ const Dashboard = () => {
                             const isLow = item.stock <= 10 && item.stock > 0;
                             const isOut = item.stock === 0;
 
-                            const statusStyle = isOut 
-                                ? "bg-[#FEE2E2] text-[#B91C1C]" 
-                                : isLow 
-                                    ? "bg-[#FEF3C7] text-[#92400E]" 
+                            const statusStyle = isOut
+                                ? "bg-[#FEE2E2] text-[#B91C1C]"
+                                : isLow
+                                    ? "bg-[#FEF3C7] text-[#92400E]"
                                     : "bg-[#E0F8EC] text-[#059669]";
-                            
+
                             const statusLabel = isOut ? "Out of Stock" : isLow ? "Low Stock" : "In Stock";
                             const dotColor = isOut ? "bg-[#B91C1C]" : isLow ? "bg-[#92400E]" : "bg-[#059669]";
 
@@ -201,7 +198,7 @@ const Dashboard = () => {
                                         </span>
                                     </div>
                                     <div className="flex justify-end gap-3 pr-2">
-                                        <button 
+                                        <button
                                             onClick={() => {
                                                 setEditingItem({ ...item, currentStock: item.stock });
                                                 setShowEditModal(true);
@@ -210,7 +207,7 @@ const Dashboard = () => {
                                         >
                                             <Pencil className="w-4 h-4" />
                                         </button>
-                                        <button 
+                                        <button
                                             onClick={() => handleDeleteStock(item.id)}
                                             className="text-gray-400 hover:text-red-500 transition-colors"
                                         >
@@ -258,27 +255,27 @@ const Dashboard = () => {
                                 <Plus className="w-6 h-6 rotate-45" />
                             </button>
                         </div>
-                        
+
                         <form onSubmit={handleAddStock} className="p-8 flex flex-col gap-6">
                             <div className="flex flex-col gap-2">
                                 <label className="text-[11px] font-black text-[#964C2E] tracking-widest uppercase ml-1">Item Name</label>
-                                <input 
+                                <input
                                     required
-                                    type="text" 
+                                    type="text"
                                     placeholder="e.g. Premium Timothy Hay"
                                     className="w-full bg-[#FAFAFA] border border-[#EACDBA]/30 rounded-2xl px-5 py-4 text-[14px] font-semibold text-[#1e2330] focus:outline-none focus:border-[#964C2E] transition-colors"
                                     value={newItem.name}
-                                    onChange={(e) => setNewItem({...newItem, name: e.target.value})}
+                                    onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
                                 />
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="flex flex-col gap-2">
                                     <label className="text-[11px] font-black text-[#964C2E] tracking-widest uppercase ml-1">Category</label>
-                                    <select 
+                                    <select
                                         className="w-full bg-[#FAFAFA] border border-[#EACDBA]/30 rounded-2xl px-5 py-4 text-[14px] font-semibold text-[#1e2330] focus:outline-none focus:border-[#964C2E] transition-colors appearance-none"
                                         value={newItem.category}
-                                        onChange={(e) => setNewItem({...newItem, category: e.target.value})}
+                                        onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}
                                     >
                                         <option>Feed</option>
                                         <option>Medicines</option>
@@ -288,13 +285,13 @@ const Dashboard = () => {
                                 </div>
                                 <div className="flex flex-col gap-2">
                                     <label className="text-[11px] font-black text-[#964C2E] tracking-widest uppercase ml-1">Unit</label>
-                                    <input 
+                                    <input
                                         required
-                                        type="text" 
+                                        type="text"
                                         placeholder="e.g. Bales, Vials"
                                         className="w-full bg-[#FAFAFA] border border-[#EACDBA]/30 rounded-2xl px-5 py-4 text-[14px] font-semibold text-[#1e2330] focus:outline-none focus:border-[#964C2E] transition-colors"
                                         value={newItem.unit}
-                                        onChange={(e) => setNewItem({...newItem, unit: e.target.value})}
+                                        onChange={(e) => setNewItem({ ...newItem, unit: e.target.value })}
                                     />
                                 </div>
                             </div>
@@ -302,35 +299,35 @@ const Dashboard = () => {
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="flex flex-col gap-2">
                                     <label className="text-[11px] font-black text-[#964C2E] tracking-widest uppercase ml-1">Initial Stock</label>
-                                    <input 
+                                    <input
                                         required
-                                        type="number" 
+                                        type="number"
                                         className="w-full bg-[#FAFAFA] border border-[#EACDBA]/30 rounded-2xl px-5 py-4 text-[14px] font-semibold text-[#1e2330] focus:outline-none focus:border-[#964C2E] transition-colors"
                                         value={newItem.currentStock}
-                                        onChange={(e) => setNewItem({...newItem, currentStock: parseInt(e.target.value)})}
+                                        onChange={(e) => setNewItem({ ...newItem, currentStock: parseInt(e.target.value) })}
                                     />
                                 </div>
                                 <div className="flex flex-col gap-2">
                                     <label className="text-[11px] font-black text-[#964C2E] tracking-widest uppercase ml-1">Min Threshold</label>
-                                    <input 
+                                    <input
                                         required
-                                        type="number" 
+                                        type="number"
                                         className="w-full bg-[#FAFAFA] border border-[#EACDBA]/30 rounded-2xl px-5 py-4 text-[14px] font-semibold text-[#1e2330] focus:outline-none focus:border-[#964C2E] transition-colors"
                                         value={newItem.minThreshold}
-                                        onChange={(e) => setNewItem({...newItem, minThreshold: parseInt(e.target.value)})}
+                                        onChange={(e) => setNewItem({ ...newItem, minThreshold: parseInt(e.target.value) })}
                                     />
                                 </div>
                             </div>
 
                             <div className="flex gap-4 mt-4">
-                                <button 
+                                <button
                                     type="button"
                                     onClick={() => setShowAddModal(false)}
                                     className="flex-1 py-4 border-2 border-[#F9EEE5] rounded-2xl text-[#964C2E] text-[14px] font-bold hover:bg-[#F9EEE5] transition-colors"
                                 >
                                     Cancel
                                 </button>
-                                <button 
+                                <button
                                     type="submit"
                                     className="flex-1 py-4 bg-[#964C2E] rounded-2xl text-white text-[14px] font-bold hover:bg-[#7D3F25] transition-colors shadow-lg shadow-[#964C2E]/20"
                                 >
@@ -351,26 +348,26 @@ const Dashboard = () => {
                                 <Plus className="w-6 h-6 rotate-45" />
                             </button>
                         </div>
-                        
+
                         <form onSubmit={handleUpdateStock} className="p-8 flex flex-col gap-6">
                             <div className="flex flex-col gap-2">
                                 <label className="text-[11px] font-black text-[#964C2E] tracking-widest uppercase ml-1">Item Name</label>
-                                <input 
+                                <input
                                     required
-                                    type="text" 
+                                    type="text"
                                     className="w-full bg-[#FAFAFA] border border-[#EACDBA]/30 rounded-2xl px-5 py-4 text-[14px] font-semibold text-[#1e2330] focus:outline-none focus:border-[#964C2E] transition-colors"
                                     value={editingItem.name}
-                                    onChange={(e) => setEditingItem({...editingItem, name: e.target.value})}
+                                    onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
                                 />
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="flex flex-col gap-2">
                                     <label className="text-[11px] font-black text-[#964C2E] tracking-widest uppercase ml-1">Category</label>
-                                    <select 
+                                    <select
                                         className="w-full bg-[#FAFAFA] border border-[#EACDBA]/30 rounded-2xl px-5 py-4 text-[14px] font-semibold text-[#1e2330] focus:outline-none focus:border-[#964C2E] transition-colors appearance-none"
                                         value={editingItem.category}
-                                        onChange={(e) => setEditingItem({...editingItem, category: e.target.value})}
+                                        onChange={(e) => setEditingItem({ ...editingItem, category: e.target.value })}
                                     >
                                         <option>Feed</option>
                                         <option>Medicines</option>
@@ -380,12 +377,12 @@ const Dashboard = () => {
                                 </div>
                                 <div className="flex flex-col gap-2">
                                     <label className="text-[11px] font-black text-[#964C2E] tracking-widest uppercase ml-1">Unit</label>
-                                    <input 
+                                    <input
                                         required
-                                        type="text" 
+                                        type="text"
                                         className="w-full bg-[#FAFAFA] border border-[#EACDBA]/30 rounded-2xl px-5 py-4 text-[14px] font-semibold text-[#1e2330] focus:outline-none focus:border-[#964C2E] transition-colors"
                                         value={editingItem.unit}
-                                        onChange={(e) => setEditingItem({...editingItem, unit: e.target.value})}
+                                        onChange={(e) => setEditingItem({ ...editingItem, unit: e.target.value })}
                                     />
                                 </div>
                             </div>
@@ -393,22 +390,22 @@ const Dashboard = () => {
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="flex flex-col gap-2">
                                     <label className="text-[11px] font-black text-[#964C2E] tracking-widest uppercase ml-1">Current Stock</label>
-                                    <input 
+                                    <input
                                         required
-                                        type="number" 
+                                        type="number"
                                         className="w-full bg-[#FAFAFA] border border-[#EACDBA]/30 rounded-2xl px-5 py-4 text-[14px] font-semibold text-[#1e2330] focus:outline-none focus:border-[#964C2E] transition-colors"
                                         value={editingItem.currentStock}
-                                        onChange={(e) => setEditingItem({...editingItem, currentStock: e.target.value})}
+                                        onChange={(e) => setEditingItem({ ...editingItem, currentStock: e.target.value })}
                                     />
                                 </div>
                                 <div className="flex flex-col gap-2">
                                     <label className="text-[11px] font-black text-[#964C2E] tracking-widest uppercase ml-1">Min Threshold</label>
-                                    <input 
+                                    <input
                                         required
-                                        type="number" 
+                                        type="number"
                                         className="w-full bg-[#FAFAFA] border border-[#EACDBA]/30 rounded-2xl px-5 py-4 text-[14px] font-semibold text-[#1e2330] focus:outline-none focus:border-[#964C2E] transition-colors"
                                         value={editingItem.minThreshold}
-                                        onChange={(e) => setEditingItem({...editingItem, minThreshold: e.target.value})}
+                                        onChange={(e) => setEditingItem({ ...editingItem, minThreshold: e.target.value })}
                                     />
                                 </div>
                             </div>

@@ -29,6 +29,7 @@ const Horses = () => {
         setLoading(true);
         try {
             const res = await apiFunction(getAllHorsesApi, [], {}, "GET", true);
+            console.log(res, "res")
             if (res && res.success) {
                 setHorses(res.horses || []);
             }
@@ -64,6 +65,8 @@ const Horses = () => {
         }
     };
 
+    console.log(horses, "horses")
+
     const handleDelete = async (id) => {
         if (!window.confirm("Are you sure you want to delete this horse? This action cannot be undone.")) return;
 
@@ -80,10 +83,10 @@ const Horses = () => {
         }
     };
 
-    const filteredHorses = horses.filter(h => {
+    const filteredHorses = horses?.filter(h => {
         const search = searchQuery.toLowerCase();
         return (h.name?.toLowerCase() || "").includes(search) ||
-               (h.title?.toLowerCase() || "").includes(search);
+            (h.title?.toLowerCase() || "").includes(search);
     });
 
     return (
@@ -195,7 +198,7 @@ const Horses = () => {
                                                 <p className="text-sm font-bold text-[#1e2330]">No horses found in active registry.</p>
                                                 <p className="text-xs font-medium text-gray-400 mt-1">Add your first horse or initialize sample data.</p>
                                             </div>
-                                            <button 
+                                            <button
                                                 onClick={seedFleet}
                                                 className="mt-4 px-6 py-3 rounded-xl bg-[#964C2E]/10 text-[#964C2E] text-[10px] font-black uppercase tracking-widest hover:bg-[#964C2E] hover:text-white transition-all"
                                             >
@@ -214,7 +217,7 @@ const Horses = () => {
                                                 </div>
                                                 <div>
                                                     <p className="text-sm font-black text-[#1e2330]">{horse.name}</p>
-                                                    <p className="text-[10px] font-bold text-gray-400 uppercase">ID: #EQ-{horse.id.substring(0,4).toUpperCase()}</p>
+                                                    <p className="text-[10px] font-bold text-gray-400 uppercase">ID: #EQ-{horse.id.substring(0, 4).toUpperCase()}</p>
                                                 </div>
                                             </div>
                                         </td>
@@ -225,17 +228,16 @@ const Horses = () => {
                                         </td>
                                         <td className="px-8 py-6">
                                             <div className="flex items-center gap-2">
-                                                <div className={`w-2 h-2 rounded-full ${
-                                                    horse.status === 'Available' ? 'bg-green-500' : 
+                                                <div className={`w-2 h-2 rounded-full ${horse.status === 'Available' ? 'bg-green-500' :
                                                     horse.status === 'Resting' ? 'bg-amber-500' :
-                                                    horse.status === 'Medical' ? 'bg-red-500' :
-                                                    horse.status === 'Competition' ? 'bg-blue-500' : 'bg-gray-400'
-                                                }`} />
+                                                        horse.status === 'Medical' ? 'bg-red-500' :
+                                                            horse.status === 'Competition' ? 'bg-blue-500' : 'bg-gray-400'
+                                                    }`} />
                                                 <p className="text-sm font-bold text-[#1e2330]">{horse.status}</p>
                                             </div>
                                         </td>
                                         <td className="px-8 py-6">
-                                            <select 
+                                            <select
                                                 value={horse.status}
                                                 onChange={async (e) => {
                                                     const newStatus = e.target.value;
@@ -271,7 +273,7 @@ const Horses = () => {
                         </tbody>
                     </table>
                 </div>
-                
+
                 <div className="p-8 bg-[#fdfaf7]/30 border-t border-gray-50 flex justify-between items-center">
                     <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Showing {filteredHorses.length} of {horses.length} entries</p>
                     <div className="flex gap-2">
@@ -285,7 +287,7 @@ const Horses = () => {
             {showModal && <HorseModal horseToEdit={horseToEdit} setShowModal={setShowModal} onSuccess={fetchData} trainers={trainers} />}
             {selectedHorse && <HorseProfileModal horse={selectedHorse} trainers={trainers} onClose={() => setSelectedHorse(null)} />}
             {notifHorse && <NotificationModal horse={notifHorse} trainers={trainers} onClose={() => setNotifHorse(null)} />}
-            
+
             <footer className="mt-12 py-8 border-t border-gray-100 flex justify-between text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
                 <div className="flex gap-6">
                     <span className="hover:text-[#964C2E] cursor-pointer">Quick Select: All Active</span>
@@ -370,14 +372,14 @@ const HorseModal = ({ horseToEdit, setShowModal, onSuccess, trainers }) => {
     return (
         <div className="fixed inset-0 bg-[#1e2330]/60 backdrop-blur-md flex items-center justify-center z-50 p-4">
             <div className="bg-[#fdfaf7] rounded-[2.5rem] w-full max-w-[900px] shadow-2xl animate-in zoom-in-95 duration-300 overflow-hidden flex flex-col md:flex-row max-h-[90vh]">
-                
+
                 {/* Left Panel - Bio Preview */}
                 <div className="md:w-1/3 bg-white p-12 border-r border-gray-100 flex flex-col items-center">
                     <div className="w-48 h-48 rounded-[2rem] overflow-hidden mb-8 shadow-2xl shadow-[#964C2E]/10 bg-gray-50 group relative">
-                        <img 
-                            src={formData.imageUrl || DEFAULT_HORSE_IMAGE} 
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
-                            alt="preview" 
+                        <img
+                            src={formData.imageUrl || DEFAULT_HORSE_IMAGE}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                            alt="preview"
                         />
                         <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                             <Camera className="w-8 h-8 text-white" />
@@ -423,7 +425,7 @@ const HorseModal = ({ horseToEdit, setShowModal, onSuccess, trainers }) => {
                                 <div className="p-1.5 bg-[#964C2E]/10 rounded-lg"><Info className="w-4 h-4 text-[#964C2E]" /></div>
                                 <h5 className="text-sm font-black text-[#1e2330] uppercase tracking-widest">Basic Information</h5>
                             </div>
-                            
+
                             <div className="space-y-2">
                                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Unique Horse Name</label>
                                 <input required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full bg-white border border-gray-100 rounded-2xl px-6 py-5 text-sm font-bold text-[#1e2330] focus:outline-none focus:border-[#964C2E]/30 transition-all shadow-sm" placeholder="e.g., Midnight Star" />
@@ -457,7 +459,7 @@ const HorseModal = ({ horseToEdit, setShowModal, onSuccess, trainers }) => {
                                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Profile Image URL</label>
                                 <input value={formData.imageUrl} onChange={e => setFormData({ ...formData, imageUrl: e.target.value })} className="w-full bg-white border border-gray-100 rounded-2xl px-6 py-5 text-sm font-bold text-[#1e2330] focus:outline-none focus:border-[#964C2E]/30 transition-all shadow-sm" placeholder="Paste high-res link..." />
                             </div>
-                            
+
                             <div className="grid grid-cols-3 gap-6">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Age (Yrs)</label>
@@ -544,8 +546,8 @@ const HorseProfileModal = ({ horse, trainers, onClose }) => {
     const [selectedTrainerId, setSelectedTrainerId] = useState("");
     const [assigning, setAssigning] = useState(false);
     const [activeTab, setActiveTab] = useState("Bio"); // Bio, Health, Vaccination
-    const [healthRecords, setHealthRecords] = useState([]);
-    const [vaccinationRecords, setVaccinationRecords] = useState([]);
+    const [healthRecords, setHealthRecords] = useState(horse.healthRecords);
+    const [vaccinationRecords, setVaccinationRecords] = useState(horse.vaccinationRecords);
     const [loadingRecords, setLoadingRecords] = useState(false);
     const [showLogForm, setShowLogForm] = useState(false);
 
@@ -558,24 +560,7 @@ const HorseProfileModal = ({ horse, trainers, onClose }) => {
         type: "Health" // Health, Vaccination
     });
 
-    const fetchRecords = async () => {
-        setLoadingRecords(true);
-        try {
-            const hRes = await apiFunction(getHealthRecordsByHorseApi(horse.id), [], {}, "GET", true);
-            if (hRes && hRes.success) setHealthRecords(hRes.records || []);
-            
-            const vRes = await apiFunction(getVaccinationRecordsByHorseApi(horse.id), [], {}, "GET", true);
-            if (vRes && vRes.success) setVaccinationRecords(vRes.records || []);
-        } catch (error) {
-            console.error("Error fetching records", error);
-        } finally {
-            setLoadingRecords(false);
-        }
-    };
 
-    useEffect(() => {
-        fetchRecords();
-    }, [horse.id]);
 
     const handleLogMaintenance = async (e) => {
         e.preventDefault();
@@ -669,7 +654,7 @@ const HorseProfileModal = ({ horse, trainers, onClose }) => {
 
                 {/* Content Container */}
                 <div className="flex-1 overflow-y-auto p-10 space-y-10 bg-[#fdfaf7]">
-                    
+
                     {activeTab === "Bio" && (
                         <>
                             <div className="grid grid-cols-2 gap-8">
@@ -720,7 +705,7 @@ const HorseProfileModal = ({ horse, trainers, onClose }) => {
                                             onChange={(e) => setSelectedTrainerId(e.target.value)}
                                             className="w-full bg-[#fdfaf7] border border-gray-100 outline-none rounded-2xl p-5 text-sm font-bold text-[#1e2330] appearance-none"
                                         >
-                                            <option value="">{horse.trainerId ? trainers.find(t=>t.id===horse.trainerId)?.name : "Choose designated trainer..."}</option>
+                                            <option value="">{horse.trainerId ? trainers.find(t => t.id === horse.trainerId)?.name : "Choose designated trainer..."}</option>
                                             {trainers.map(t => (
                                                 <option key={t.id} value={t.id}>{t.name}</option>
                                             ))}
@@ -738,11 +723,11 @@ const HorseProfileModal = ({ horse, trainers, onClose }) => {
                         </>
                     )}
 
-                    {(activeTab === "Health" || activeTab === "Vaccination") && (
+                    {(activeTab === "Health") && (
                         <div className="space-y-6">
                             <div className="flex justify-between items-center mb-6">
                                 <h3 className="text-xl font-black text-[#1e2330]">{activeTab} History</h3>
-                                <button 
+                                <button
                                     onClick={() => {
                                         setMaintenanceForm({ ...maintenanceForm, type: activeTab });
                                         setShowLogForm(!showLogForm);
@@ -758,27 +743,109 @@ const HorseProfileModal = ({ horse, trainers, onClose }) => {
                                     <form onSubmit={handleLogMaintenance} className="space-y-6">
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Description / Title</label>
-                                            <input required value={maintenanceForm.title} onChange={e => setMaintenanceForm({...maintenanceForm, title: e.target.value})} className="w-full bg-[#fdfaf7] border border-gray-100 rounded-2xl px-5 py-4 text-sm font-bold text-[#1e2330]" placeholder={activeTab === 'Health' ? 'e.g., General Wellness Check' : 'e.g., Influenza Boost'} />
+                                            <input required value={maintenanceForm.title} onChange={e => setMaintenanceForm({ ...maintenanceForm, title: e.target.value })} className="w-full bg-[#fdfaf7] border border-gray-100 rounded-2xl px-5 py-4 text-sm font-bold text-[#1e2330]" placeholder={activeTab === 'Health' ? 'e.g., General Wellness Check' : 'e.g., Influenza Boost'} />
                                         </div>
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
                                                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Date</label>
-                                                <input type="date" value={maintenanceForm.date} onChange={e => setMaintenanceForm({...maintenanceForm, date: e.target.value})} className="w-full bg-[#fdfaf7] border border-gray-100 rounded-2xl px-5 py-4 text-sm font-bold text-[#1e2330]" />
+                                                <input type="date" value={maintenanceForm.date} onChange={e => setMaintenanceForm({ ...maintenanceForm, date: e.target.value })} className="w-full bg-[#fdfaf7] border border-gray-100 rounded-2xl px-5 py-4 text-sm font-bold text-[#1e2330]" />
                                             </div>
                                             <div className="space-y-2">
                                                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">{activeTab === 'Health' ? 'Status' : 'Validity (Months)'}</label>
-                                                <input value={maintenanceForm.status} onChange={e => setMaintenanceForm({...maintenanceForm, status: e.target.value})} className="w-full bg-[#fdfaf7] border border-gray-100 rounded-2xl px-5 py-4 text-sm font-bold text-[#1e2330]" placeholder={activeTab === 'Health' ? 'Healthy, Resting...' : '6'} />
+                                                <input value={maintenanceForm.status} onChange={e => setMaintenanceForm({ ...maintenanceForm, status: e.target.value })} className="w-full bg-[#fdfaf7] border border-gray-100 rounded-2xl px-5 py-4 text-sm font-bold text-[#1e2330]" placeholder={activeTab === 'Health' ? 'Healthy, Resting...' : '6'} />
                                             </div>
                                         </div>
                                         {activeTab === 'Health' && (
                                             <div className="space-y-2">
                                                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Treatment / Recommendations</label>
-                                                <input value={maintenanceForm.treatment} onChange={e => setMaintenanceForm({...maintenanceForm, treatment: e.target.value})} className="w-full bg-[#fdfaf7] border border-gray-100 rounded-2xl px-5 py-4 text-sm font-bold text-[#1e2330]" placeholder="Prescribed rest or meds..." />
+                                                <input value={maintenanceForm.treatment} onChange={e => setMaintenanceForm({ ...maintenanceForm, treatment: e.target.value })} className="w-full bg-[#fdfaf7] border border-gray-100 rounded-2xl px-5 py-4 text-sm font-bold text-[#1e2330]" placeholder="Prescribed rest or meds..." />
                                             </div>
                                         )}
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Notes</label>
-                                            <textarea value={maintenanceForm.notes} onChange={e => setMaintenanceForm({...maintenanceForm, notes: e.target.value})} className="w-full bg-[#fdfaf7] border border-gray-100 rounded-2xl px-5 py-4 text-sm font-bold text-[#1e2330] min-h-[100px]" placeholder="Detailed observations..." />
+                                            <textarea value={maintenanceForm.notes} onChange={e => setMaintenanceForm({ ...maintenanceForm, notes: e.target.value })} className="w-full bg-[#fdfaf7] border border-gray-100 rounded-2xl px-5 py-4 text-sm font-bold text-[#1e2330] min-h-[100px]" placeholder="Detailed observations..." />
+                                        </div>
+                                        <button disabled={assigning} type="submit" className="w-full bg-[#1e2330] text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl">
+                                            {assigning ? "Saving..." : `Confirm ${activeTab} Entry`}
+                                        </button>
+                                    </form>
+                                </div>
+                            )}
+
+                            {loadingRecords ? (
+                                <div className="py-20 text-center"><Loader2 className="w-10 h-10 animate-spin text-[#964C2E] mx-auto mb-4" /></div>
+                            ) : (activeTab === "Health" ? healthRecords : vaccinationRecords).length === 0 ? (
+                                <div className="py-20 text-center bg-white rounded-[2rem] border border-dashed border-gray-200">
+                                    <Clipboard className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                                    <p className="text-gray-400 font-bold uppercase text-[10px] tracking-widest">No records found for this specimen</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {(activeTab === "Health" ? healthRecords : vaccinationRecords).map((rec, i) => (
+                                        <div key={i} className="bg-white p-6 rounded-3xl border border-gray-50 shadow-sm group hover:border-[#964C2E]/20 transition-all">
+                                            <div className="flex justify-between items-start mb-3">
+                                                <div>
+                                                    <p className="text-xs font-black text-[#1e2330]">{rec.title || rec.name}</p>
+                                                    <p className="text-[10px] text-gray-400 font-bold uppercase mt-1">{rec.date}</p>
+                                                </div>
+                                                <span className="px-3 py-1 bg-[#F5EDDF] text-[#8C4A28] text-[8px] font-black uppercase rounded-full">
+                                                    {rec.status || "Verified"}
+                                                </span>
+                                            </div>
+                                            <p className="text-xs text-gray-500 font-medium leading-relaxed">{rec.notes || rec.treatment || "Routine maintenance complete."}</p>
+                                            {rec.nextDate && (
+                                                <div className="mt-4 pt-4 border-t border-gray-50 flex items-center gap-2 text-[9px] font-black text-amber-600 uppercase">
+                                                    <Activity className="w-3 h-3" /> Next Due: {rec.nextDate}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {(activeTab === "Vaccination") && (
+                        <div className="space-y-6">
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-xl font-black text-[#1e2330]">{activeTab} History</h3>
+                                <button
+                                    onClick={() => {
+                                        setMaintenanceForm({ ...maintenanceForm, type: activeTab });
+                                        setShowLogForm(!showLogForm);
+                                    }}
+                                    className="px-6 py-3 rounded-xl bg-[#964C2E] text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[#964C2E]/20"
+                                >
+                                    {showLogForm ? "Cancel" : `Log ${activeTab}`}
+                                </button>
+                            </div>
+
+                            {showLogForm && (
+                                <div className="bg-white p-8 rounded-[2rem] border border-[#964C2E]/10 shadow-sm animate-in fade-in slide-in-from-top-4 duration-300 mb-8">
+                                    <form onSubmit={handleLogMaintenance} className="space-y-6">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Description / Title</label>
+                                            <input required value={maintenanceForm.title} onChange={e => setMaintenanceForm({ ...maintenanceForm, title: e.target.value })} className="w-full bg-[#fdfaf7] border border-gray-100 rounded-2xl px-5 py-4 text-sm font-bold text-[#1e2330]" placeholder={activeTab === 'Health' ? 'e.g., General Wellness Check' : 'e.g., Influenza Boost'} />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Date</label>
+                                                <input type="date" value={maintenanceForm.date} onChange={e => setMaintenanceForm({ ...maintenanceForm, date: e.target.value })} className="w-full bg-[#fdfaf7] border border-gray-100 rounded-2xl px-5 py-4 text-sm font-bold text-[#1e2330]" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">{activeTab === 'Health' ? 'Status' : 'Validity (Months)'}</label>
+                                                <input value={maintenanceForm.status} onChange={e => setMaintenanceForm({ ...maintenanceForm, status: e.target.value })} className="w-full bg-[#fdfaf7] border border-gray-100 rounded-2xl px-5 py-4 text-sm font-bold text-[#1e2330]" placeholder={activeTab === 'Health' ? 'Healthy, Resting...' : '6'} />
+                                            </div>
+                                        </div>
+                                        {activeTab === 'Health' && (
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Treatment / Recommendations</label>
+                                                <input value={maintenanceForm.treatment} onChange={e => setMaintenanceForm({ ...maintenanceForm, treatment: e.target.value })} className="w-full bg-[#fdfaf7] border border-gray-100 rounded-2xl px-5 py-4 text-sm font-bold text-[#1e2330]" placeholder="Prescribed rest or meds..." />
+                                            </div>
+                                        )}
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Notes</label>
+                                            <textarea value={maintenanceForm.notes} onChange={e => setMaintenanceForm({ ...maintenanceForm, notes: e.target.value })} className="w-full bg-[#fdfaf7] border border-gray-100 rounded-2xl px-5 py-4 text-sm font-bold text-[#1e2330] min-h-[100px]" placeholder="Detailed observations..." />
                                         </div>
                                         <button disabled={assigning} type="submit" className="w-full bg-[#1e2330] text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl">
                                             {assigning ? "Saving..." : `Confirm ${activeTab} Entry`}

@@ -1,11 +1,11 @@
 import {
-    Plus, TrendingUp, Building2, PawPrint, Banknote, 
-    Filter, ChevronDown, Trees, Droplet, Hammer, Star, 
-    ArrowRight, ChevronLeft, ChevronRight
+    Plus, TrendingUp, Building2, PawPrint, Banknote,
+    Filter, ChevronDown, Trees, Droplet, Hammer, Star,
+    ArrowRight, ChevronLeft, ChevronRight, Edit2, Trash2
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { apiFunction } from '../api/apiFunction';
-import { getAllStablesApi, getGlobalStatsApi, createStableApi } from '../api/apis';
+import { getAllStablesApi, getGlobalStatsApi, createStableApi, getAllHorsesApi, getAllUsersApi, deleteStableApi, updateStableApi } from '../api/apis';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { X } from 'lucide-react';
@@ -15,6 +15,15 @@ const Centers = () => {
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
+    const [editing, setEditing] = useState(false);
+    const [formData, setFormData] = useState({
+        name: "",
+        location: "",
+        totalRevenue: 0,
+        horse: [],
+        userId: ""
+    });
+
     const navigate = useNavigate();
 
     const fetchData = async () => {
@@ -36,6 +45,20 @@ const Centers = () => {
     useEffect(() => {
         fetchData();
     }, []);
+
+    const handleDelete = async (id) => {
+        if (window.confirm("Are you sure you want to delete this center?")) {
+            const res = await apiFunction(deleteStableApi, [id], {}, "DELETE", true);
+            console.log(res)
+            if (res && res.success) {
+                toast.success("Center deleted successfully");
+                fetchData();
+            } else {
+                toast.error(res?.message || "Failed to delete center");
+            }
+        }
+    };
+
     return (
         <div className="p-10 max-w-[1400px] mx-auto min-h-full bg-[#fbf6f0] w-full font-sans">
             {/* Top Bar */}
@@ -44,7 +67,7 @@ const Centers = () => {
                     <h1 className="text-[34px] font-black text-[#1e2330] leading-none mb-3 tracking-tight">Equestrian Centers</h1>
                     <p className="text-[14px] font-medium text-gray-500">Monitor performance across your facility network.</p>
                 </div>
-                <button 
+                <button
                     onClick={() => setShowModal(true)}
                     className="bg-[#964C2E] text-white text-[13px] font-bold px-6 py-4 rounded-xl shadow-md flex items-center gap-2 hover:bg-[#7D3F25] transition-all"
                 >
@@ -122,14 +145,14 @@ const Centers = () => {
                             Showing 4 centers
                         </div>
                     </div>
-                    
+
                     {/* Table Header */}
                     <div className="grid grid-cols-[300px_120px_1fr_1fr_1fr_150px] gap-4 pb-4 border-b border-[#F0E6D8] px-4">
                         <div className="text-[10px] font-black text-[#A59588] tracking-widest uppercase">CENTER DETAILS</div>
                         <div className="text-[10px] font-black text-[#A59588] tracking-widest uppercase text-center">STATUS</div>
                         <div className="text-[10px] font-black text-[#A59588] tracking-widest uppercase text-center">OCCUPANCY</div>
                         <div className="text-[10px] font-black text-[#A59588] tracking-widest uppercase text-center">TRAINERS</div>
-                        <div className="text-[10px] font-black text-[#A59588] tracking-widest uppercase text-center leading-tight">REVENUE<br/>(DAILY)</div>
+                        <div className="text-[10px] font-black text-[#A59588] tracking-widest uppercase text-center leading-tight">REVENUE<br />(DAILY)</div>
                         <div className="text-[10px] font-black text-[#A59588] tracking-widest uppercase text-right">ACTIONS</div>
                     </div>
                 </div>
@@ -160,12 +183,24 @@ const Centers = () => {
                                 <div className="text-center text-[14px] font-bold text-[#1e2330]">{center.horseCount || 0}</div>
                                 <div className="text-center text-[14px] font-bold text-[#1e2330]">{center.trainerCount || 0}</div>
                                 <div className="text-center text-[14px] font-black text-[#1e2330] tracking-wide">${center.totalRevenue || 0}</div>
-                                <div className="flex justify-end">
-                                    <button 
-                                        onClick={() => navigate(`/slotManagement?id=${center.id}`)}
-                                        className="flex items-center gap-1.5 text-[12px] font-bold text-[#964C2E] hover:text-[#7D3F25] transition-colors text-right"
+                                <div className="flex justify-end gap-3">
+                                    <button
+                                        onClick={() => {
+                                            setEditing(true);
+                                            setShowModal(true);
+                                            setFormData(center);
+                                        }}
+                                        className="p-2 rounded-xl bg-[#FAF0EB] text-[#964C2E] hover:bg-[#964C2E] hover:text-white transition-all shadow-sm group"
+                                        title="Edit Center"
                                     >
-                                        Manage<br/>Center <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                                        <Edit2 className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                        onClick={() => handleDelete(center.id)}
+                                        className="p-2 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm group"
+                                        title="Delete Center"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
                                     </button>
                                 </div>
                             </div>
@@ -190,24 +225,60 @@ const Centers = () => {
                         </button>
                     </div>
                 </div>
-                {showModal && <CreateCenterModal setShowModal={setShowModal} onSuccess={fetchData} />}
+                {showModal && <CreateCenterModal setShowModal={setShowModal} editing={editing} formDataa={formData} onSuccess={fetchData} stables={centers} />}
             </div>
         </div>
     );
 };
 
-const CreateCenterModal = ({ setShowModal, onSuccess }) => {
+const CreateCenterModal = ({ setShowModal, editing, formDataa, onSuccess, stables }) => {
     const [formData, setFormData] = useState({
         name: "",
         location: "",
         totalRevenue: 0,
+        horses: [],
+        userId: ""
     });
+
+    useEffect(() => {
+        if (editing && formDataa) {
+            console.log(formDataa, "formDataa");
+
+            setFormData(formDataa);
+        }
+    }, [editing, formDataa]);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [horses, setHorses] = useState([]);
+    const [users, setUsers] = useState([]);
+
+
+    useEffect(() => {
+        const fetchHorses = async () => {
+            const res = await apiFunction(getAllHorsesApi, [], {}, "GET", true);
+            if (res && res.success) {
+                setHorses(res.horses);
+            }
+        }
+        const fetchUsers = async () => {
+            const res = await apiFunction(getAllUsersApi, [], {}, "GET", true);
+            if (res && res.success) {
+                const users = res.users.filter((user) => user.type === "stableStaff");
+                setUsers(users);
+            }
+        }
+        fetchHorses();
+        fetchUsers();
+    }, [])
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsSubmitting(true);
-        const res = await apiFunction(createStableApi, [], formData, "POST", true);
+        let res;
+        if (editing) {
+            res = await apiFunction(updateStableApi, [formData.id], formData, "PUT", true);
+        } else {
+            res = await apiFunction(createStableApi, [], formData, "POST", true);
+        }
         if (res && res.success) {
             toast.success("Center created successfully");
             setShowModal(false);
@@ -218,9 +289,14 @@ const CreateCenterModal = ({ setShowModal, onSuccess }) => {
         setIsSubmitting(false);
     };
 
+    const getStableName = (id) => {
+        const stable = stables.find((stable) => stable.id === id);
+        return stable ? stable.name : "";
+    }
+
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="bg-white rounded-3xl p-8 w-[500px] shadow-2xl border border-gray-100 animate-in zoom-in-95 duration-200">
+            <div className="bg-white max-h-[80vh] overflow-y-auto rounded-3xl p-8 w-[500px] shadow-2xl border border-gray-100 animate-in zoom-in-95 duration-200">
                 <div className="flex justify-between items-center mb-8 pb-6 border-b border-gray-50">
                     <div>
                         <h3 className="text-[22px] font-black text-[#1e2330]">Add New Center</h3>
@@ -230,38 +306,90 @@ const CreateCenterModal = ({ setShowModal, onSuccess }) => {
                         <X className="w-6 h-6" />
                     </button>
                 </div>
-                
+
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div>
                         <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Center Name</label>
-                        <input 
+                        <input
                             required
-                            name="name" 
-                            value={formData.name} 
-                            onChange={(e) => setFormData({...formData, name: e.target.value})}
-                            className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E] focus:bg-white transition-all" 
+                            name="name"
+                            value={formData.name}
+                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E] focus:bg-white transition-all"
                             placeholder="e.g. Lexington Stables"
                         />
                     </div>
                     <div>
                         <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Location / Address</label>
-                        <input 
+                        <input
                             required
-                            name="location" 
-                            value={formData.location} 
-                            onChange={(e) => setFormData({...formData, location: e.target.value})}
-                            className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E] focus:bg-white transition-all" 
+                            name="location"
+                            value={formData.location}
+                            onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                            className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E] focus:bg-white transition-all"
                             placeholder="e.g. Kentucky, USA"
                         />
                     </div>
                     <div>
+                        <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Stable Staff</label>
+                        <select
+                            required
+                            name="userId"
+                            value={formData.userId}
+                            onChange={(e) => setFormData({ ...formData, userId: e.target.value })}
+                            className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E] focus:bg-white transition-all"
+                        >
+                            <option value="">Select Stable Staff</option>
+                            {users.map((user) => (
+                                <option key={user.id} value={user.id}>{user.name}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div>
+
+                        <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Horses</label>
+
+                        <div className="flex flex-row gap-2">
+                            {formData.horses.map((horse) => (
+                                <div key={horse} className="flex items-center gap-2">
+                                    <span className="text-[14px] font-bold">{horses.find((h) => h.id === horse)?.name}</span>
+                                    <button onClick={() => setFormData({ ...formData, horses: formData.horses.filter((h) => h !== horse) })}>
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                        <select
+                            name="horse"
+                            value={formData.horse}
+                            onChange={(e) => setFormData({ ...formData, horses: [...formData.horses, formData.horses.includes(e.target.value) ? "" : e.target.value] })}
+                            className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E] focus:bg-white transition-all"
+                        >
+                            <option value="">Select Horse</option>
+                            {horses.map((horse) => (
+                                <option key={horse.id} value={horse.id}>
+                                    <div className='flex flex-row w-full justify-between gap-6 items-center px-4'>
+                                        <span>{horse.name}</span>
+                                        {horse.stableId && <span>
+
+                                            {`(${getStableName(horse.stableId)})`}
+                                        </span>}
+
+
+                                    </div>
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
                         <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Initial Revenue ($)</label>
-                        <input 
+                        <input
                             type="number"
-                            name="totalRevenue" 
-                            value={formData.totalRevenue} 
-                            onChange={(e) => setFormData({...formData, totalRevenue: parseInt(e.target.value) || 0})}
-                            className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E] focus:bg-white transition-all" 
+                            name="totalRevenue"
+                            value={formData.totalRevenue}
+                            onChange={(e) => setFormData({ ...formData, totalRevenue: parseInt(e.target.value) || 0 })}
+                            className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E] focus:bg-white transition-all"
                         />
                     </div>
 
@@ -270,7 +398,7 @@ const CreateCenterModal = ({ setShowModal, onSuccess }) => {
                             Cancel
                         </button>
                         <button disabled={isSubmitting} type="submit" className="px-8 py-3.5 rounded-2xl bg-[#964C2E] text-white text-[14px] font-bold shadow-lg hover:bg-[#7D3F25] transition-all disabled:opacity-50">
-                            {isSubmitting ? "Creating..." : "Add Center"}
+                            {isSubmitting ? "Creating..." : editing ? "Update Center" : "Add Center"}
                         </button>
                     </div>
                 </form>

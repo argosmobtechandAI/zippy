@@ -26,6 +26,8 @@ export const getHorseByVat = async (req, res) => {
       return res.json({ success: false, message: "Horse not found" });
     }
 
+   
+
     // 3. Process horses properly
     const updatedHorses = await Promise.all(
       horses.map(async (h) => {
@@ -59,4 +61,15 @@ export const getHorseByVat = async (req, res) => {
     console.error("Error fetching horse by VAT:", error);
     res.status(500).json({ success: false, message: "Internal server error" });
   }
+};
+
+
+export const getAllVets = async (req, res) => {
+    try {
+        const vats = await db.select().from(vetTable);
+        res.json({ success: true, vats });
+    } catch (error) {
+        console.error("Error fetching all vets:", error);
+        res.status(500).json({ success: false, message: "Internal server error" });
+    }
 };

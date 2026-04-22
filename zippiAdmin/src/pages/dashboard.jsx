@@ -1,11 +1,11 @@
-import { 
-    Search, Bell, Settings, Users, Gauge, Download, 
-    MoreHorizontal, History, ChevronLeft, ChevronRight, 
-    MapPin, Wallet, Zap
+import {
+    Search, Bell, Settings, Users, Gauge, Download,
+    MoreHorizontal, History, ChevronLeft, ChevronRight,
+    MapPin, Wallet, Zap, User
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { apiFunction } from '../api/apiFunction';
-import { getGlobalStatsApi } from '../api/apis';
+import { getAllUsersApi, getGlobalStatsApi, updateStableApi } from '../api/apis';
 
 const Dashboard = () => {
     const [stats, setStats] = useState({
@@ -19,17 +19,26 @@ const Dashboard = () => {
         utilizationTrend: "0%"
     });
     const [loading, setLoading] = useState(true);
+    const [selectedCenter, setSelectedCenter] = useState(null);
+    const [changeManagerModal, setChangeManagerModal] = useState(false);
+
 
     useEffect(() => {
         const fetchStats = async () => {
             const res = await apiFunction(getGlobalStatsApi, [], {}, "GET", true);
             if (res && res.success) {
+                console.log(res.stats, "res.stats")
                 setStats(res.stats);
             }
             setLoading(false);
         }
+
+
+
         fetchStats();
+
     }, []);
+
 
     return (
         <div className="p-8 max-w-[1400px] mx-auto h-full overflow-y-auto w-full">
@@ -42,9 +51,9 @@ const Dashboard = () => {
                 <div className="flex items-center gap-4">
                     <div className="relative">
                         <Search className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
-                        <input 
-                            type="text" 
-                            placeholder="Search centers or riders..." 
+                        <input
+                            type="text"
+                            placeholder="Search centers or riders..."
                             className="bg-[#F3F1EF] rounded-xl py-2.5 pl-11 pr-4 w-[360px] outline-none text-sm placeholder:text-gray-400 focus:bg-white focus:ring-2 focus:ring-[#964C2E] transition-all"
                         />
                     </div>
@@ -138,9 +147,9 @@ const Dashboard = () => {
                             <tr className="border-b border-gray-100/80 bg-[#FAFAFA]">
                                 <th className="py-4 px-8 text-[11px] font-bold text-[#818C99] tracking-widest uppercase">LOCATION NAME</th>
                                 <th className="py-4 px-6 text-[11px] font-bold text-[#818C99] tracking-widest uppercase">MANAGER</th>
-                                <th className="py-4 px-6 text-[11px] font-bold text-[#818C99] tracking-widest uppercase">ACTIVE<br/>RIDERS</th>
-                                <th className="py-4 px-6 text-[11px] font-bold text-[#818C99] tracking-widest uppercase">MONTHLY<br/>REVENUE</th>
-                                <th className="py-4 px-6 text-[11px] font-bold text-[#818C99] tracking-widest uppercase">HORSE<br/>COUNT</th>
+                                <th className="py-4 px-6 text-[11px] font-bold text-[#818C99] tracking-widest uppercase">STOCKS<br />COUNT</th>
+                                <th className="py-4 px-6 text-[11px] font-bold text-[#818C99] tracking-widest uppercase">MONTHLY<br />REVENUE</th>
+                                <th className="py-4 px-6 text-[11px] font-bold text-[#818C99] tracking-widest uppercase">HORSE<br />COUNT</th>
                                 <th className="py-4 px-6 text-[11px] font-bold text-[#818C99] tracking-widest uppercase">STATUS</th>
                                 <th className="py-4 px-8 text-[11px] font-bold text-[#818C99] tracking-widest uppercase items-end text-right">ACTIONS</th>
                             </tr>
@@ -162,22 +171,25 @@ const Dashboard = () => {
                                     <td className="py-4 px-6 font-semibold text-[#1e2330]">
                                         {center.manager}
                                     </td>
-                                    <td className="py-4 px-6 font-bold text-[#1e2330]">{center.activeRiders}</td>
+                                    <td className="py-4 px-6 font-bold text-[#1e2330]">{center.stocksCount}</td>
                                     <td className="py-4 px-6 font-bold text-[#1e2330]">${Number(center.monthlyRevenue).toLocaleString()}</td>
                                     <td className="py-4 px-6 font-semibold text-[#1e2330]">{center.horseCount}</td>
                                     <td className="py-4 px-6">
-                                        <span className={`inline-flex min-w-[100px] text-center justify-center px-3 py-1 rounded-full text-[9px] font-black tracking-wider uppercase ${
-                                            center.status === 'PEEK PERFORMANCE' ? 'bg-[#D1FAE5] text-[#065F46]' :
+                                        <span className={`inline-flex min-w-[100px] text-center justify-center px-3 py-1 rounded-full text-[9px] font-black tracking-wider uppercase ${center.status === 'PEEK PERFORMANCE' ? 'bg-[#D1FAE5] text-[#065F46]' :
                                             center.status === 'NEAR CAPACITY' ? 'bg-[#FEF3C7] text-[#92400E]' :
-                                            center.status === 'UNDER REVIEW' ? 'bg-[#FEE2E2] text-[#B91C1C]' :
-                                            'bg-[#F1F5F9] text-[#475569]'
-                                        }`}>
+                                                center.status === 'UNDER REVIEW' ? 'bg-[#FEE2E2] text-[#B91C1C]' :
+                                                    'bg-[#F1F5F9] text-[#475569]'
+                                            }`}>
                                             {center.status}
                                         </span>
                                     </td>
                                     <td className="py-4 px-8 text-right">
-                                        <button className="text-gray-400 hover:text-gray-600">
-                                            <MoreHorizontal className="w-5 h-5" />
+                                        <button onClick={()=> {
+                                            setSelectedCenter(center)
+                                            setChangeManagerModal(true)
+                                        }} className="text-gray-400 flex flex-col items-center gap-1 cursor-pointer bg-gray-100 p-2 rounded-lg hover:text-gray-600">
+                                            <User className="w-5 h-5" />
+                                            <p className="text-xs font-bold">Change Manager</p>
                                         </button>
                                     </td>
                                 </tr>
@@ -200,7 +212,7 @@ const Dashboard = () => {
                         <History className="w-5 h-5 text-[#964C2E]" />
                         <h3 className="text-[16px] font-bold text-[#1e2330]">Recent Activity</h3>
                     </div>
-                    
+
                     <div className="flex flex-col gap-0">
                         {(stats.recentActivity || []).length === 0 ? (
                             <p className="text-xs font-bold text-gray-400 text-center py-10">No recent activity detected.</p>
@@ -222,7 +234,7 @@ const Dashboard = () => {
                 {/* Chart Card */}
                 <div className="bg-[#2B1B15] col-span-2 rounded-2xl p-8 shadow-md flex flex-col justify-between overflow-hidden relative">
                     <div className="absolute inset-0 bg-gradient-to-tr from-[#964C2E]/10 to-transparent pointer-events-none"></div>
-                    
+
                     <div className="flex justify-between items-center mb-10 relative z-10">
                         <h3 className="text-lg font-bold text-white">Global Revenue Growth</h3>
                         <div className="flex items-center gap-3 bg-[#1e110c] px-2 py-1.5 rounded-full border border-[#964C2E]/20">
@@ -249,11 +261,87 @@ const Dashboard = () => {
                                 <span className={`text-[10px] font-black tracking-wider uppercase mt-6 ${item.highlight ? 'text-[#964B29]' : 'text-[#816B61]'}`}>{item.lbl}</span>
                             </div>
                         ))}
+                    </div>
+                </div>
+            </div>
+
+            {changeManagerModal && (
+                <ChangeManagerModal
+                    isOpen={changeManagerModal}
+                    onClose={() => setChangeManagerModal(false)}
+                    stable={selectedCenter}
+                    allUsers={stats.staff}
+                />
+            )}
+        </div>
+    );
+};
+
+
+const ChangeManagerModal = ({ isOpen, onClose, stable, allUsers }) => {
+    const [managerId, setManagerId] = useState(stable?.userId || '');
+    const [loading, setLoading] = useState(false);
+
+    const handleSave = async () => {
+        setLoading(true);
+        const res = await apiFunction(updateStableApi, [stable.id], { userId: managerId }, "PUT", true);
+        if (res && res.success) {
+            onClose();
+            window.location.reload();
+        }
+        setLoading(false);
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl p-8 w-[400px] shadow-2xl">
+                <h2 className="text-xl font-bold mb-6">Change Manager</h2>
+                <div className="mb-6">
+                    <div className="flex justify-center bg-white text-white p-2 rounded-lg mb-2 items-center">
+                        
+                        <p className="text-md text-[#964C2E] font-medium ">{stable.name}</p>
+                    </div>
+                    <div className="flex justify-between bg-[#964C2E] text-white p-4 mb-2 rounded-lg items-center">
+                        <label className="block text-sm font-medium ">Selected Manager</label>
+                        <p className="text-sm font-medium">{stable.manager}</p>
+                    </div>
+
+
+                    <label className="block text-sm font-medium mb-2">Select New Manager</label>
+
+                    <select
+                        value={managerId}
+                        onChange={(e) => setManagerId(e.target.value)}
+                        className="w-full border border-gray-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-[#964C2E]"
+                    >
+                        <option value="">Select Manager</option>
+                        {allUsers?.map((user) => (
+                            <option key={user.id} value={user.id} selected={managerId ? user.id === managerId : user.id === stable?.userId}>
+                                {user.name} ({user.email})
+                            </option>
+                        ))}
+                    </select>
+                </div>
+                <div className="flex justify-end gap-3">
+                    <button
+                        onClick={onClose}
+                        className="px-6 py-2 rounded-lg border border-gray-300 hover:bg-gray-50"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={handleSave}
+                        disabled={loading || !managerId}
+                        className="px-6 py-2 rounded-lg bg-[#964C2E] text-white hover:bg-[#72391e] disabled:opacity-50"
+                    >
+                        {loading ? 'Saving...' : 'Save Changes'}
+                    </button>
                 </div>
             </div>
         </div>
-    </div>
-);
+    );
 };
 
 export default Dashboard;

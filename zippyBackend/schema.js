@@ -27,7 +27,7 @@ export const sessionTable = pgTable("sessions", {
   timing: varchar("timing", { length: 255 }).notNull(),
   date: varchar("date", { length: 50 }).notNull(),
   joiningAmount: integer("joining_amount").notNull(),
-  trainerId: uuid("trainers").notNull().references(() => trainerTable.id),
+  trainerId: uuid("trainers").references(() => trainerTable.id),
   horseId: uuid("horse").notNull().references(() => horseTable.id),
   participants: jsonb("participants").default([]),
   duration: varchar("duration", { length: 50 }).notNull(),
@@ -72,6 +72,8 @@ export const horseTable = pgTable("horse", {
   vaccinationSummary: varchar("vaccination_summary", { length: 500 }),
   healthStatus: uuid("health_status").references(() => healthStatusTable.id),
   vaccinationRecords: uuid("vaccination_records").array(),
+  sessions: uuid("sessions").array().default([]),
+  stableId: uuid("stable_id").references(() => stableTable.id),
 });
 
 export const riderTable = pgTable("rider", {
@@ -138,6 +140,7 @@ export const inventoryTable = pgTable("inventory", {
   minThreshold: integer("min_threshold").default(10),
   status: varchar("status", { length: 50 }).default("In Stock"), // In Stock, Low Stock, Out of Stock
   lastUpdated: varchar("last_updated", { length: 50 }).default(new Date().toISOString()),
+  stableId: uuid("stable_id").references(() => stableTable.id),
 });
 
 export const stableTable = pgTable("stable", {
@@ -145,6 +148,7 @@ export const stableTable = pgTable("stable", {
   name: varchar("name", { length: 255 }).notNull(),
   location: varchar("location", { length: 255 }).notNull(),
   totalRevenue: integer("total_revenue").notNull().default(0),
-  horses: uuid("horse").array().default([]),
+  userId: uuid("user_id").notNull().references(() => userTable.id),
   stocks: jsonb("stocks").notNull().default([]),
+  horses: varchar("horses", { length: 255 }).array().default([]),
 });

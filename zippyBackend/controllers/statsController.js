@@ -9,13 +9,16 @@ export const getGlobalStats = async (req, res) => {
       .select({ count: count() })
       .from(userTable)
       .where(eq(userTable.type, "rider"));
+
+
     const totalRiders = ridersResult[0].count;
 
     // 2. Active Horses
     const horsesResult = await db
-      .select({ count: count() })
+      .select()
       .from(horseTable);
-    const totalHorses = horsesResult[0].count;
+
+    const totalHorses = horsesResult.length;
 
     // 3. Total Revenue (from Stables summary)
     const revenueResult = await db
@@ -25,20 +28,20 @@ export const getGlobalStats = async (req, res) => {
 
     // 4. Center Utilization (Simple mock logic based on total sessions vs total seats)
     const sessionsResult = await db
-      .select({ 
+      .select({
         participants: sessionTable.participants,
         totalSeats: sessionTable.totalSeats
       })
       .from(sessionTable);
-    
+
     let totalTaken = 0;
     let totalAvailable = 0;
-    
+
     sessionsResult.forEach(s => {
       totalTaken += (s.participants?.length || 0);
       totalAvailable += (s.totalSeats || 0);
     });
-    
+
     const utilization = totalAvailable > 0 ? Math.round((totalTaken / totalAvailable) * 100) : 0;
 
     // 5. Centers Data (Functionalizing the Center Performance Table)
@@ -47,6 +50,8 @@ export const getGlobalStats = async (req, res) => {
       .select({ stableId: trainerTable.stableId, count: count() })
       .from(trainerTable)
       .groupBy(trainerTable.stableId);
+
+    const users = await db.select().from(userTable).where(eq(userTable.type, "stableStaff"));
 
     const centers = stables.map(s => {
       // Find trainer count for this stable
@@ -58,16 +63,19 @@ export const getGlobalStats = async (req, res) => {
       else if (s.totalRevenue > 30000) status = "NEAR CAPACITY";
       else if (s.totalRevenue < 20000) status = "UNDER REVIEW";
 
+      const horseCount = horsesResult.filter((horse) => horse.stableId === s.id).length;
+
       return {
         id: s.id,
         name: s.name,
         location: s.location,
-        manager: "Site Admin", // Placeholder
-        activeRiders: Math.floor(totalRiders / (stables.length || 1)), 
+        manager: users.find((user) => user.id === s.userId)?.name || "Not Assigned",
+        activeRiders: Math.floor(totalRiders / (stables.length || 1)),
         monthlyRevenue: s.totalRevenue || 0,
-        horseCount: (s.horses || []).length,
+        horseCount: horseCount,
         trainerCount: trainerCount,
-        status: status
+        status: status,
+        stocksCount: s.stocks.length || 0
       };
     });
 
@@ -95,11 +103,12 @@ export const getGlobalStats = async (req, res) => {
         totalHorses: Number(totalHorses),
         totalRevenue: Number(totalRevenue),
         utilization,
-        revenueGrowth: "+12.5%", 
-        riderGrowth: "+5.2%",   
-        horseGrowth: "+2.1%",   
+        revenueGrowth: "+12.5%",
+        riderGrowth: "+5.2%",
+        horseGrowth: "+2.1%",
         utilizationTrend: "-1.5%",
         centers,
+        staff: users,
         recentActivity
       }
     });
@@ -116,11 +125,11 @@ export const getStableStats = async (req, res) => {
     console.log("DIAGNOSTIC: Fetching inventory...");
     const inventoryItems = await db.select().from(inventoryTable);
     console.log(`DIAGNOSTIC: Found ${inventoryItems.length} items in DB.`);
-    
+
     // Log details of the first item to check key mapping
     if (inventoryItems.length > 0) {
-        console.log("DIAGNOSTIC: Item 0 keys:", Object.keys(inventoryItems[0]));
-        console.log("DIAGNOSTIC: Item 0 currentStock value:", inventoryItems[0].currentStock);
+      console.log("DIAGNOSTIC: Item 0 keys:", Object.keys(inventoryItems[0]));
+      console.log("DIAGNOSTIC: Item 0 currentStock value:", inventoryItems[0].currentStock);
     }
 
     let mappedStocks = inventoryItems.map(item => ({
@@ -131,16 +140,16 @@ export const getStableStats = async (req, res) => {
 
     // Emergency Fallback: If DB is empty but we need to prove connection
     if (mappedStocks.length === 0) {
-        console.log("DIAGNOSTIC: Adding internal TEST ITEM because DB was empty.");
-        mappedStocks.push({
-            id: 'test-id-123',
-            name: 'API_CONNECTION_ACTIVE_TEST',
-            category: 'Feed',
-            stock: 99,
-            currentStock: 99,
-            unit: 'Tests',
-            status: 'In Stock'
-        });
+      console.log("DIAGNOSTIC: Adding internal TEST ITEM because DB was empty.");
+      mappedStocks.push({
+        id: 'test-id-123',
+        name: 'API_CONNECTION_ACTIVE_TEST',
+        category: 'Feed',
+        stock: 99,
+        currentStock: 99,
+        unit: 'Tests',
+        status: 'In Stock'
+      });
     }
 
     // 2. Stable Check
@@ -165,7 +174,7 @@ export const getStableStats = async (req, res) => {
     }
 
     const s = stable[0];
-    
+
     // Horse status counts for this stable
     const horses = await db
       .select()
@@ -180,14 +189,14 @@ export const getStableStats = async (req, res) => {
       return todaySessions >= 3;
     }).length;
 
-    const restRequiredCount = horses.filter(h => 
+    const restRequiredCount = horses.filter(h =>
       h.status === 'Medical' || h.status === 'Resting' || h.diet === 'Sick'
     ).length;
 
     const statusCounts = {
       total: horses.length,
       fit: horses.filter(h => h.status === 'Available' && h.diet !== 'Sick').length,
-      nearLimit: nearLimitCount, 
+      nearLimit: nearLimitCount,
       restRequired: restRequiredCount
     };
 
@@ -214,13 +223,13 @@ export const getRevenueStats = async (req, res) => {
   try {
     const sessions = await db.select().from(sessionTable);
     const stables = await db.select().from(stableTable);
-    
+
     // Date filtering logic
     const now = new Date();
     const todayStr = now.toISOString().split('T')[0];
-    
+
     let filteredSessions = sessions;
-    
+
     if (range === 'today') {
       filteredSessions = sessions.filter(s => s.date === todayStr);
     } else if (range === 'week') {
@@ -244,7 +253,7 @@ export const getRevenueStats = async (req, res) => {
 
     // 2. Global Stables Revenue (Scale based on range if today/week)
     let totalRevenue = stables.reduce((acc, s) => acc + (Number(s.totalRevenue) || 0), 0);
-    
+
     if (range === 'today') {
       totalRevenue = guestRevenue * 1.5; // Heuristic for daily total
     } else if (range === 'week') {
@@ -273,9 +282,9 @@ export const getRevenueStats = async (req, res) => {
         revenueGrowth: "+12.5%",
         trends,
         mix: {
-          enrollment: totalRevenue > 0 ? Math.round((enrollmentRevenue/totalRevenue)*100) : 0,
-          renewal: totalRevenue > 0 ? Math.round((renewalRevenue/totalRevenue)*100) : 0,
-          guests: totalRevenue > 0 ? Math.round((guestRevenue/totalRevenue)*100) : 0
+          enrollment: totalRevenue > 0 ? Math.round((enrollmentRevenue / totalRevenue) * 100) : 0,
+          renewal: totalRevenue > 0 ? Math.round((renewalRevenue / totalRevenue) * 100) : 0,
+          guests: totalRevenue > 0 ? Math.round((guestRevenue / totalRevenue) * 100) : 0
         }
       }
     });

@@ -1,10 +1,25 @@
 import { db } from "../db.js";
-import { inventoryTable } from "../schema.js";
+import { inventoryTable, stableTable } from "../schema.js";
 import { eq, sql } from "drizzle-orm";
 
 export const getInventory = async (req, res) => {
     try {
         const items = await db.select().from(inventoryTable);
+
+        const inventory = await Promise.all(items.map(async item => {
+            const stable = await db.select().from(stableTable).where(eq(stableTable.id, item.stableId));
+            return { ...item, stable: stable[0] };
+        }))
+        res.status(200).json({ success: true, items: inventory });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const getInventoryByStableId = async (req, res) => {
+    try {
+        const { stableId } = req.params;
+        const items = await db.select().from(inventoryTable).where(eq(inventoryTable.stableId, stableId));
         res.status(200).json({ success: true, items });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -14,7 +29,7 @@ export const getInventory = async (req, res) => {
 export const createInventoryItem = async (req, res) => {
     console.log("INVENTORY_CREATE: Received body:", JSON.stringify(req.body, null, 2));
     const { data } = req.body;
-    
+
     if (!data || !data.name) {
         console.error("INVENTORY_CREATE: Invalid data received!");
         return res.status(400).json({ success: false, message: "Invalid item data" });
@@ -22,8 +37,8 @@ export const createInventoryItem = async (req, res) => {
 
     try {
         // Calculate initial status
-        const status = Number(data.currentStock) <= 0 ? "Out of Stock" : 
-                      Number(data.currentStock) <= (Number(data.minThreshold) || 10) ? "Low Stock" : "In Stock";
+        const status = Number(data.currentStock) <= 0 ? "Out of Stock" :
+            Number(data.currentStock) <= (Number(data.minThreshold) || 10) ? "Low Stock" : "In Stock";
 
         // Defensive field extraction
         const insertData = {
@@ -33,13 +48,26 @@ export const createInventoryItem = async (req, res) => {
             unit: data.unit,
             minThreshold: Number(data.minThreshold) || 10,
             status,
-            lastUpdated: new Date().toISOString()
+            lastUpdated: new Date().toISOString(),
+            stableId: data.stableId
         };
-        
+
         console.log("INVENTORY_CREATE: Inserting with:", JSON.stringify(insertData, null, 2));
         const newItem = await db.insert(inventoryTable).values(insertData).returning();
         console.log("INVENTORY_CREATE: Insertion success! New item:", JSON.stringify(newItem[0], null, 2));
-        
+
+        const stable = await db.select().from(stableTable).where(eq(stableTable.id, data.stableId));
+        if (!stable.length) {
+            return res.status(404).json({ success: false, message: 'Stable not found' });
+        }
+
+        const inventory = stable[0].stocks ? [...stable[0].stocks, newItem[0].id] : [newItem[0].id]
+
+        const updateStable = await db.update(stableTable).set({ stocks: inventory }).where(eq(stableTable.id, data.stableId)).returning();
+        if (!updateStable.length) {
+            return res.status(404).json({ success: false, message: 'Failed to update stable' });
+        }
+
         res.status(201).json({ success: true, item: newItem[0] });
     } catch (error) {
         console.error("INVENTORY_CREATE: Error during insertion:", error);
@@ -54,8 +82,8 @@ export const updateInventoryItem = async (req, res) => {
         // Re-calculate status if stock changed
         let updateData = { ...data, lastUpdated: new Date().toISOString() };
         if (data.currentStock !== undefined) {
-            updateData.status = data.currentStock <= 0 ? "Out of Stock" : 
-                               data.currentStock <= (data.minThreshold || 10) ? "Low Stock" : "In Stock";
+            updateData.status = data.currentStock <= 0 ? "Out of Stock" :
+                data.currentStock <= (data.minThreshold || 10) ? "Low Stock" : "In Stock";
         }
 
         const updated = await db.update(inventoryTable).set(updateData).where(eq(inventoryTable.id, id)).returning();
@@ -86,8 +114,8 @@ export const seedInventory = async (req, res) => {
         ];
 
         for (const item of samples) {
-            const status = item.currentStock <= 0 ? "Out of Stock" : 
-                          item.currentStock <= item.minThreshold ? "Low Stock" : "In Stock";
+            const status = item.currentStock <= 0 ? "Out of Stock" :
+                item.currentStock <= item.minThreshold ? "Low Stock" : "In Stock";
             await db.insert(inventoryTable).values({ ...item, status });
         }
 

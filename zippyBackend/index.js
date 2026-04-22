@@ -20,6 +20,7 @@ app.use(cors());
 import path from 'path';
 import { fileURLToPath } from 'url';
 import vatRouter from './routes/vatRoute.js';
+import { sendEmail } from './nodemailer.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -41,6 +42,11 @@ app.use("/api/vat", vatRouter)
 runHorseMigrations();
 runInventoryMigrations();
 runTrainerMigrations();
+
+app.post("/api/send-email", (req, res) => {
+    sendEmail();
+    res.status(200).json({ success: true });
+});
 
 app.listen(3000, () => {
     console.log('Server is running on port 3000');

@@ -11,7 +11,8 @@ import {
     Trash2, 
     AlertCircle, 
     Package, 
-    ChevronRight, 
+    ChevronRight,
+    ChevronDown,
     Loader2, 
     ShieldCheck, 
     Clipboard, 
@@ -28,16 +29,19 @@ import {
     createInventoryApi, 
     updateInventoryApi, 
     deleteInventoryApi,
-    seedInventoryApi 
+    seedInventoryApi, 
+    getAllStablesApi
 } from '../api/apis';
 
 const Inventory = () => {
     const [inventory, setInventory] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeCategory, setActiveCategory] = useState("All Items");
+    const [activeStable, setActiveStable] = useState("All Stables");
     const [searchQuery, setSearchQuery] = useState("");
     const [showModal, setShowModal] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
+    const [allStables, setAllStables] = useState([])
 
     const categories = ["All Items", "Feed", "Medicines", "Equipment", "Consumables"];
 
@@ -47,6 +51,11 @@ const Inventory = () => {
             const res = await apiFunction(getAllInventoryApi, [], {}, "GET", true);
             if (res && res.success) {
                 setInventory(res.items);
+            }
+
+            const stables = await apiFunction(getAllStablesApi, [], {}, "GET", true);
+            if (stables && stables.success) {
+                setAllStables(stables.stables);
             }
         } catch (error) {
             toast.error("Failed to load inventory");
@@ -86,8 +95,9 @@ const Inventory = () => {
 
     const filteredItems = inventory.filter(item => {
         const matchesCategory = activeCategory === "All Items" || item.category === activeCategory;
+        const matchesStable = activeStable === "All Stables" || item.stable?.name === activeStable;
         const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
-        return matchesCategory && matchesSearch;
+        return matchesCategory && matchesStable && matchesSearch;
     });
 
     const getCategoryIcon = (category) => {
@@ -148,20 +158,32 @@ const Inventory = () => {
             </div>
 
             {/* Filter Bar */}
-            <div className="flex flex-wrap items-center gap-2 mb-8 bg-white/50 p-2 rounded-2xl w-fit border border-white/80">
-                {categories.map(cat => (
-                    <button
-                        key={cat}
-                        onClick={() => setActiveCategory(cat)}
-                        className={`px-6 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${
-                            activeCategory === cat 
-                            ? "bg-[#964C2E] text-white shadow-md shadow-[#964C2E]/10" 
-                            : "text-gray-400 hover:bg-[#964C2E]/5 hover:text-[#964C2E]"
-                        }`}
+            <div className="flex flex-col md:flex-row gap-4 mb-8">
+                <div className="relative w-full md:w-64">
+                    <select 
+                        value={activeCategory} 
+                        onChange={(e) => setActiveCategory(e.target.value)}
+                        className="w-full appearance-none bg-white border border-gray-100 rounded-[1.2rem] py-4 pl-6 pr-12 text-[13px] font-bold text-gray-500 hover:text-[#1e2330] outline-none cursor-pointer focus:ring-2 focus:ring-[#964C2E]/20 shadow-sm transition-all"
                     >
-                        {cat}
-                    </button>
-                ))}
+                        {categories.map(cat => (
+                            <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                    </select>
+                    <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                </div>
+
+                <div className="relative w-full md:w-64">
+                    <select 
+                        value={activeStable} 
+                        onChange={(e) => setActiveStable(e.target.value)}
+                        className="w-full appearance-none bg-white border border-gray-100 rounded-[1.2rem] py-4 pl-6 pr-12 text-[13px] font-bold text-gray-500 hover:text-[#1e2330] outline-none cursor-pointer focus:ring-2 focus:ring-[#964C2E]/20 shadow-sm transition-all"
+                    >
+                        {["All Stables", ...new Set(allStables.map(s => s.name).filter(Boolean))].map(stableName => (
+                            <option key={stableName} value={stableName}>{stableName}</option>
+                        ))}
+                    </select>
+                    <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                </div>
             </div>
 
             {/* Search and Quick Filters */}
@@ -190,6 +212,7 @@ const Inventory = () => {
                             <tr className="bg-gray-50/50">
                                 <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Item Name</th>
                                 <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Category</th>
+                                <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Stable Name</th>
                                 <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Current Stock</th>
                                 <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Unit</th>
                                 <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
@@ -199,14 +222,14 @@ const Inventory = () => {
                         <tbody className="divide-y divide-gray-50">
                             {loading ? (
                                 <tr>
-                                    <td colSpan="6" className="px-8 py-20 text-center">
+                                    <td colSpan="7" className="px-8 py-20 text-center">
                                         <Loader2 className="w-10 h-10 animate-spin text-[#964C2E] mx-auto mb-4" />
                                         <p className="text-gray-400 font-bold uppercase text-[10px] tracking-widest">Synchronizing Inventory...</p>
                                     </td>
                                 </tr>
                             ) : filteredItems.length === 0 ? (
                                 <tr>
-                                    <td colSpan="6" className="px-8 py-20 text-center text-gray-400 font-bold">No items matching your criteria.</td>
+                                    <td colSpan="7" className="px-8 py-20 text-center text-gray-400 font-bold">No items matching your criteria.</td>
                                 </tr>
                             ) : (
                                 filteredItems.map((item) => (
@@ -222,6 +245,9 @@ const Inventory = () => {
                                         </td>
                                         <td className="px-8 py-6">
                                             <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">{item.category}</span>
+                                        </td>
+                                        <td className="px-8 py-6">
+                                            <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">{item.stable?.name || "N/A"}</span>
                                         </td>
                                         <td className="px-8 py-6">
                                             <div className="flex items-center gap-3">

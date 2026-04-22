@@ -1,7 +1,7 @@
 import express from 'express';
 import { db } from "../db.js";
 import { riderTable, trainerTable, userTable, vetTable, sessionTable } from '../schema.js';
-import { eq, sql, or } from 'drizzle-orm';
+import { eq, sql, or, and } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 
@@ -38,7 +38,8 @@ export const getAllUsers = async (req, res) => {
             trainerId: trainerTable.id,
             riderId: riderTable.id,
             vetId: vetTable.id,
-            profilePicture: userTable.profilePicture
+            profilePicture: userTable.profilePicture,
+            leaves: userTable.leaves
         })
             .from(userTable)
             .leftJoin(trainerTable, eq(userTable.id, trainerTable.userId))
@@ -451,14 +452,18 @@ export const login = async (req, res) => {
         }
 
         let user;
+
+        console.log(data.type)
         if (identifier) {
-            user = await db.select().from(userTable).where(
+            user = await db.select().from(userTable).where(and(
                 or(
                     eq(userTable.email, identifier),
                     eq(userTable.mobile, identifier)
-                )
-            );
+                ),
+                eq(userTable.type, data.type)
+            ))
         }
+
 
         if (!user || user.length === 0) {
             return res.status(404).json({ message: 'User not found', success: false });
@@ -471,6 +476,8 @@ export const login = async (req, res) => {
         if (!bcrypt) {
             return res.status(500).json({ message: 'Authentication service unavailable (bcryptjs missing). Please run npm install on the server.', success: false });
         }
+
+        console.log(user)
 
         const isMatch = await bcrypt.compare(password, user[0].password);
         if (!isMatch) {
@@ -580,5 +587,44 @@ export const updateLeaveRequest = async (req, res) => {
         res.status(200).json({ success: true, message: 'Leave request updated successfully' });
     } catch (error) {
         res.status(500).json({ success: false, message: `Error: ${error.message}` });
+    }
+};
+
+export const updateTrainerLeaveRequest = async (req, res) => {
+    const { userId } = req.params;
+    const { startDate, endDate, status } = req.body.data;
+
+    console.log(userId, startDate, endDate, status);
+
+    try {
+        const user = await db.select().from(userTable).where(eq(userTable.id, userId));
+        if (user.length === 0) {
+            return res.status(404).json({ success: false, message: 'Trainer not found' });
+        }
+
+        const pendingRequests = user[0].leaves;
+        const updatedPendingRequests = pendingRequests.map(request => {
+            if (request.startDate === startDate && request.endDate === endDate) {
+                return { ...request, status };
+            }
+            return request;
+        });
+
+        const result = await db.update(userTable).set({ leaves: updatedPendingRequests }).where(eq(userTable.id, userId));
+
+        res.status(200).json({ success: true, message: 'Leave request updated successfully' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: `Error: ${error.message}` });
+    }
+};
+
+export const getAllTrainers = async (req, res) => {
+    console.log("getAllTrainers")
+    try {
+        const trainers = await db.select().from(trainerTable);
+        console.log(trainers, "trainers")
+        return res.status(200).json({ trainers, message: 'Trainers fetched successfully', success: true });
+    } catch (error) {
+        return res.status(500).json({ message: `Error: ${error.message}`, success: false });
     }
 };

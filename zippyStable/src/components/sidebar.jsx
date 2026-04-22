@@ -1,7 +1,20 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Archive, ClipboardList, BookOpen, CreditCard, Plus, CloudLightning } from 'lucide-react';
+import { LayoutDashboard, Archive, ClipboardList, BookOpen, LogOut, CreditCard, Plus, CloudLightning } from 'lucide-react';
+import toast from "react-hot-toast"
+import { useNavigate } from 'react-router-dom';
 
 const Sidebar = () => {
+
+    const navigate = useNavigate()
+
+    const handleLogOut = () => {
+
+        const removeToken = localStorage.removeItem("token")
+
+        navigate("/login")
+
+    }
+
     return (
         <div className="w-[280px] bg-brand-brown h-full flex flex-col text-brand-beige shadow-lg relative z-20 flex-shrink-0 font-body">
             {/* Header / Logo */}
@@ -37,9 +50,9 @@ const Sidebar = () => {
 
             {/* Bottom Button */}
             <div className="p-6">
-                <button className="w-full py-3.5 rounded-xl bg-brand-orange hover:bg-brand-orange/90 flex items-center justify-center gap-2 text-[14px] font-bold transition-all text-white shadow-sm font-display">
-                    <Plus className="w-4 h-4" strokeWidth={3} />
-                    REGISTER NEW ENTRY
+                <button onClick={handleLogOut} className="w-full cursor-pointer py-3.5 rounded-xl bg-brand-orange hover:bg-brand-orange/90 flex items-center justify-center gap-2 text-[14px] font-bold transition-all text-white shadow-sm font-display">
+                    <LogOut className="w-4 h-4" strokeWidth={3} />
+                    Sign Out
                 </button>
             </div>
         </div>

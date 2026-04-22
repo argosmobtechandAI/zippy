@@ -1,5 +1,5 @@
 import { db } from '../db.js';
-import { horseTable, healthStatusTable, vaccinationRecordsTable, sessionTable } from '../schema.js';
+import { horseTable, healthStatusTable, vaccinationRecordsTable, sessionTable, userTable } from '../schema.js';
 import { eq, sql } from 'drizzle-orm';
 
 export const createHorse = async (req, res) => {
@@ -22,15 +22,18 @@ export const createHorse = async (req, res) => {
 export const getHorses = async (req, res) => {
     try {
         const horses = await db.select().from(horseTable);
-        const sessions = await db.select().from(sessionTable);
 
         const now = new Date();
         const todayStr = now.toISOString().split('T')[0];
         const last7DaysDate = new Date();
         last7DaysDate.setDate(now.getDate() - 7);
 
-        const horsesWithStats = horses.map(horse => {
-            const horseSessions = sessions.filter(s => s.horseId === horse.id);
+        const horsesWithStats = await Promise.all(horses.map(async horse => {
+            const horseSessions = await db.select().from(sessionTable).where(eq(sessionTable.horseId, horse.id));
+            const vaccinationRecords = await db.select().from(vaccinationRecordsTable).where(eq(vaccinationRecordsTable.horseId, horse.id));
+            const trainer = await db.select().from(userTable).where(eq(userTable.id, horse.trainerId));
+            const healthRecords = await db.select().from(healthStatusTable).where(eq(healthStatusTable.horseId, horse.id));
+
 
             // Sessions Today
             const sessionsTodayCount = horseSessions.filter(s => s.date === todayStr).length;
@@ -46,12 +49,18 @@ export const getHorses = async (req, res) => {
             // Target is 7 sessions per week for 100%
             const trainingAvg = Math.min(100, Math.round((sessionsLast7Days / 7) * 100));
 
+
+
             return {
                 ...horse,
                 sessionsToday: sessionsTodayCount,
-                weeklyTrainingAvg: trainingAvg
+                weeklyTrainingAvg: trainingAvg,
+                trainer: trainer[0],
+                vaccinationRecords: vaccinationRecords?.length > 0 ? vaccinationRecords : [],
+                healthRecords: healthRecords?.length > 0 ? healthRecords : []
             };
-        });
+        }));
+
 
         res.status(200).json({ success: true, horses: horsesWithStats });
     } catch (error) {
@@ -292,6 +301,82 @@ export const seedHorses = async (req, res) => {
         await db.insert(horseTable).values(sampleHorses);
 
         res.status(200).json({ success: true, message: "Sample fleet registry initialized" });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const getHorsesByStable = async (req, res) => {
+    const { stableId } = req.params;
+    try {
+        const horses = await db.select().from(horseTable).where(eq(horseTable.stableId, stableId));
+
+        const completeHorses = await Promise.all(horses.map(async (horse) => {
+            const healthRecords = await db.select().from(healthStatusTable).where(eq(healthStatusTable.horseId, horse.id));
+
+            let latestHealthStatus = null;
+            if (healthRecords.length > 0) {
+                latestHealthStatus = healthRecords.reduce((a, b) =>
+                    b.date > a.date ? b : a
+                );
+            }
+            const vaccinationRecords = await db.select().from(vaccinationRecordsTable).where(eq(vaccinationRecordsTable.horseId, horse.id));
+
+            const trainer = await db.select().from(userTable).where(eq(userTable.id, horse.trainerId));
+
+            const sessions = await db.select().from(sessionTable).where(eq(sessionTable.horseId, horse.id));
+
+
+            return { ...horse, healthRecords: latestHealthStatus, vaccinationRecords, trainer, session: sessions };
+        }));
+        res.status(200).json({ success: true, horses: completeHorses });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const assignVet = async (req, res) => {
+    const { horseId } = req.params;
+    const { data } = req.body;
+    const { vatId } = data;
+
+    console.log(horseId, vatId)
+    try {
+        const horse = await db.select().from(horseTable).where(eq(horseTable.id, horseId));
+        if (horse.length === 0) {
+            return res.status(404).json({ success: false, message: "Horse not found" });
+        }
+
+        const updatedHorse = await db.update(horseTable).set({ vatId }).where(eq(horseTable.id, horseId)).returning();
+        console.log(updatedHorse)
+        if (updatedHorse.length === 0) {
+            return res.status(404).json({ success: false, message: "Horse could not update" });
+        }
+        res.status(200).json({ success: true, message: "Vet assigned successfully" });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+
+export const assignTrainer = async (req, res) => {
+    const { horseId } = req.params;
+    const { data } = req.body;
+    const { trainerId } = data;
+
+    console.log(horseId, trainerId)
+    try {
+        const horse = await db.select().from(horseTable).where(eq(horseTable.id, horseId));
+        if (horse.length === 0) {
+            return res.status(404).json({ success: false, message: "Horse not found" });
+        }
+
+        const updatedHorse = await db.update(horseTable).set({ trainerId }).where(eq(horseTable.id, horseId)).returning();
+        console.log(updatedHorse)
+        if (updatedHorse.length === 0) {
+            return res.status(404).json({ success: false, message: "Horse could not update" });
+        }
+        res.status(200).json({ success: true, message: "Trainer assigned successfully" });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

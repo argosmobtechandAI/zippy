@@ -5,7 +5,7 @@ import {
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFunction } from '../api/apiFunction';
-import { createUserApi, getAllUsersApi, notifyUserApi, notifyAllUsersApi, updateUserApi } from '../api/apis';
+import { createUserApi, getAllUsersApi, notifyUserApi, notifyAllUsersApi, updateUserApi, updateUserLeaveApi } from '../api/apis';
 import toast from 'react-hot-toast';
 
 const TrainerCard = ({ user, onNotify, onEdit, onStatusUpdate, navigate }) => {
@@ -22,7 +22,7 @@ const TrainerCard = ({ user, onNotify, onEdit, onStatusUpdate, navigate }) => {
                             <span className="text-[#964C2E] text-[10px] font-black tracking-widest uppercase">{user.title || 'SPECIALIST'}</span>
                             <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
                             <div className={`flex items-center gap-1 text-[11px] font-bold ${user.status === 'OFF-DUTY' ? 'text-amber-600' : (user.status === 'ON-LEAVE' ? 'text-red-500' : 'text-[#059669]')}`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${user.status === 'OFF-DUTY' ? 'bg-amber-600' : (user.status === 'ON-LEAVE' ? 'bg-red-500' : 'bg-[#059669]')}`}></span> 
+                                <span className={`w-1.5 h-1.5 rounded-full ${user.status === 'OFF-DUTY' ? 'bg-amber-600' : (user.status === 'ON-LEAVE' ? 'bg-red-500' : 'bg-[#059669]')}`}></span>
                                 {user.status || 'AVAILABLE'}
                             </div>
                         </div>
@@ -68,9 +68,9 @@ const TrainerCard = ({ user, onNotify, onEdit, onStatusUpdate, navigate }) => {
             </div>
 
             <div className="grid grid-cols-2 gap-3 mt-auto">
-                <button 
-                    onClick={(e) => { 
-                        e.stopPropagation(); 
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
                         const nextStatus = user.status === 'AVAILABLE' ? 'OFF-DUTY' : 'AVAILABLE';
                         onStatusUpdate(nextStatus);
                     }}
@@ -78,7 +78,7 @@ const TrainerCard = ({ user, onNotify, onEdit, onStatusUpdate, navigate }) => {
                 >
                     {user.status === 'AVAILABLE' ? 'Mark Off-Duty' : 'Mark Available'}
                 </button>
-                <button 
+                <button
                     onClick={(e) => { e.stopPropagation(); navigate(`/slotManagement?trainerId=${user.id}`); }}
                     className="py-3.5 rounded-xl bg-[#964C2E] text-white text-[12px] font-black uppercase tracking-wider hover:bg-[#7D3F25] shadow-lg shadow-[#964C2E]/20 transition-all"
                 >
@@ -128,12 +128,26 @@ const UserManagement = () => {
         fetchUsers();
     }, []);
 
+    const handleApproveRequest = async (userId, leave, status) => {
+        try {
+            const res = await apiFunction(`${updateUserLeaveApi}/${userId}`, [], { startDate: leave.startDate, endDate: leave.endDate, status }, "PUT", true);
+            if (res && res.success) {
+                toast.success(`Leave request ${status}`);
+                fetchUsers();
+            } else {
+                toast.error(res?.message || `Error updating leave request`);
+            }
+        } catch (error) {
+            toast.error('Network error. Please try again.');
+        }
+    }
+
     const filteredUsers = users.filter(user => {
         const matchesType = userType === "all" || user.type === userType;
         const search = searchQuery.toLowerCase();
-        const matchesSearch = 
-            (user.name?.toLowerCase() || "").includes(search) || 
-            (user.email?.toLowerCase() || "").includes(search) || 
+        const matchesSearch =
+            (user.name?.toLowerCase() || "").includes(search) ||
+            (user.email?.toLowerCase() || "").includes(search) ||
             (user.mobile || "").includes(searchQuery);
         return matchesType && matchesSearch;
     });
@@ -147,13 +161,12 @@ const UserManagement = () => {
     }
 
     const TabButton = ({ type, label, count }) => (
-        <button 
-            onClick={() => setUserType(type)} 
-            className={`pb-3 text-[13px] font-bold px-1 border-b-[3px] transition-all ${
-                userType === type 
-                ? "text-[#964C2E] border-[#964C2E]" 
+        <button
+            onClick={() => setUserType(type)}
+            className={`pb-3 text-[13px] font-bold px-1 border-b-[3px] transition-all ${userType === type
+                ? "text-[#964C2E] border-[#964C2E]"
                 : "text-gray-500 hover:text-gray-700 border-transparent"
-            }`}
+                }`}
         >
             {label} ({count})
         </button>
@@ -176,15 +189,15 @@ const UserManagement = () => {
                     </div>
 
                     <div className="flex items-center gap-3">
-                        <button 
+                        <button
                             onClick={() => setNotifyModal({ all: true })}
                             className="bg-white border border-[#964C2E]/20 text-[#964C2E] text-[13px] font-bold px-6 py-3.5 rounded-xl shadow-sm flex items-center gap-2.5 hover:bg-[#FDF9F4] transition-all"
                         >
                             <Megaphone className="w-4 h-4" strokeWidth={2.5} />
                             Global Broadcast
                         </button>
-                        <button 
-                            onClick={() => setCreateModal(true)} 
+                        <button
+                            onClick={() => setCreateModal(true)}
                             className="bg-[#FAE9DB] border border-[#EACDBA] text-[#964C2E] text-[13px] font-bold px-6 py-3.5 rounded-xl shadow-sm flex items-center gap-2.5 hover:bg-[#F3DCC7] transition-all"
                         >
                             <Zap className="w-4 h-4" strokeWidth={2.5} />
@@ -203,11 +216,11 @@ const UserManagement = () => {
                     <TabButton type="vet" label="Vets" count={counts.vet} />
                     <TabButton type="stableStaff" label="Stable Staff" count={counts.stableStaff} />
                 </div>
-                
+
                 <div className="relative w-full md:w-72 mb-3">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input 
-                        type="text" 
+                    <input
+                        type="text"
                         placeholder="Search by name, email..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -228,8 +241,8 @@ const UserManagement = () => {
                     </div>
                 ) : (
                     filteredUsers.map((user, index) => (
-                        <div 
-                            key={user.id || index} 
+                        <div
+                            key={user.id || index}
                             onClick={() => setViewUser(user)}
                             className="bg-white rounded-2xl p-6 shadow-sm border border-[#EADED4] hover:border-[#964C2E] hover:shadow-md transition-all cursor-pointer group relative overflow-hidden"
                         >
@@ -237,12 +250,12 @@ const UserManagement = () => {
                                 <ChevronRight className="w-5 h-5 text-[#964C2E]" />
                             </div>
                             {user.type === 'trainer' ? (
-                                <TrainerCard 
-                                    user={user} 
-                                    onNotify={() => setNotifyModal(user)} 
-                                    onEdit={() => { setEditingUser(user); setCreateModal(true); }} 
+                                <TrainerCard
+                                    user={user}
+                                    onNotify={() => setNotifyModal(user)}
+                                    onEdit={() => { setEditingUser(user); setCreateModal(true); }}
                                     onStatusUpdate={(status) => handleStatusUpdate(user.id, status)}
-                                    navigate={navigate} 
+                                    navigate={navigate}
                                 />
                             ) : (
                                 <>
@@ -256,14 +269,14 @@ const UserManagement = () => {
                                                 <div className="flex items-center gap-3">
                                                     <span className="bg-[#FAE9DB] text-[#964C2E] text-[9px] font-black tracking-widest uppercase px-2.5 py-1 rounded-sm">{user.type}</span>
                                                     <div className={`flex items-center gap-1.5 text-[11px] font-bold ${user.status === 'INACTIVE' ? 'text-red-500' : 'text-[#059669]'}`}>
-                                                        <span className={`w-1.5 h-1.5 rounded-full ${user.status === 'INACTIVE' ? 'bg-red-500' : 'bg-[#059669]'}`}></span> 
+                                                        <span className={`w-1.5 h-1.5 rounded-full ${user.status === 'INACTIVE' ? 'bg-red-500' : 'bg-[#059669]'}`}></span>
                                                         {user.status || 'ACTIVE'}
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-1 text-gray-400">
-                                            <button 
+                                            <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     setNotifyModal(user);
@@ -273,7 +286,7 @@ const UserManagement = () => {
                                             >
                                                 <BellRing className="w-4 h-4" />
                                             </button>
-                                            <button 
+                                            <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     setEditingUser(user);
@@ -334,34 +347,34 @@ const UserManagement = () => {
             </div>
 
             {createModal && (
-                <UserActionModal 
-                    userType={editingUser ? editingUser.type : (userType === 'all' ? 'rider' : userType)} 
+                <UserActionModal
+                    userType={editingUser ? editingUser.type : (userType === 'all' ? 'rider' : userType)}
                     setCreateModal={(val) => {
                         setCreateModal(val);
                         if (!val) setEditingUser(null);
-                    }} 
-                    onSuccess={fetchUsers} 
+                    }}
+                    onSuccess={fetchUsers}
                     initialData={editingUser}
                 />
             )}
 
             {notifyModal && (
-                <SendNotificationModal 
-                    user={notifyModal} 
-                    onClose={() => setNotifyModal(null)} 
+                <SendNotificationModal
+                    user={notifyModal}
+                    onClose={() => setNotifyModal(null)}
                 />
             )}
 
-            {viewUser && <ProfileQuickView user={viewUser} onClose={() => setViewUser(null)} navigate={navigate} />}
+            {viewUser && <ProfileQuickView user={viewUser} onClose={() => setViewUser(null)} navigate={navigate} onApproveLeave={handleApproveRequest} />}
         </div>
     );
 };
 
 
-const ProfileQuickView = ({ user, onClose }) => {
+const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave }) => {
     return (
         <div className="fixed inset-0 bg-black/20 flex justify-end z-[60] animate-in fade-in duration-300">
-            <div className="w-[450px] bg-white h-full shadow-2xl p-8 animate-in slide-in-from-right duration-300">
+            <div className="w-[450px] bg-white h-full shadow-2xl p-8 overflow-y-auto animate-in slide-in-from-right duration-300">
                 <div className="flex justify-between items-center mb-8">
                     <h2 className="text-[20px] font-black text-[#1e2330]">User Profile</h2>
                     <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
@@ -414,6 +427,35 @@ const ProfileQuickView = ({ user, onClose }) => {
                             </div>
                         </div>
                     </div>
+
+                    <div className="p-5 bg-[#F8F9FA] rounded-2xl border border-gray-100">
+                        <h4 className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-4">LEAVE HISTORY & REQUESTS</h4>
+                        {(!user.leaves || user.leaves.length === 0) ? (
+                            <p className="text-[12px] font-bold text-gray-400">No leave requests found.</p>
+                        ) : (
+                            <div className="space-y-3">
+                                {user.leaves.map((leave, idx) => (
+                                    <div key={idx} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col gap-3">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <p className="text-[13px] font-bold text-[#1e2330]">{leave.reason}</p>
+                                                <p className="text-[11px] font-bold text-gray-400 mt-0.5">{leave.startDate} to {leave.endDate}</p>
+                                            </div>
+                                            <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-md ${leave.status.toLowerCase() === 'approved' ? 'bg-green-100 text-green-700' : leave.status.toLowerCase() === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                                                {leave.status}
+                                            </span>
+                                        </div>
+                                        {user.type !== 'rider' && leave.status.toLowerCase() === 'pending' && (
+                                            <div className="flex gap-2 pt-2 border-t border-gray-50">
+                                                <button onClick={() => onApproveLeave(user.id, leave, 'approved')} className="flex-1 bg-[#059669] hover:bg-[#047857] text-white text-[10px] font-black uppercase py-2 rounded-lg transition-colors">Approve</button>
+                                                <button onClick={() => onApproveLeave(user.id, leave, 'rejected')} className="flex-1 bg-red-500 hover:bg-red-600 text-white text-[10px] font-black uppercase py-2 rounded-lg transition-colors">Reject</button>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
 
             </div>
@@ -436,6 +478,7 @@ const UserActionModal = ({ userType, setCreateModal, onSuccess, initialData }) =
         title: initialData?.title || "",
         experience: initialData?.experience || "",
         status: initialData?.status || "ACTIVE",
+        password: "",
     })
 
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -494,7 +537,7 @@ const UserActionModal = ({ userType, setCreateModal, onSuccess, initialData }) =
             try {
                 const api = isEdit ? `${updateUserApi}/${initialData.id}` : createUserApi;
                 const method = isEdit ? "PUT" : "POST";
-                
+
                 const res = await apiFunction(api, [], formData, method, true);
                 if (res && res.success) {
                     toast.success(res.message || `User ${isEdit ? 'updated' : 'created'} successfully`);
@@ -510,6 +553,8 @@ const UserActionModal = ({ userType, setCreateModal, onSuccess, initialData }) =
             }
         }
     }
+
+
 
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
@@ -548,6 +593,14 @@ const UserActionModal = ({ userType, setCreateModal, onSuccess, initialData }) =
                             </label>
                             <input name="mobile" value={formData.mobile} onChange={handleChange} type="tel" className={`w-full border ${errors.mobile ? 'border-red-400 bg-red-50' : 'border-gray-100'} bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold transition-all focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E] focus:bg-white`} placeholder="Phone number" />
                         </div>
+                        {userType === "stableStaff" &&
+                            <div className="col-span-1">
+                                <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 flex justify-between items-center px-1">
+                                    <span>Password</span>
+                                    {errors.password && <span className="text-red-500 normal-case tracking-normal font-bold">{errors.password}</span>}
+                                </label>
+                                <input required={!isEdit} name="password" value={formData.password} onChange={handleChange} type="password" className={`w-full border ${errors.password ? 'border-red-400 bg-red-50' : 'border-gray-100'} bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold transition-all focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E] focus:bg-white`} placeholder="Password" />
+                            </div>}
                         <div className="col-span-1">
                             <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 flex justify-between items-center px-1">
                                 <span>Date of Birth</span>
@@ -682,12 +735,11 @@ const SendNotificationModal = ({ user, onClose }) => {
                                 <button
                                     key={cat}
                                     type="button"
-                                    onClick={() => setFormData({...formData, type: cat})}
-                                    className={`flex-1 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-wider border-2 transition-all ${
-                                        formData.type === cat 
-                                        ? 'bg-[#964C2E] border-[#964C2E] text-white shadow-lg' 
+                                    onClick={() => setFormData({ ...formData, type: cat })}
+                                    className={`flex-1 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-wider border-2 transition-all ${formData.type === cat
+                                        ? 'bg-[#964C2E] border-[#964C2E] text-white shadow-lg'
                                         : 'bg-gray-50 border-transparent text-gray-400 hover:bg-gray-100'
-                                    }`}
+                                        }`}
                                 >
                                     {cat}
                                 </button>
@@ -697,10 +749,10 @@ const SendNotificationModal = ({ user, onClose }) => {
 
                     <div>
                         <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">TITLE</label>
-                        <input 
-                            type="text" 
+                        <input
+                            type="text"
                             value={formData.title}
-                            onChange={(e) => setFormData({...formData, title: e.target.value})}
+                            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                             className="w-full bg-gray-50/50 border border-gray-100 rounded-2xl p-4 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E] transition-all"
                             placeholder="e.g. Schedule Update"
                         />
@@ -708,18 +760,18 @@ const SendNotificationModal = ({ user, onClose }) => {
 
                     <div>
                         <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">MESSAGE BODY</label>
-                        <textarea 
+                        <textarea
                             rows={4}
                             value={formData.desc}
-                            onChange={(e) => setFormData({...formData, desc: e.target.value})}
+                            onChange={(e) => setFormData({ ...formData, desc: e.target.value })}
                             className="w-full bg-gray-50/50 border border-gray-100 rounded-2xl p-4 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E] transition-all resize-none"
                             placeholder="Enter the full notification message here..."
                         />
                     </div>
 
-                    <button 
+                    <button
                         disabled={isSubmitting}
-                        type="submit" 
+                        type="submit"
                         className="w-full bg-[#964C2E] text-white py-5 rounded-[20px] font-black text-[14px] uppercase tracking-[2px] shadow-xl hover:bg-[#7D3F25] transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-3"
                     >
                         {isSubmitting ? 'Transmitting...' : (

@@ -1,0 +1,2 @@
+ALTER TABLE "inventory" ADD COLUMN "stable_id" uuid;
+ALTER TABLE "inventory" ADD CONSTRAINT "inventory_stable_id_stable_id_fk" FOREIGN KEY ("stable_id") REFERENCES "public"."stable"("id") ON DELETE no action ON UPDATE no action;

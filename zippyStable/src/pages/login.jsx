@@ -1,7 +1,6 @@
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CloudLightning, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { CloudLightning, Phone, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { apiFunction } from '../api/apiFunction';
 import { loginApi } from '../api/apis';
 import toast from 'react-hot-toast';
@@ -11,9 +10,9 @@ const Login = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [formData, setFormData] = useState({
-        email: '',
+        mobile: '',
         password: '',
-        type: "admin"
+        type: "stableStaff"
     });
 
     const handleSubmit = async (e) => {
@@ -22,12 +21,11 @@ const Login = () => {
 
         try {
             const res = await apiFunction(loginApi, [], formData, "POST", false);
-            console.log(res, "ress")
+            console.log(res)
             if (res && res.success) {
                 localStorage.setItem('token', res.token);
-                localStorage.setItem('user', JSON.stringify(res.user));
                 toast.success('Welcome back to Zippy!');
-                navigate('/');
+                navigate('/choose-stable');
             } else {
                 toast.error(res?.message || 'Login failed. Please check your credentials.');
             }
@@ -82,20 +80,20 @@ const Login = () => {
                 <div className="flex-1 flex flex-col justify-center px-12 lg:px-20 relative">
                     <div className="mb-10 text-center lg:text-left">
                         <h2 className="text-3xl font-black text-[#1e2330] mb-3">Welcome Back</h2>
-                        <p className="text-gray-400 font-bold text-sm tracking-wide">PLEASE ENTER YOUR ADMIN CREDENTIALS</p>
+                        <p className="text-gray-400 font-bold text-sm tracking-wide">PLEASE ENTER YOUR STAFF CREDENTIALS</p>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="space-y-2">
-                            <label className="text-[11px] font-black text-[#964C2E] tracking-widest uppercase pl-1">Email or Mobile</label>
+                            <label className="text-[11px] font-black text-[#964C2E] tracking-widest uppercase pl-1">Mobile Number</label>
                             <div className="relative group">
-                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300 group-focus-within:text-[#964C2E] transition-colors" />
+                                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300 group-focus-within:text-[#964C2E] transition-colors" />
                                 <input
                                     type="text"
                                     required
-                                    value={formData.email}
-                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                    placeholder="admin@zippy.com"
+                                    value={formData.mobile}
+                                    onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
+                                    placeholder="e.g. +1 234 567 8900"
                                     className="w-full bg-gray-50 border border-transparent rounded-2xl py-4 pl-12 pr-4 text-[15px] font-bold text-[#1e2330] focus:outline-none focus:bg-white focus:border-[#964C2E]/20 transition-all placeholder:text-gray-300"
                                 />
                             </div>
