@@ -493,7 +493,7 @@ const Revenue = () => {
                                     <h3 className="text-xl font-bold text-[#1e2330] mb-2">{plan.name}</h3>
                                     <div className="flex items-baseline gap-1 mb-6">
                                         <span className="text-3xl font-bold text-[#964C2E]">${plan.amount}</span>
-                                        <span className="text-sm text-gray-500 font-medium">/ {plan.validity}</span>
+                                        <span className="text-sm text-gray-500 font-medium">/ {plan.validity} months</span>
                                     </div>
 
                                     <div className="space-y-3 mb-6">
@@ -627,14 +627,14 @@ const Revenue = () => {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Validity</label>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Validity(in Months)</label>
                                     <input
                                         type="text"
                                         required
                                         value={planForm.validity}
                                         onChange={e => setPlanForm({ ...planForm, validity: e.target.value })}
                                         className="w-full bg-[#F3F1EF] rounded-xl py-3 px-4 outline-none text-sm focus:bg-white focus:ring-2 focus:ring-[#964C2E] transition-all"
-                                        placeholder="e.g. month, year"
+                                        placeholder="e.g. 1, 2, 3"
                                     />
                                 </div>
                                 <div className="col-span-2">
