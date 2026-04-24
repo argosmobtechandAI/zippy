@@ -1,6 +1,10 @@
 import { db } from '../db.js';
-import { planTable } from '../schema.js';
+import { instance } from '../razorpay.js';
+import { planTable, revenueTable, userTable } from '../schema.js';
 import { eq } from 'drizzle-orm';
+import dotenv from 'dotenv';
+dotenv.config();
+import crypto from 'crypto';
 
 export const createPlan = async (req, res) => {
     const { data } = req.body;
@@ -16,10 +20,9 @@ export const createPlan = async (req, res) => {
 };
 
 export const getPlans = async (req, res) => {
-    
+
     try {
         const plans = await db.select().from(planTable);
-        console.log("Plans:", plans);
         res.status(200).json({ success: true, plans });
     } catch (error) {
         res.status(500).json({ success: false, message: `Error: ${error.message}` });
@@ -81,7 +84,6 @@ export const updatePlan = async (req, res) => {
     const { id } = req.params;
     const { data } = req.body;
     try {
-        console.log("Updating plan", id, data);
         const updatedPlan = await db.update(planTable).set(data).where(eq(planTable.id, id)).returning();
         if (!updatedPlan.length) {
             return res.status(404).json({ success: false, message: 'Plan not found' });
@@ -104,3 +106,87 @@ export const deletePlan = async (req, res) => {
         res.status(500).json({ success: false, message: `Error: ${error.message}` });
     }
 };
+
+export const createRazorPayOrder = async (req, res) => {
+    const userId = req.userId
+    const { data } = req.body;
+    const { planId } = data;
+
+    try {
+        const plan = await db.select().from(planTable).where(eq(planTable.id, planId));
+        if (!plan.length) {
+            return res.status(404).json({ success: false, message: 'Plan not found' });
+        }
+        const amount = plan[0].amount;
+        const currency = 'INR';
+        const receipt = `order_${Date.now()}`;
+
+        const user = await db.select().from(userTable).where(eq(userTable.id, userId));
+        if (!user.length) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+
+        const options = {
+            amount,
+            currency,
+            receipt,
+        };
+        const order = await instance.orders.create(options);
+        res.status(200).json({ success: true, order: { ...order, razorpayKeyId: process.env.RAZORPAY_KEY_ID, userName: user[0].name, userEmail: user[0].email, userPhone: user[0].mobile } });
+    } catch (error) {
+        res.status(500).json({ success: false, message: `Error: ${error.message}` });
+    }
+};
+
+const addMonths = (date, months) => {
+    const result = new Date(date);
+    result.setMonth(result.getMonth() + months)
+    return result;
+};
+
+export const verifyRazorPayOrder = async (req, res) => {
+    const userId = req.userId
+    const { data } = req.body;
+    const { orderId, paymentId, planId } = data;
+
+    try {
+        const plan = await db.select().from(planTable).where(eq(planTable.id, planId));
+        if (!plan.length) {
+            return res.status(404).json({ success: false, message: 'Plan not found' });
+        }
+        const user = await db.select().from(userTable).where(eq(userTable.id, userId));
+        if (!user.length) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        if (orderId && paymentId) {
+
+            const revenue = {
+                amount: plan[0].amount,
+                type: "plan",
+                date: new Date(),
+                purchaserId: userId,
+                purchaseType: "plan",
+                planId,
+                plan_key: paymentId,
+                status: "Active",
+                endDate: addMonths(new Date(), Number(plan[0].validity)),
+            }
+
+
+
+            // Payment is verified
+            // Create the subscription
+            const subscription = await db.insert(revenueTable).values(revenue).returning();
+
+
+            res.status(200).json({ success: true, subscription: subscription[0] });
+        } else {
+            res.status(400).json({ success: false, message: 'Invalid signature' });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, message: `Error: ${error.message}` });
+    }
+};
+

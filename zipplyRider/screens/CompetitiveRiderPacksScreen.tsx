@@ -4,7 +4,9 @@ import { ChevronLeft, Bell, CheckCircle2, Gavel, Calendar, CalendarClock, Ban, C
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiFunction } from '../api/apifunction';
-import { getAllPlansApi, enrollPackApi } from '../api/api';
+import { getAllPlansApi, enrollPackApi, createOrderApi, verifyRazorPayOrderApi } from '../api/api';
+import Toast from 'react-native-toast-message';
+import RazorpayCheckout from 'react-native-razorpay';
 
 export default function CompetitiveRiderPacksScreen() {
     const navigation = useNavigation();
@@ -33,23 +35,81 @@ export default function CompetitiveRiderPacksScreen() {
     const handleEnrollment = async (packId) => {
         setEnrolling(packId);
         try {
-            const res = await apiFunction(enrollPackApi, [], { planId: packId }, "POST", true);
+            const res = await apiFunction(createOrderApi, [], { planId: packId }, "POST", true);
+            console.log("Res", res);
             if (res && res.success) {
-                // Update local storage with new session count/plan info
-                const userData = await AsyncStorage.getItem('user');
-                if (userData) {
-                    const user = JSON.parse(userData);
-                    user.sessionCount = res.rider?.sessionCount;
-                    user.plan = res.rider?.plan;
-                    await AsyncStorage.setItem('user', JSON.stringify(user));
+                console.log(res);
+                const options = {
+                    description: 'Payment for competitive rider pack',
+                    image: 'https://your-cdn.com/logo.png',
+                    currency: 'INR',
+                    key: res?.order?.razorpayKeyId,
+                    amount: res?.order?.amount * 100,
+                    name: 'Zippy Equestrian',
+                    prefill: {
+                        email: res?.order?.userEmail,
+                        contact: res?.order?.userPhone,
+                        name: res?.order?.userName
+                    },
+                    theme: { color: '#8C4A28' }
                 }
-                navigation.navigate('RiderPlanManagement');
-            } else {
-                alert(res.message || "Enrollment failed");
+
+                const data = await RazorpayCheckout.open(options);
+                console.log(data); // paymentId, signature etc
+                if (data) {
+                    const verifyRes = await apiFunction(verifyRazorPayOrderApi, [], { orderId: res.order.id, planId: packId, paymentId: data.razorpay_payment_id }, "POST", true);
+                    console.log("Verify Res", verifyRes);
+                    if (verifyRes && verifyRes.success) {
+                        Toast.show({
+                            type: 'success',
+                            text1: verifyRes.message || "Payment verified successfully",
+                        })
+
+
+                        const res = await apiFunction(enrollPackApi, [], { planId: packId, paymentEndDate: verifyRes?.subscription?.endDate }, "POST", true);
+                        if (res && res.success) {
+                            Toast.show({
+                                type: 'success',
+                                text1: res.message || "Enrollment successful",
+                            })
+                            navigation.navigate('Home');
+                        } else {
+                            Toast.show({
+                                type: 'error',
+                                text1: res.message || "Enrollment failed",
+                            })
+                        }
+                    }
+                }
+
             }
+            // const res = await apiFunction(enrollPackApi, [], { planId: packId }, "POST", true);
+            // if (res && res.success) {
+            //     // Update local storage with new session count/plan info
+            //     const userData = await AsyncStorage.getItem('user');
+            //     if (userData) {
+            //         const user = JSON.parse(userData);
+            //         user.sessionCount = res.rider?.sessionCount;
+            //         user.plan = res.rider?.plan;
+            //         await AsyncStorage.setItem('user', JSON.stringify(user));
+            //     }
+            //     Toast.show({
+            //         type: 'success',
+            //         text1: res.message || "Enrollment successful",
+            //     })
+            //     navigation.navigate('Home');
+            // } else {
+            //     Toast.show({
+            //         type: 'error',
+            //         text1: res.message || "Enrollment failed",
+            //     })
+            // }
         } catch (error) {
             console.error("Enrollment error:", error);
-            alert("An error occurred during enrollment.");
+            Toast.show({
+                type: 'error',
+                text1: "An error occurred during enrollment.",
+            })
         } finally {
             setEnrolling(null);
         }

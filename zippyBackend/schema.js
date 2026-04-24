@@ -90,6 +90,7 @@ export const riderTable = pgTable("rider", {
   pendingSessions: uuid("pending_sessions").array().default([]),
   medical: varchar("medical", { length: 255 }),
   userId: uuid("user_id").notNull().references(() => userTable.id),
+  planEndDate: varchar("plan_end_date", { length: 50 }).default(""),
 });
 
 export const planTable = pgTable("plan", {
@@ -100,6 +101,19 @@ export const planTable = pgTable("plan", {
   amount: integer("amount").notNull(),
   level: varchar("level", { length: 255 }).notNull(),
   rules: jsonb("rules").notNull().default([]),
+});
+
+export const revenueTable = pgTable("revenue", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  amount: integer("amount").notNull(),
+  type: varchar("type", { length: 255 }).notNull(),
+  date: varchar("date", { length: 50 }).notNull(),
+  purchaserId: uuid("purchaserId").references(() => userTable.id),
+  purchaseType: varchar("purchaseType", { length: 255 }).notNull(),
+  planId: uuid("planId").references(() => planTable.id),
+  plan_key: varchar("plan_key", { length: 255 }),
+  status: varchar("status", { length: 50 }).default("Pending"),
+  endDate: varchar("end_date", { length: 50 }),
 });
 
 export const vetTable = pgTable("vet", {

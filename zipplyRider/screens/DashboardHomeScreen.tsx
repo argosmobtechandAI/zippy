@@ -33,7 +33,7 @@ export default function DashboardHomeScreen() {
 
     const upcoming = sessions.filter(s => {
       const sessionDate = new Date(s.date);
-      
+
       // If the session is for today, we need to check the timing
       if (sessionDate.toDateString() === now.toDateString()) {
         try {
@@ -41,18 +41,18 @@ export default function DashboardHomeScreen() {
           const [hours, minutes] = startTime.split(':').map(Number);
           const sessionWithTime = new Date(sessionDate);
           sessionWithTime.setHours(hours, minutes, 0, 0);
-          
+
           return sessionWithTime > now;
         } catch (e) {
           // Fallback if timing format is unexpected
           return true;
         }
       }
-      
+
       // For other days, just check if it's in the future
       return sessionDate > now;
     }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    
+
     return upcoming[0];
   }, [sessions]);
 
@@ -86,7 +86,7 @@ export default function DashboardHomeScreen() {
         </View>
 
         {/* Alert Banner */}
-        {rider?.sessionCount <=2 && <TouchableOpacity onPress={() => navigation.navigate("Enrollment")} className="bg-[#fceddf] border border-[#eabba4] rounded-2xl p-4 flex-row items-center mb-6">
+        {rider?.sessionCount <= 2 && <TouchableOpacity onPress={() => navigation.navigate("Enrollment")} className="bg-[#fceddf] border border-[#eabba4] rounded-2xl p-4 flex-row items-center mb-6">
           <View className="w-10 h-10 bg-[#eabba4] rounded-full items-center justify-center mr-4 opacity-80">
             <AlertTriangle color="#8C4A28" size={20} />
           </View>
@@ -106,7 +106,7 @@ export default function DashboardHomeScreen() {
           </View>
           <View className="items-end">
             <Text className="text-[#fceddf] opacity-80 text-[10px] font-bold tracking-wider mb-1">
-              PLAN EXPIRY
+              PLAN EXPIRY: {rider?.planEndDate?.split("T")[0] || "NA"}
             </Text>
             <Text className="text-white text-lg font-bold">
               {rider?.plan && rider?.plan.length > 0 ? "Active Plan" : "No Active Plan"}
@@ -158,11 +158,11 @@ export default function DashboardHomeScreen() {
           </View>
         ) : (
           <View className="bg-white/50 rounded-3xl p-10 mb-8 border border-[#e2d5c3] border-dashed items-center justify-center">
-             <Calendar color="#94a3b8" size={32} />
-             <Text className="text-[#64748b] mt-2 font-semibold">No upcoming rides</Text>
-             <TouchableOpacity onPress={() => navigation.navigate("Sessions")} className="mt-4">
-               <Text className="text-[#8C4A28] font-bold">Book your first session →</Text>
-             </TouchableOpacity>
+            <Calendar color="#94a3b8" size={32} />
+            <Text className="text-[#64748b] mt-2 font-semibold">No upcoming rides</Text>
+            <TouchableOpacity onPress={() => navigation.navigate("Sessions")} className="mt-4">
+              <Text className="text-[#8C4A28] font-bold">Book your first session →</Text>
+            </TouchableOpacity>
           </View>
         )}
 

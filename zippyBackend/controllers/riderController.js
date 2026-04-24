@@ -1,23 +1,62 @@
 import { eq, sql } from "drizzle-orm";
 import { db } from "../db.js";
-import { riderTable, planTable, userTable } from "../schema.js";
+import { riderTable, planTable, userTable, revenueTable } from "../schema.js";
 
 export const getRider = async (req, res) => {
     const userId = req.userId;
+
     try {
-        const rider = await db.select().from(riderTable).where(eq(riderTable.userId, userId))
-        if (!rider) {
-            return res.status(404).json({ message: 'Rider not found', success: false });
+        const rider = await db
+            .select()
+            .from(riderTable)
+            .where(eq(riderTable.userId, userId));
+
+        if (!rider || rider.length === 0) {
+            return res.status(404).json({
+                message: 'Rider not found',
+                success: false
+            });
         }
-        return res.status(200).json({ rider: rider[0], message: 'Rider fetched successfully', success: true });
+
+        const planLastDate = rider[0].planEndDate;
+
+        if (planLastDate) {
+            const lastDate = new Date(planLastDate).getTime();
+            const currentDate = Date.now();
+
+            console.log("Last:", lastDate, "Current:", currentDate);
+
+            // ✅ Expired
+            if (lastDate < currentDate) {
+                await db.update(riderTable)
+                    .set({
+                        sessionCount: 0,
+                        planEndDate: null,
+                    })
+                    .where(eq(riderTable.userId, userId));
+
+                await db.update(revenueTable).set({ status: "expired" }).where(eq(revenueTable.purchaserId, userId))
+            }
+        }
+
+        return res.status(200).json({
+            rider: rider[0],
+            message: 'Rider fetched successfully',
+            success: true
+        });
+
     } catch (error) {
-        return res.status(500).json({ message: `Error: ${error.message}`, success: false });
+        return res.status(500).json({
+            message: `Error: ${error.message}`,
+            success: false
+        });
     }
-}
+};
+
 
 export const enrollPack = async (req, res) => {
     const userId = req.userId;
-    const { planId } = req.body.data;
+    const { planId, paymentEndDate } = req.body.data;
 
     try {
         // 1. Get Plan Details
@@ -34,10 +73,14 @@ export const enrollPack = async (req, res) => {
         }
 
         // 3. Update Rider Plan and Session Count
+
+        const plans = [...rider[0].plan, p]
+        const sessionsCount = rider[0].sessionCount + p.sessionsCount;
         const updatedRider = await db.update(riderTable)
-            .set({ 
-                plan: [p], // Store snapshot of current plan
-                sessionCount: p.sessionsCount 
+            .set({
+                plan: plans,
+                sessionCount: sessionsCount,
+                planEndDate: paymentEndDate,
             })
             .where(eq(riderTable.userId, userId))
             .returning();
@@ -55,10 +98,10 @@ export const enrollPack = async (req, res) => {
 
         await db.execute(sql`UPDATE users SET "notifications" = COALESCE("notifications", '[]'::jsonb) || ${JSON.stringify([notification])}::jsonb WHERE id = ${userId}`);
 
-        return res.status(200).json({ 
-            success: true, 
-            message: `Successfully enrolled in ${p.name}`, 
-            rider: updatedRider[0] 
+        return res.status(200).json({
+            success: true,
+            message: `Successfully enrolled in ${p.name}`,
+            rider: updatedRider[0]
         });
 
     } catch (error) {

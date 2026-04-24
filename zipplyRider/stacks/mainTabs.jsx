@@ -19,6 +19,7 @@ const MainTabsStack = () => {
                 tabBarActiveTintColor: '#8C4A28',
                 tabBarInactiveTintColor: '#999',
             }}
+            initialRouteName='Home'
         >
             <Tab.Screen
                 name="Home"

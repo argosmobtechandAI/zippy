@@ -10,6 +10,7 @@ const SessionStack = () => {
             screenOptions={{
                 headerShown: false,
             }}
+            initialRouteName='SessionsScreen'
         >
             <Stack.Screen name="SessionsScreen" component={SessionsScreen} />
             <Stack.Screen name="SessionDetail" component={SessionDetailScreen} />

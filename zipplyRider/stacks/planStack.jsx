@@ -13,6 +13,7 @@ const PlanStack = () => {
             screenOptions={{
                 headerShown: false,
             }}
+            initialRouteName='CompetitiveRiderPacks'
         >
             <Stack.Screen name="CompetitiveRiderPacks" component={CompetitiveRiderPacksScreen} />
             <Stack.Screen name="RiderPlanManagement" component={RiderPlanManagementScreen} />

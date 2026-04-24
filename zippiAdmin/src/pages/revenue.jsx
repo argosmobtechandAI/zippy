@@ -5,15 +5,17 @@ import {
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { apiFunction } from '../api/apiFunction';
-import { getAllStablesApi, getRevenueStatsApi, plansApi } from '../api/apis';
+import { getAllStablesApi, getAllUsersApi, getRevenueStatsApi, plansApi, revenueStatsApi } from '../api/apis';
 
 const Revenue = () => {
     const [stables, setStables] = useState([]);
     const [activeTab, setActiveTab] = useState('month');
     const [viewMode, setViewMode] = useState('dashboard');
     const [plans, setPlans] = useState([]);
+    const [users, setUsers] = useState([]);
     const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
     const [editingPlan, setEditingPlan] = useState(null);
+    const [revenueData, setRevenueData] = useState([]);
     const [planForm, setPlanForm] = useState({
         name: '',
         sessionsCount: '',
@@ -39,6 +41,13 @@ const Revenue = () => {
             if (res && res.success) {
                 setStats(res.stats);
             }
+
+            const usersRes = await apiFunction(getAllUsersApi, [], {}, "GET", true);
+            console.log("Users Data:", usersRes);
+            if (usersRes && usersRes.success) {
+                setUsers(usersRes.users || []);
+            }
+
         } catch (err) {
             console.error("Failed to fetch revenue stats:", err);
         }
@@ -51,10 +60,24 @@ const Revenue = () => {
             if (res && res.success) {
                 setPlans(res.plans || []);
             }
+
+            const revenueRes = await apiFunction(revenueStatsApi, [], {}, "GET", true);
+            console.log("Revenue Data:", revenueRes);
+            if (revenueRes && revenueRes.success) {
+                setRevenueData(revenueRes.revenueStats || []);
+            }
+
+
         } catch (err) {
             console.error("Failed to fetch plans:", err);
         }
     };
+
+    const getUserName = (userId) => {
+        const user = users.find(user => user.id === userId);
+        return user ? user.name : '';
+    };
+
 
     useEffect(() => {
         const fetchStables = async () => {
@@ -383,66 +406,171 @@ const Revenue = () => {
                     </div>
                 </>
             ) : (
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100/80 p-8">
-                    <div className="flex justify-between items-center mb-8">
-                        <div>
-                            <h2 className="text-xl font-bold text-[#1e2330]">All Plans</h2>
-                            <p className="text-sm text-gray-500 mt-1">Manage subscription plans and packages</p>
+                <div className="flex flex-col gap-8">
+                    {/* Plans Stats Overview */}
+                    <div className="grid grid-cols-4 gap-6">
+                        {/* Total Plan Revenue */}
+                        <div className="bg-[#964C2E] rounded-2xl p-7 text-white relative overflow-hidden shadow-xl shadow-[#964C2E]/20">
+                            <div className="absolute -right-8 -top-8 opacity-20 pointer-events-none">
+                                <Globe className="w-48 h-48 text-white min-w-[200px]" strokeWidth={1} />
+                            </div>
+                            <div className="relative z-10">
+                                <h3 className="text-[13px] font-semibold text-white/80 mb-2">Total Plan Revenue</h3>
+                                <p className="text-[40px] font-bold mb-5 tracking-tight">${Number(revenueData?.totalRevenue || 0).toLocaleString()}</p>
+                                <div className="flex items-center gap-1.5 text-sm font-bold text-[#4ADE80]">
+                                    <TrendingUp className="w-4 h-4" strokeWidth={2.5} />
+                                    <span>Active: ${Number(revenueData?.totalActiveRevenue || 0).toLocaleString()}</span>
+                                </div>
+                            </div>
                         </div>
-                        <button
-                            onClick={() => handleOpenPlanModal()}
-                            className="px-6 py-3 bg-[#964C2E] text-white rounded-xl font-bold hover:bg-[#7d3f25] transition-all flex items-center gap-2 shadow-lg shadow-[#964C2E]/20"
-                        >
-                            <Plus className="w-5 h-5" /> Create New Plan
-                        </button>
+
+                        {/* Active Plans */}
+                        <div className="bg-white rounded-2xl p-7 shadow-sm border border-gray-100/80">
+                            <h3 className="text-[13px] font-bold text-[#818C99] mb-2 uppercase tracking-wide">Active Subscriptions</h3>
+                            <p className="text-[40px] font-bold text-[#1e2330] mb-5 tracking-tight">{revenueData?.activePlans?.length || 0}</p>
+                            <div className="flex items-center gap-1.5 text-sm font-bold text-[#34D399]">
+                                <Activity className="w-4 h-4" strokeWidth={2.5} />
+                                <span className="text-gray-400 font-medium ml-1">Currently active</span>
+                            </div>
+                        </div>
+
+                        {/* Expired Plans */}
+                        <div className="bg-white rounded-2xl p-7 shadow-sm border border-gray-100/80">
+                            <h3 className="text-[13px] font-bold text-[#818C99] mb-2 uppercase tracking-wide">Expired Subscriptions</h3>
+                            <p className="text-[40px] font-bold text-[#1e2330] mb-5 tracking-tight">{revenueData?.expiredPlans?.length || 0}</p>
+                            <div className="flex items-center gap-1.5 text-sm font-bold text-red-400">
+                                <TrendingDown className="w-4 h-4" strokeWidth={2.5} />
+                                <span className="text-gray-400 font-medium ml-1">Currently expired</span>
+                            </div>
+                        </div>
+
+                        {/* Inactive Revenue */}
+                        <div className="bg-white rounded-2xl p-7 shadow-sm border border-gray-100/80">
+                            <h3 className="text-[13px] font-bold text-[#818C99] mb-2 uppercase tracking-wide">Past Revenue</h3>
+                            <p className="text-[40px] font-bold text-[#1e2330] mb-5 tracking-tight">${Number(revenueData?.totalInactiveRevenue || 0).toLocaleString()}</p>
+                            <div className="flex items-center gap-1.5 text-sm font-bold text-gray-400">
+                                <FileText className="w-4 h-4" strokeWidth={2.5} />
+                                <span className="font-medium ml-1">From expired plans</span>
+                            </div>
+                        </div>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-6">
-                        {plans.map((plan) => (
-                            <div key={plan.id} className="border border-gray-100 rounded-2xl p-6 hover:shadow-md transition-shadow relative group">
-                                <div className="absolute top-6 right-6 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button
-                                        onClick={() => handleOpenPlanModal(plan)}
-                                        className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-[#964C2E] hover:text-white transition-colors"
-                                    >
-                                        <Edit2 className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                        onClick={() => handleDeletePlan(plan.id)}
-                                        className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-red-500 hover:text-white transition-colors"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
-                                </div>
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100/80 p-8">
+                        <div className="flex justify-between items-center mb-8">
+                            <div>
+                                <h2 className="text-xl font-bold text-[#1e2330]">All Plans</h2>
+                                <p className="text-sm text-gray-500 mt-1">Manage subscription plans and packages</p>
+                            </div>
+                            <button
+                                onClick={() => handleOpenPlanModal()}
+                                className="px-6 py-3 bg-[#964C2E] text-white rounded-xl font-bold hover:bg-[#7d3f25] transition-all flex items-center gap-2 shadow-lg shadow-[#964C2E]/20"
+                            >
+                                <Plus className="w-5 h-5" /> Create New Plan
+                            </button>
+                        </div>
 
-                                <div className="inline-block px-3 py-1 bg-[#FFF5F2] text-[#964C2E] rounded-full text-xs font-bold uppercase tracking-wide mb-4">
-                                    {plan.level}
-                                </div>
-                                <h3 className="text-xl font-bold text-[#1e2330] mb-2">{plan.name}</h3>
-                                <div className="flex items-baseline gap-1 mb-6">
-                                    <span className="text-3xl font-bold text-[#964C2E]">${plan.amount}</span>
-                                    <span className="text-sm text-gray-500 font-medium">/ {plan.validity}</span>
-                                </div>
-
-                                <div className="space-y-3 mb-6">
-                                    <div className="flex items-center gap-3 text-sm text-gray-600">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-[#964C2E]"></div>
-                                        <span className="font-medium">{plan.sessionsCount} Sessions included</span>
+                        <div className="grid grid-cols-3 gap-6">
+                            {plans.map((plan) => (
+                                <div key={plan.id} className="border border-gray-100 rounded-2xl p-6 hover:shadow-md transition-shadow relative group">
+                                    <div className="absolute top-6 right-6 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button
+                                            onClick={() => handleOpenPlanModal(plan)}
+                                            className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-[#964C2E] hover:text-white transition-colors"
+                                        >
+                                            <Edit2 className="w-4 h-4" />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeletePlan(plan.id)}
+                                            className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-red-500 hover:text-white transition-colors"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
                                     </div>
-                                    {(plan.rules || []).map((rule, idx) => (
-                                        <div key={idx} className="flex items-center gap-3 text-sm text-gray-600">
+
+                                    <div className="inline-block px-3 py-1 bg-[#FFF5F2] text-[#964C2E] rounded-full text-xs font-bold uppercase tracking-wide mb-4">
+                                        {plan.level}
+                                    </div>
+                                    <h3 className="text-xl font-bold text-[#1e2330] mb-2">{plan.name}</h3>
+                                    <div className="flex items-baseline gap-1 mb-6">
+                                        <span className="text-3xl font-bold text-[#964C2E]">${plan.amount}</span>
+                                        <span className="text-sm text-gray-500 font-medium">/ {plan.validity}</span>
+                                    </div>
+
+                                    <div className="space-y-3 mb-6">
+                                        <div className="flex items-center gap-3 text-sm text-gray-600">
                                             <div className="w-1.5 h-1.5 rounded-full bg-[#964C2E]"></div>
-                                            <span>{rule}</span>
+                                            <span className="font-medium">{plan.sessionsCount} Sessions included</span>
                                         </div>
-                                    ))}
+                                        {(plan.rules || []).map((rule, idx) => (
+                                            <div key={idx} className="flex items-center gap-3 text-sm text-gray-600">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-[#964C2E]"></div>
+                                                <span>{rule}</span>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
-                        {plans.length === 0 && (
-                            <div className="col-span-3 py-12 text-center text-gray-500 font-medium">
-                                No plans available. Create one to get started.
-                            </div>
-                        )}
+                            ))}
+                            {plans.length === 0 && (
+                                <div className="col-span-3 py-12 text-center text-gray-500 font-medium">
+                                    No plans available. Create one to get started.
+                                </div>
+                            )}
+                        </div>
+
+                    </div>
+
+                    {/* Transaction History Table */}
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100/80 overflow-hidden">
+                        <div className="p-6 border-b border-gray-100/80 bg-white">
+                            <h3 className="text-lg font-bold text-[#1e2330]">Transaction History</h3>
+                            <p className="text-sm text-gray-500 mt-1">Recent plan purchases and revenue events</p>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="border-b border-gray-100/80 bg-[#FAFAFA]">
+                                        <th className="py-4 px-6 text-[11px] font-bold text-[#818C99] tracking-widest uppercase">Purchaser name</th>
+                                        <th className="py-4 px-6 text-[11px] font-bold text-[#818C99] tracking-widest uppercase">DATE</th>
+                                        <th className="py-4 px-6 text-[11px] font-bold text-[#818C99] tracking-widest uppercase">PLAN</th>
+                                        <th className="py-4 px-6 text-[11px] font-bold text-[#818C99] tracking-widest uppercase">AMOUNT</th>
+                                        <th className="py-4 px-6 text-[11px] font-bold text-[#818C99] tracking-widest uppercase">STATUS</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {(revenueData?.stats || []).map((txn, idx) => (
+                                        <tr key={txn.id || idx} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                                            <td className="py-5 px-6 text-sm font-medium text-gray-500">
+                                                {getUserName(txn.purchaserId)}
+                                            </td>
+                                            <td className="py-5 px-6 text-sm text-gray-600">
+                                                {new Date(txn.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                            </td>
+                                            <td className="py-5 px-6">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-full bg-[#FFF5F2] flex items-center justify-center text-[#964C2E]">
+                                                        <Layers className="w-4 h-4" />
+                                                    </div>
+                                                    <span className="font-bold text-[#1e2330]">{plans.find(p => p.id === txn.planId)?.name || 'Unknown Plan'}</span>
+                                                </div>
+                                            </td>
+                                            <td className="py-5 px-6 font-bold text-[#964C2E]">
+                                                ${txn.amount}
+                                            </td>
+                                            <td className="py-5 px-6">
+                                                <span className={`inline-flex items-center px-2.5 py-1.5 rounded-md text-[11px] font-bold ${txn.status === 'Active' ? 'bg-[#DCFCE7] text-[#166534]' : 'bg-gray-100 text-gray-600'}`}>
+                                                    {txn.status || 'Completed'}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {(!revenueData?.stats || revenueData.stats.length === 0) && (
+                                        <tr>
+                                            <td colSpan="5" className="py-10 text-center font-bold text-gray-400">No transactions found.</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             )}

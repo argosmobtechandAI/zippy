@@ -21,6 +21,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import vatRouter from './routes/vatRoute.js';
 import { sendEmail } from './nodemailer.js';
+import revenueRouter from './routes/revenueRoute.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -37,6 +38,7 @@ app.use('/api/stable', stableRoute);
 app.use('/api/stats', statsRoute);
 app.use('/api/inventory', inventoryRoute);
 app.use("/api/vat", vatRouter)
+app.use("/api/revenue", revenueRouter)
 
 // Auto-migrate schema on startup
 runHorseMigrations();
