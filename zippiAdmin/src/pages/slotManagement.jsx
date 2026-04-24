@@ -215,8 +215,8 @@ const SlotManagement = () => {
                     <div className="flex items-center gap-4">
                         <h2 className="text-[20px] font-bold text-[#1e2330]">Sessions</h2>
                         <div className="relative">
-                            <select 
-                                value={sessionFilter} 
+                            <select
+                                value={sessionFilter}
                                 onChange={(e) => setSessionFilter(e.target.value)}
                                 className="appearance-none bg-white border border-[#E6D9CC] rounded-xl py-2 pl-4 pr-10 text-[12px] font-bold text-[#1e2330] outline-none cursor-pointer focus:ring-2 focus:ring-[#964C2E]/50"
                             >
@@ -484,16 +484,16 @@ const SessionModal = ({ sessionToEdit, trainers, setShowModal, horses, onSuccess
         trainerId: sessionToEdit?.trainerId || trainerIdParam || "",
         horseId: sessionToEdit?.horseId || "",
         duration: sessionToEdit?.duration || "90 Min",
-        location: sessionToEdit?.location || location,
+        location: sessionToEdit?.location || "",
         totalSeats: sessionToEdit?.totalSeats || 10,
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const existingSessions = formData.horseId && formData.date ? 
+    const existingSessions = formData.horseId && formData.date ?
         sessions.filter(s => s.horseId === formData.horseId && s.date === formData.date && s.id !== sessionToEdit?.id) : [];
 
 
-console.log(existingSessions, "existingSessions")
+    console.log(existingSessions, "existingSessions")
 
 
     const handleSubmit = async (e) => {
@@ -503,11 +503,12 @@ console.log(existingSessions, "existingSessions")
         setIsSubmitting(true);
 
         try {
+
             // Quick find a horse ID if empty (choosing first available)
 
             const formattedTiming = `${formData.startTime} - ${formData.endTime}`;
 
-            const finalData = { ...formData, timing: formattedTiming, location: location };
+            const finalData = { ...formData, timing: formattedTiming };
 
             console.log(finalData, "finalData")
 
@@ -570,7 +571,7 @@ console.log(existingSessions, "existingSessions")
                         </div>
                     )}
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-3 gap-4">
                         <div>
                             <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Start Time</label>
                             <input type="time" required value={formData.startTime} onChange={(e) => setFormData({ ...formData, startTime: e.target.value })} className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]" />
@@ -578,6 +579,11 @@ console.log(existingSessions, "existingSessions")
                         <div>
                             <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">End Time</label>
                             <input type="time" required value={formData.endTime} onChange={(e) => setFormData({ ...formData, endTime: e.target.value })} className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]" />
+                        </div>
+
+                        <div>
+                            <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Location</label>
+                            <input type="text" required value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]" />
                         </div>
                     </div>
 

@@ -4,7 +4,6 @@ import axios from 'axios';
 
 export const apiFunction = async (api, params = [], data = {}, method, withAuth) => {
 
-    console.log(api)
 
     let headers = {}
     if (withAuth) {
