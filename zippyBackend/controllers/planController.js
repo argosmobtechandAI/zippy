@@ -3,24 +3,26 @@ import { planTable } from '../schema.js';
 import { eq } from 'drizzle-orm';
 
 export const createPlan = async (req, res) => {
-    const {data} = req.body;
+    const { data } = req.body;
     try {
         const newPlan = await db.insert(planTable).values(data).returning();
-        if(!newPlan.length) {
-            return res.status(400).json({success: false, message: 'Failed to create plan'});
+        if (!newPlan.length) {
+            return res.status(400).json({ success: false, message: 'Failed to create plan' });
         }
-        res.status(201).json({success: true, plan: newPlan[0]});
+        res.status(201).json({ success: true, plan: newPlan[0] });
     } catch (error) {
-        res.status(500).json({success: false, message: `Error: ${error.message}`});
+        res.status(500).json({ success: false, message: `Error: ${error.message}` });
     }
 };
 
 export const getPlans = async (req, res) => {
+    
     try {
         const plans = await db.select().from(planTable);
-        res.status(200).json({success: true, plans});
+        console.log("Plans:", plans);
+        res.status(200).json({ success: true, plans });
     } catch (error) {
-        res.status(500).json({success: false, message: `Error: ${error.message}`});
+        res.status(500).json({ success: false, message: `Error: ${error.message}` });
     }
 };
 
@@ -63,41 +65,42 @@ export const bootstrapPlans = async (req, res) => {
 };
 
 export const getPlanById = async (req, res) => {
-    const {id} = req.params;
+    const { id } = req.params;
     try {
         const plan = await db.select().from(planTable).where(eq(planTable.id, id));
-        if(!plan.length) {
-            return res.status(404).json({success: false, message: 'Plan not found'});
+        if (!plan.length) {
+            return res.status(404).json({ success: false, message: 'Plan not found' });
         }
-        res.status(200).json({success: true, plan: plan[0]});
+        res.status(200).json({ success: true, plan: plan[0] });
     } catch (error) {
-        res.status(500).json({success: false, message: `Error: ${error.message}`});
+        res.status(500).json({ success: false, message: `Error: ${error.message}` });
     }
 };
 
 export const updatePlan = async (req, res) => {
-    const {id} = req.params;
-    const {data} = req.body;
+    const { id } = req.params;
+    const { data } = req.body;
     try {
+        console.log("Updating plan", id, data);
         const updatedPlan = await db.update(planTable).set(data).where(eq(planTable.id, id)).returning();
-        if(!updatedPlan.length) {
-            return res.status(404).json({success: false, message: 'Plan not found'});
+        if (!updatedPlan.length) {
+            return res.status(404).json({ success: false, message: 'Plan not found' });
         }
-        res.status(200).json({success: true, plan: updatedPlan[0]});
+        res.status(200).json({ success: true, plan: updatedPlan[0] });
     } catch (error) {
-        res.status(500).json({success: false, message: `Error: ${error.message}`});
+        res.status(500).json({ success: false, message: `Error: ${error.message}` });
     }
 };
 
 export const deletePlan = async (req, res) => {
-    const {id} = req.params;
+    const { id } = req.params;
     try {
         const deletedPlan = await db.delete(planTable).where(eq(planTable.id, id)).returning();
-        if(!deletedPlan.length) {
-            return res.status(404).json({success: false, message: 'Plan not found'});
+        if (!deletedPlan.length) {
+            return res.status(404).json({ success: false, message: 'Plan not found' });
         }
-        res.status(200).json({success: true, plan: deletedPlan[0]});
+        res.status(200).json({ success: true, plan: deletedPlan[0] });
     } catch (error) {
-        res.status(500).json({success: false, message: `Error: ${error.message}`});
+        res.status(500).json({ success: false, message: `Error: ${error.message}` });
     }
 };

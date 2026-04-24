@@ -37,3 +37,4 @@ export const updateInventoryApi = `${baseUrl}/inventory`;
 export const deleteInventoryApi = `${baseUrl}/inventory`;
 export const seedInventoryApi = `${baseUrl}/inventory/seed`;
 export const getAllTrainersApi = `${baseUrl}/users/trainers`;
+export const plansApi = `${baseUrl}/plan`;
