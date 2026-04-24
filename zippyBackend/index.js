@@ -45,10 +45,6 @@ runHorseMigrations();
 runInventoryMigrations();
 runTrainerMigrations();
 
-app.post("/api/send-email", (req, res) => {
-    sendEmail();
-    res.status(200).json({ success: true });
-});
 
 app.listen(3000, () => {
     console.log('Server is running on port 3000');
