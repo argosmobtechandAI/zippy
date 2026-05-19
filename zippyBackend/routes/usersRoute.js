@@ -3,7 +3,7 @@ import { createUser, deleteUser, getAllUsers, getOTP, getUser, login, notifyUser
 import { auth } from "../middleware/auth.js";
 import multer from 'multer';
 import path from 'path';
-import { db } from "../db.js";
+import supabase from "../supabase.js";
 import { userTable } from '../schema.js';
 import { eq } from 'drizzle-orm';
 
@@ -43,10 +43,10 @@ usersRoute.post('/profile-picture/:id', auth, upload.single('photo'), async (req
 
     const profilePictureUrl = `/uploads/${req.file.filename}`;
 
-    const updated = await db.update(userTable)
-      .set({ profilePicture: profilePictureUrl })
-      .where(eq(userTable.id, id))
-      .returning();
+    const updated = await supabase.from("users")
+      .update({ profilePicture: profilePictureUrl })
+      .eq('id', id)
+      .select();
 
     if (!updated.length) {
       return res.status(404).json({ success: false, message: 'User not found' });

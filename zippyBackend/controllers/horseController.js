@@ -1,6 +1,6 @@
 import { db } from '../db.js';
 import { horseTable, healthStatusTable, vaccinationRecordsTable, sessionTable, userTable } from '../schema.js';
-import { eq, sql } from 'drizzle-orm';
+import { eq, sql, arrayContains } from 'drizzle-orm';
 
 export const createHorse = async (req, res) => {
     const { data } = req.body;
@@ -20,53 +20,54 @@ export const createHorse = async (req, res) => {
 };
 
 export const getHorses = async (req, res) => {
-    try {
-        const horses = await db.select().from(horseTable);
 
-        const now = new Date();
-        const todayStr = now.toISOString().split('T')[0];
-        const last7DaysDate = new Date();
-        last7DaysDate.setDate(now.getDate() - 7);
+    const horses = await db.select().from(horseTable);
 
-        const horsesWithStats = await Promise.all(horses.map(async horse => {
-            const horseSessions = await db.select().from(sessionTable).where(eq(sessionTable.horseId, horse.id));
-            const vaccinationRecords = await db.select().from(vaccinationRecordsTable).where(eq(vaccinationRecordsTable.horseId, horse.id));
-            const trainer = await db.select().from(userTable).where(eq(userTable.id, horse.trainerId));
-            const healthRecords = await db.select().from(healthStatusTable).where(eq(healthStatusTable.horseId, horse.id));
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const last7DaysDate = new Date();
+    last7DaysDate.setDate(now.getDate() - 7);
 
-
-            // Sessions Today
-            const sessionsTodayCount = horseSessions.filter(s => s.date === todayStr).length;
-
-            // Weekly Load (Last 7 days)
-            const sessionsLast7Days = horseSessions.filter(s => {
-                try {
-                    const sessionDate = new Date(s.date);
-                    return sessionDate >= last7DaysDate && sessionDate <= now;
-                } catch (e) { return false; }
-            }).length;
-
-            // Target is 7 sessions per week for 100%
-            const trainingAvg = Math.min(100, Math.round((sessionsLast7Days / 7) * 100));
+    const horsesWithStats = await Promise.all(horses.map(async horse => {
+        const horseSessions = await db.select().from(sessionTable).where(arrayContains(sessionTable.horseId, [horse.id]));
+        const vaccinationRecords = await db.select().from(vaccinationRecordsTable).where(eq(vaccinationRecordsTable.horseId, horse.id));
+        const trainer = await db.select().from(userTable).where(eq(userTable.id, horse.trainerId));
+        const healthRecords = await db.select().from(healthStatusTable).where(eq(healthStatusTable.horseId, horse.id));
 
 
 
-            return {
-                ...horse,
-                sessionsToday: sessionsTodayCount,
-                weeklyTrainingAvg: trainingAvg,
-                trainer: trainer[0],
-                vaccinationRecords: vaccinationRecords?.length > 0 ? vaccinationRecords : [],
-                healthRecords: healthRecords?.length > 0 ? healthRecords : []
-            };
-        }));
+        // Sessions Today
+        const sessionsTodayCount = horseSessions.filter(s => s.date === todayStr).length;
+
+        // Weekly Load (Last 7 days)
+        const sessionsLast7Days = horseSessions.filter(s => {
+            try {
+                const sessionDate = new Date(s.date);
+                return sessionDate >= last7DaysDate && sessionDate <= now;
+            } catch (e) { return false; }
+        }).length;
+
+        // Target is 7 sessions per week for 100%
+        const trainingAvg = Math.min(100, Math.round((sessionsLast7Days / 7) * 100));
 
 
-        res.status(200).json({ success: true, horses: horsesWithStats });
-    } catch (error) {
-        console.error("Error in getHorses stats aggregation:", error);
-        res.status(500).json({ success: false, message: `Error: ${error.message}` });
-    }
+
+        return {
+            ...horse,
+            sessionsToday: sessionsTodayCount,
+            weeklyTrainingAvg: trainingAvg,
+            trainer: trainer[0],
+            vaccinationRecords: vaccinationRecords?.length > 0 ? vaccinationRecords : [],
+            healthRecords: healthRecords?.length > 0 ? healthRecords : []
+        };
+    }));
+
+
+    res.status(200).json({ success: true, horses: horsesWithStats });
+    // } catch (error) {
+    //     console.error("Error in getHorses stats aggregation:", error);
+    //     res.status(500).json({ success: false, message: `Error: ${error.message}` });
+    // }
 };
 
 export const getHorseById = async (req, res) => {
@@ -324,7 +325,7 @@ export const getHorsesByStable = async (req, res) => {
 
             const trainer = await db.select().from(userTable).where(eq(userTable.id, horse.trainerId));
 
-            const sessions = await db.select().from(sessionTable).where(eq(sessionTable.horseId, horse.id));
+            const sessions = await db.select().from(sessionTable).where(arrayContains(sessionTable.horseId, [horse.id]));
 
 
             return { ...horse, healthRecords: latestHealthStatus, vaccinationRecords, trainer, session: sessions };

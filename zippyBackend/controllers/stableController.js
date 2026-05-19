@@ -1,6 +1,8 @@
 import { db } from '../db.js';
 import { horseTable, inventoryTable, stableTable } from '../schema.js';
 import { inArray, eq } from "drizzle-orm";
+import supabase from '../supabase.js';
+import fs from 'fs';
 
 export const createStable = async (req, res) => {
     const { data } = req.body;
@@ -102,5 +104,78 @@ export const deleteStable = async (req, res) => {
         res.status(200).json({ success: true, stable });
     } catch (error) {
         res.status(500).json({ success: false, message: `Error: ${error.message}` });
+    }
+};
+
+
+export const uploadLogo = async (req, res) => {
+    try {
+        const file = req.file;
+        const { stableId } = req.body;
+
+        console.log(file, "file")
+        console.log(stableId, "stableId")
+
+        if (!file) {
+            return res.status(400).json({ success: false, message: "No file provided" });
+        }
+
+        // Read file from disk
+        const fileBuffer = fs.readFileSync(file.path);
+        const fileName = `logos/${Date.now()}_${file.originalname}`;
+
+        // Upload to supabase bucket 'zippy'
+        const { data, error } = await supabase.storage.from('zippy').upload(fileName, fileBuffer, {
+            contentType: file.mimetype
+        });
+
+        if (error) {
+            throw error;
+        }
+
+        // Get public URL
+        const { data: publicUrlData } = supabase.storage.from('zippy').getPublicUrl(fileName);
+        const url = publicUrlData.publicUrl;
+
+        // Update the stable table with the logo URL
+        if (stableId) {
+            await db.update(stableTable).set({ logo: url }).where(eq(stableTable.id, stableId));
+        } else if (req.userId) {
+            await db.update(stableTable).set({ logo: url }).where(eq(stableTable.userId, req.userId));
+        }
+
+        // Clean up the local file
+        if (fs.existsSync(file.path)) {
+            fs.unlinkSync(file.path);
+        }
+
+        res.status(200).json({
+            success: true,
+            message: "File uploaded successfully",
+            url
+        });
+    } catch (error) {
+        console.log(error)
+        res.status(500).json({ success: false, message: "Failed to upload file: " + error.message });
+    }
+};
+
+export const deleteLogo = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const stable = await db.select().from(stableTable).where(eq(stableTable.id, id));
+        if (!stable.length) {
+            return res.status(404).json({ success: false, message: 'Stable not found' });
+        }
+        const url = stable[0].logo;
+        const fileName = url.split('/').pop();
+        const { error } = await supabase.storage.from('zippy').remove([`logos/${fileName}`]);
+        if (error) {
+            throw error;
+        }
+        await db.update(stableTable).set({ logo: null }).where(eq(stableTable.id, id));
+        res.status(200).json({ success: true, message: "Logo deleted successfully" });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Failed to delete logo: " + error.message });
     }
 };

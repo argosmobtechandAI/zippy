@@ -6,6 +6,7 @@ const sessionRouter = Router();
 
 sessionRouter.get("/", auth, getSessions);
 sessionRouter.get("/:id", auth, getSessionById);
+
 sessionRouter.post("/", auth, createSession);
 sessionRouter.put("/:id", auth, updateSession);
 sessionRouter.delete("/:id", auth, deleteSession);

@@ -1,9 +1,11 @@
 import { db } from '../db.js';
 import { sessionTable, riderTable, userTable, trainerTable, horseTable } from '../schema.js';
-import { sql, eq } from 'drizzle-orm';
+import { sql, eq, arrayContains } from 'drizzle-orm';
 
 export const createSession = async (req, res) => {
     const { data } = req.body;
+
+    console.log(data, "data")
 
     try {
         const newSession = await db.insert(sessionTable).values(data).returning();
@@ -11,19 +13,27 @@ export const createSession = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Failed to create session' });
         }
 
-        const horse = await db.select().from(horseTable).where(eq(horseTable.id, data.horseId));
-        if (!horse.length) {
-            return res.status(404).json({ success: false, message: 'Horse not found' });
+        if (data.horseId && data.horseId.length > 0) {
+            const horseIds = data.horseId.split(",").map(id => id.trim());
+
+            const updatedHorses = Promise.all(horseIds.map(async (horseId) => {
+                const horse = await db.select().from(horseTable).where(eq(horseTable.id, horseId));
+                if (!horse.length) {
+                    return res.status(404).json({ success: false, message: 'Horse not found' });
+                }
+                const sessions = horse[0].sessions ? [...horse[0].sessions, newSession[0].id] : [newSession[0].id]
+                const updateHorse = await db.update(horseTable).set({ sessions }).where(eq(horseTable.id, horseId)).returning();
+                if (!updateHorse.length) {
+                    return res.status(400).json({ success: false, message: 'Failed to update horse status' });
+                }
+                return horse[0];
+            }));
+            if (!updatedHorses.length) {
+                return res.status(404).json({ success: false, message: 'Horse not found' });
+            }
+
         }
 
-
-        const sessions = horse[0].sessions ? [...horse[0].sessions, newSession[0].id] : [newSession[0].id]
-
-
-        const updateHorse = await db.update(horseTable).set({ sessions }).where(eq(horseTable.id, data.horseId)).returning();
-        if (!updateHorse.length) {
-            return res.status(400).json({ success: false, message: 'Failed to update horse status' });
-        }
 
 
 
@@ -70,6 +80,7 @@ export const createSession = async (req, res) => {
 
 export const getSessions = async (req, res) => {
     let { trainerId, riderId, location, horseId } = req.query;
+    console.log(req.query, "req.query")
     if (riderId) {
         riderId = riderId.replace(/\/$/, "").trim();
     }
@@ -84,7 +95,7 @@ export const getSessions = async (req, res) => {
             conditions.push(eq(sessionTable.trainerId, trainerId));
         }
         if (horseId) {
-            conditions.push(eq(sessionTable.horseId, horseId));
+            conditions.push(arrayContains(sessionTable.horseId, [horseId]));
         }
         if (riderId) {
             conditions.push(sql`${sessionTable.participants} @> ${JSON.stringify([{ riderId }])}::jsonb`);
@@ -117,6 +128,8 @@ export const getSessionById = async (req, res) => {
         res.status(500).json({ success: false, message: `Error: ${error.message}` });
     }
 };
+
+
 
 export const updateSession = async (req, res) => {
     const { id } = req.params;

@@ -1,16 +1,17 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator, RefreshControl } from 'react-native';
 import { Bell, ChevronRight, Bookmark } from 'lucide-react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiFunction } from '../api/apiFunction';
-import { getSessionsByTrainerApi, getAllHorsesApi } from '../api/api';
+import { getSessionsByTrainerApi, getAllHorsesApi, getAllTrainersApi } from '../api/api';
 
 export default function HomeScreen() {
    const navigation = useNavigation();
    const [loading, setLoading] = useState(true);
    const [refreshing, setRefreshing] = useState(false);
    const [user, setUser] = useState<any>(null);
+   const [trainer, setTrainer] = useState<any>(null);
    const [sessions, setSessions] = useState<any[]>([]);
    const [assignedHorses, setAssignedHorses] = useState<any[]>([]);
    const [stats, setStats] = useState({
@@ -25,6 +26,8 @@ export default function HomeScreen() {
       }, [])
    );
 
+
+
    const fetchDashboardData = async (isRefresh = false) => {
       if (isRefresh) setRefreshing(true);
       else setLoading(true);
@@ -36,13 +39,21 @@ export default function HomeScreen() {
          setUser(parsedUser);
 
          const userId = parsedUser.id;
-         const trainerId = parsedUser.trainerId;
+
          if (!userId) return;
 
-         // Fetch Sessions
-         const sessionRes = await apiFunction(getSessionsByTrainerApi(trainerId || userId), [], {}, "GET", true);
+         const trainerRes = await apiFunction(getAllTrainersApi, [], {}, "GET", true);
+         if (trainerRes && trainerRes.success) {
+            const trainer = trainerRes.trainers.find((t: any) => t.userId === userId);
+
+            setTrainer(trainer);
+         }
+
+
+         const sessionRes = await apiFunction(getSessionsByTrainerApi(trainer?.id), [], {}, "GET", true);
          if (sessionRes && sessionRes.success) {
             const allSessions = (sessionRes.sessions || []).filter((s: any) => s.status !== 'BLOCKED');
+            console.log("All sessions: ", allSessions);
             setSessions(allSessions.slice(0, 3));
             setStats(prev => ({ ...prev, todaySessions: allSessions.length }));
          }
@@ -51,10 +62,11 @@ export default function HomeScreen() {
          const horseRes = await apiFunction(getAllHorsesApi, [], {}, "GET", true);
          if (horseRes && horseRes.success) {
             const allHorses = horseRes.horses || [];
-            const filtered = allHorses.filter((h: any) => h.trainerId === (trainerId || userId));
+            const filtered = allHorses.filter((h: any) => h.trainerId === (trainer?.id || userId));
             setAssignedHorses(filtered);
             setStats(prev => ({ ...prev, assignedHorsesCount: filtered.length }));
          }
+
 
       } catch (error) {
          console.error("Home Dashboard data fetch error:", error);
@@ -64,6 +76,8 @@ export default function HomeScreen() {
       }
    };
 
+   console.log("Trainer: ", trainer);
+
    if (loading) {
       return (
          <View className="flex-1 bg-[#F5EDDF] justify-center items-center">
@@ -72,6 +86,8 @@ export default function HomeScreen() {
          </View>
       );
    }
+
+
 
    return (
       <View className="flex-1 bg-brand-beige">
@@ -93,11 +109,11 @@ export default function HomeScreen() {
                   </View>
                   <View>
                      <Text className="text-2xl font-display text-brand-brown leading-tight">{user?.name?.split(' ')[0] || 'Trainer'}</Text>
-                     <Text className="text-[10px] font-body text-brand-brown/50 uppercase tracking-[2px]">Admin Dashboard</Text>
+                     <Text className="text-[10px] font-body text-brand-brown/50 uppercase tracking-[2px]">Trainer Dashboard</Text>
                   </View>
                </View>
-               <TouchableOpacity 
-                  onPress={() => navigation.navigate("Notification")} 
+               <TouchableOpacity
+                  onPress={() => navigation.navigate("Notification")}
                   className="w-11 h-11 bg-white/50 border border-brand-brown/5 rounded-full items-center justify-center shadow-sm"
                >
                   <Bell color="#85431E" size={20} strokeWidth={2.5} />
@@ -125,6 +141,24 @@ export default function HomeScreen() {
                   <Text className="text-brand-brown/40 text-[9px] font-body uppercase tracking-wider">Assigned</Text>
                </View>
             </View>
+
+            {trainer?.title?.toLowerCase() === 'head trainer' && (
+               <TouchableOpacity
+                  onPress={() => navigation.navigate('SlotManagement' as never)}
+                  className="bg-white border border-brand-orange/20 rounded-[24px] p-5 mb-8 shadow-sm flex-row justify-between items-center"
+               >
+                  <View className="flex-1 pr-4">
+                     <Text className="text-brand-orange text-[9px] font-display uppercase tracking-[2px] mb-1">Administrative</Text>
+                     <Text className="text-brand-brown text-lg font-display mb-1">Slot Management</Text>
+                     <Text className="text-brand-brown/50 text-[11px] font-body leading-tight">
+                        Configure training batches, manage slots, and approve rider requests.
+                     </Text>
+                  </View>
+                  <View className="w-12 h-12 rounded-2xl bg-brand-orange/10 items-center justify-center">
+                     <ChevronRight color="#DA7347" size={20} strokeWidth={3} />
+                  </View>
+               </TouchableOpacity>
+            )}
 
             {/* Today's Schedule */}
             <View className="flex-row justify-between items-center mb-6">
@@ -160,7 +194,7 @@ export default function HomeScreen() {
                      </View>
                      <View className="w-8 h-8 rounded-full bg-brand-brown/5 items-center justify-center ml-2">
                         <ChevronRight color="#85431E" size={16} strokeWidth={3} />
-                    </View>
+                     </View>
                   </TouchableOpacity>
                ))}
             </View>

@@ -29,3 +29,13 @@ export const inventoryApi = `${baseUrl}/inventory`;
 export const createHorseApi = `${baseUrl}/horse`;
 export const getHorsesByStableApi = `${baseUrl}/horse/stable`;
 export const assignTrainerApi = `${baseUrl}/horse/assignTrainer`;
+
+export const updateTrainerApi = `${baseUrl}/trainer`;
+
+export const createBatchApi = `${baseUrl}/batch`;
+export const updateBatchApi = `${baseUrl}/batch`;
+export const deleteBatchApi = `${baseUrl}/batch`;
+export const getAllBatchesApi = `${baseUrl}/batch`;
+
+export const deleteSessionApi = `${baseUrl}/session`;
+export const updateSessionApi = `${baseUrl}/session`;   

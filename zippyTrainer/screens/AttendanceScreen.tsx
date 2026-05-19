@@ -204,14 +204,14 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
             Attendance
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity
+        {/* <TouchableOpacity
           className={`flex-1 items-center pb-3 ${activeTab === 'Leave Requests' ? 'border-b-2 border-[#1a202c]' : ''}`}
           onPress={() => setActiveTab('Leave Requests')}
         >
           <Text className={`font-bold ${activeTab === 'Leave Requests' ? 'text-[#1a202c]' : 'text-[#64748b]'}`}>
             Leave Requests
           </Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
         <TouchableOpacity
           className={`flex-1 items-center pb-3 ${activeTab === 'Apply Leave' ? 'border-b-2 border-[#1a202c]' : ''}`}
           onPress={() => setActiveTab('Apply Leave')}

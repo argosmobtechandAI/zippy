@@ -1,3 +1,4 @@
+
 import express from 'express';
 import { db } from "../db.js";
 import { riderTable, trainerTable, userTable, vetTable, sessionTable } from '../schema.js';
@@ -192,7 +193,7 @@ export const createUser = async (req, res) => {
             return res.status(400).json({ message: 'Error creating user - no record returned', success: false });
         }
 
-        console.log(newUser[0].id)
+       
 
         if (type === "rider") {
             const newRider = await db.insert(riderTable).values({ userId: newUser[0].id, allergies, medical, level, instructions })
@@ -345,16 +346,15 @@ export const updateLeave = async (req, res) => {
                 return res.status(404).json({ message: 'Session not found', success: false });
             }
 
-            console.log(session[0].trainerId, "trainerId")
             const trainer = await db.select().from(trainerTable).where(eq(trainerTable.id, session[0].trainerId));
             if (!trainer || trainer.length === 0) {
                 return res.status(404).json({ message: 'Trainer not found', success: false });
             }
             const trainerLeaves = trainer[0].leaveRequests;
-            console.log(trainerLeaves, "trainerLeaves")
+           
             const updatedTrainerLeaves = [...trainerLeaves, { ...leaves, name: user[0].name, riderId: user[0].id }];
             const updatedTrainer = await db.update(trainerTable).set({ leaveRequests: updatedTrainerLeaves }).where(eq(trainerTable.id, trainer[0].id)).returning();
-            console.log(updatedTrainer, "updatedTrainer")
+          
             if (!updatedTrainer || updatedTrainer.length === 0) {
                 return res.status(404).json({ message: 'Trainer not found', success: false });
             }
@@ -440,6 +440,7 @@ export const login = async (req, res) => {
     try {
         const { data } = req.body;
 
+       
         if (!data) {
             return res.status(400).json({ message: 'Missing request data', success: false });
         }
@@ -453,7 +454,6 @@ export const login = async (req, res) => {
 
         let user;
 
-        console.log(data.type)
         if (identifier) {
             user = await db.select().from(userTable).where(and(
                 or(

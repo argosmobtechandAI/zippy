@@ -6,6 +6,7 @@ import SessionDetail from "../component/sessionDetail";
 import HorseDetail from "../component/horseDetail";
 import SettingsScreen from "../component/SettingsScreen";
 import PersonalInformationScreen from "../component/PersonalInformationScreen";
+import SlotManagementScreen from "../screens/SlotManagementScreen";
 
 const WelcomeStack = () => {
     const Stack = createNativeStackNavigator();
@@ -19,6 +20,7 @@ const WelcomeStack = () => {
             <Stack.Screen name="HorseDetail" component={HorseDetail} options={{ headerShown: false }} />
             <Stack.Screen name="PersonalInformation" component={PersonalInformationScreen} options={{ headerShown: false }} />
             <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="SlotManagement" component={SlotManagementScreen} options={{ headerShown: false }} />
 
         </Stack.Navigator>
     )

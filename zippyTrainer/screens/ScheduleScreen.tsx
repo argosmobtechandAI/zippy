@@ -135,7 +135,7 @@ export default function ScheduleScreen() {
    const filteredSessions = sessions.filter(s => {
       if (!s.date || s.status === 'BLOCKED') return false;
       const sessionDate = s.date.includes('T') ? s.date.split('T')[0] : s.date;
-      return sessionDate === selectedDate;
+      return sessionDate === selectedDate || sessionDate == "daily";
    });
 
    // Formatter for nicer date display - prevent UTC shifting

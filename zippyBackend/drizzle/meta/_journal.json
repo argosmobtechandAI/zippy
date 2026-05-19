@@ -211,6 +211,55 @@
       "when": 1777031253155,
       "tag": "0029_cheerful_gorilla_man",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1778751717915,
+      "tag": "0030_hard_shen",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1778752072709,
+      "tag": "0031_white_magma",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1778761500445,
+      "tag": "0032_same_may_parker",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1778762024591,
+      "tag": "0033_futuristic_mach_iv",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1778763190395,
+      "tag": "0034_faithful_hammerhead",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1778823395533,
+      "tag": "0035_rare_carmella_unuscione",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1778828603649,
+      "tag": "0036_classy_wrecker",
+      "breakpoints": true
     }
   ]
 }

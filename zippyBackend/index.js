@@ -13,15 +13,16 @@ import { runHorseMigrations } from './controllers/horseController.js';
 import { runInventoryMigrations } from './controllers/inventoryController.js';
 import { runTrainerMigrations } from './controllers/userController.js';
 
-const app = express();
-
-app.use(cors());
-
 import path from 'path';
 import { fileURLToPath } from 'url';
 import vatRouter from './routes/vatRoute.js';
-import { sendEmail } from './nodemailer.js';
 import revenueRouter from './routes/revenueRoute.js';
+import batchRouter from './routes/batchRoute.js';
+import trainerRouter from './routes/trainerRoute.js';
+
+const app = express();
+
+app.use(cors());
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -39,11 +40,11 @@ app.use('/api/stats', statsRoute);
 app.use('/api/inventory', inventoryRoute);
 app.use("/api/vat", vatRouter)
 app.use("/api/revenue", revenueRouter)
+app.use("/api/batch", batchRouter)
+app.use("/api/trainer", trainerRouter)
 
-// Auto-migrate schema on startup
-runHorseMigrations();
-runInventoryMigrations();
-runTrainerMigrations();
+
+
 
 
 app.listen(3000, () => {

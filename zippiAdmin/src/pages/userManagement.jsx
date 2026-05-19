@@ -1,14 +1,23 @@
 import {
     ChevronRight, Zap, Edit2, MoreVertical, Star,
-    ChevronLeft, MoreHorizontal, UserCheck, Activity, Award, X, BellRing, Send, Megaphone, Search
+    ChevronLeft, MoreHorizontal, UserCheck, Activity, Award, X, BellRing, Send, Megaphone, Search,
+    Edit,
+    Delete,
+    Plus
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFunction } from '../api/apiFunction';
-import { createUserApi, getAllUsersApi, notifyUserApi, notifyAllUsersApi, updateUserApi, updateUserLeaveApi } from '../api/apis';
+import { createUserApi, getAllUsersApi, notifyUserApi, notifyAllUsersApi, updateUserApi, updateUserLeaveApi, getAllTrainersApi, updateTrainerApi, getAllStablesApi, deleteStableLogoApi, uploadFileApi } from '../api/apis';
 import toast from 'react-hot-toast';
+import axios from 'axios';
 
-const TrainerCard = ({ user, onNotify, onEdit, onStatusUpdate, navigate }) => {
+const TrainerCard = ({ user, trainers, stables, onNotify, onEdit, onStatusUpdate, onUpdateCenterClick, navigate }) => {
+
+    console.log(user, "userr")
+    console.log(trainers, "trainerr")
+    const trainer = trainers.find((trainer) => trainer.userId === user.id);
+
     return (
         <div className="flex flex-col h-full group">
             <div className="flex justify-between items-start mb-6">
@@ -21,9 +30,9 @@ const TrainerCard = ({ user, onNotify, onEdit, onStatusUpdate, navigate }) => {
                         <div className="flex items-center gap-2">
                             <span className="text-[#964C2E] text-[10px] font-black tracking-widest uppercase">{user.title || 'SPECIALIST'}</span>
                             <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
-                            <div className={`flex items-center gap-1 text-[11px] font-bold ${user.status === 'OFF-DUTY' ? 'text-amber-600' : (user.status === 'ON-LEAVE' ? 'text-red-500' : 'text-[#059669]')}`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${user.status === 'OFF-DUTY' ? 'bg-amber-600' : (user.status === 'ON-LEAVE' ? 'bg-red-500' : 'bg-[#059669]')}`}></span>
-                                {user.status || 'AVAILABLE'}
+                            <div className={`flex items-center gap-1 text-[11px] font-bold ${trainer?.title === 'Head Trainer' ? 'text-amber-600' : 'text-[#059669]'}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${trainer?.title === 'Head Trainer' ? 'bg-amber-600' : 'bg-[#059669]'}`}></span>
+                                {trainer?.title || 'Trainer'}
                             </div>
                         </div>
                     </div>
@@ -31,7 +40,17 @@ const TrainerCard = ({ user, onNotify, onEdit, onStatusUpdate, navigate }) => {
                 <div className="flex items-center gap-1 text-gray-400">
                     <button onClick={(e) => { e.stopPropagation(); onNotify(); }} className="p-1.5 hover:bg-[#F9EFE5] hover:text-[#964C2E] rounded-lg transition-colors"><BellRing className="w-4 h-4" /></button>
                     <button onClick={(e) => { e.stopPropagation(); onEdit(); }} className="p-1.5 hover:bg-gray-50 rounded-lg transition-colors"><Edit2 className="w-4 h-4" /></button>
-                    <button onClick={(e) => e.stopPropagation()} className="p-1.5 hover:bg-gray-50 rounded-lg transition-colors"><MoreHorizontal className="w-4 h-4" /></button>
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            const nextStatus = user.status === 'AVAILABLE' ? 'OFF-DUTY' : 'AVAILABLE';
+                            onStatusUpdate(nextStatus);
+                        }}
+                        className="p-1.5 hover:bg-gray-50 rounded-lg transition-colors"
+                        title="Toggle Status"
+                    >
+                        <Activity className="w-4 h-4" />
+                    </button>
                 </div>
             </div>
 
@@ -71,12 +90,13 @@ const TrainerCard = ({ user, onNotify, onEdit, onStatusUpdate, navigate }) => {
                 <button
                     onClick={(e) => {
                         e.stopPropagation();
-                        const nextStatus = user.status === 'AVAILABLE' ? 'OFF-DUTY' : 'AVAILABLE';
-                        onStatusUpdate(nextStatus);
+                        if (typeof onUpdateCenterClick === 'function') {
+                            onUpdateCenterClick();
+                        }
                     }}
                     className="py-3.5 rounded-xl border border-[#964C2E]/20 text-[#964C2E] text-[12px] font-black uppercase tracking-wider hover:bg-[#F9EFE5] transition-all"
                 >
-                    {user.status === 'AVAILABLE' ? 'Mark Off-Duty' : 'Mark Available'}
+                    {trainer?.stableId ? stables.find(s => s.id === trainer?.stableId)?.name || 'Update Center' : 'Add Center'}
                 </button>
                 <button
                     onClick={(e) => { e.stopPropagation(); navigate(`/slotManagement?trainerId=${user.id}`); }}
@@ -96,9 +116,12 @@ const UserManagement = () => {
     const [notifyModal, setNotifyModal] = useState(null)
     const [editingUser, setEditingUser] = useState(null)
     const [viewUser, setViewUser] = useState(null)
+    const [updateCenterModal, setUpdateCenterModal] = useState(null)
     const [searchQuery, setSearchQuery] = useState("")
     const [users, setUsers] = useState([])
+    const [trainers, setTrainers] = useState([])
     const [loading, setLoading] = useState(true)
+    const [stables, setStables] = useState([])
     const navigate = useNavigate();
 
     const handleStatusUpdate = async (userId, newStatus) => {
@@ -124,8 +147,30 @@ const UserManagement = () => {
         setLoading(false);
     }
 
+    const fetchTrainers = async () => {
+        setLoading(true);
+        const res = await apiFunction(getAllTrainersApi, [], {}, "GET", true);
+        if (res && res.success) {
+            setTrainers(res.trainers);
+        }
+        setLoading(false);
+    }
+
+    const fetchStables = async () => {
+        setLoading(true);
+        const res = await apiFunction(getAllStablesApi, [], {}, "GET", true);
+
+        if (res && res.success) {
+
+            setStables(res.stables);
+        }
+        setLoading(false);
+    }
+
     useEffect(() => {
         fetchUsers();
+        fetchTrainers();
+        fetchStables();
     }, []);
 
     const handleApproveRequest = async (userId, leave, status) => {
@@ -171,6 +216,50 @@ const UserManagement = () => {
             {label} ({count})
         </button>
     );
+
+
+
+    const handleUploadLogo = async (file, stableId) => {
+        try {
+            const formData = new FormData();
+            formData.append('stableId', stableId);
+            formData.append('file', file);
+            const res = await axios.post("http://localhost:3000/api/stable/uploadFile", formData, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                    "Authorization": `Bearer ${localStorage.getItem("token")}`
+                }
+            });
+            console.log(res, "ressssssssssssss")
+            if (res && res?.data?.success) {
+                toast.success("Logo uploaded successfully");
+                fetchStables();
+            } else {
+                toast.error(res?.message || "Failed to upload logo");
+            }
+        }
+        catch (error) {
+            console.log("🚀 ~ handleUploadLogo ~ error:", error)
+
+        }
+    }
+
+    const deleteLogo = async (id) => {
+        try {
+            const res = await apiFunction(deleteStableLogoApi, [id], {}, "DELETE", true);
+            if (res && res.success) {
+                toast.success("Logo deleted successfully");
+                fetchStables();
+            } else {
+                toast.error(res?.message || "Failed to delete logo");
+            }
+        }
+        catch (error) {
+            console.log("🚀 ~ deleteLogo ~ error:", error)
+
+        }
+    }
+
 
     return (
         <div className="p-10 max-w-[1400px] mx-auto min-h-full bg-[#fcfbf9] w-full font-sans pb-20">
@@ -252,9 +341,12 @@ const UserManagement = () => {
                             {user.type === 'trainer' ? (
                                 <TrainerCard
                                     user={user}
+                                    trainers={trainers}
+                                    stables={stables}
                                     onNotify={() => setNotifyModal(user)}
                                     onEdit={() => { setEditingUser(user); setCreateModal(true); }}
                                     onStatusUpdate={(status) => handleStatusUpdate(user.id, status)}
+                                    onUpdateCenterClick={() => setUpdateCenterModal({ user, trainer: trainers.find(t => t.userId === user.id) })}
                                     navigate={navigate}
                                 />
                             ) : (
@@ -314,6 +406,81 @@ const UserManagement = () => {
                                             <p className="text-[14px] mt-1.5 font-bold text-[#964C2E] truncate">{user.mobile}</p>
                                         </div>
                                     </div>
+
+                                    {(user.type === "stableStaff" || user.role === "stableStaff") && (
+                                        <div className="mt-4 border-t border-gray-100 pt-4" onClick={(e) => e.stopPropagation()}>
+                                            <h4 className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2">Stable Logo Management</h4>
+                                            {(() => {
+                                                const stable = stables.find(s => s.userId === user.id);
+                                                if (!stable) {
+                                                    return (
+                                                        <div className="text-[12px] font-semibold text-gray-400 italic">
+                                                            No stable associated with this user.
+                                                        </div>
+                                                    );
+                                                }
+                                                return (
+                                                    <div className="flex items-center gap-4 bg-[#F8F9FA] rounded-xl p-3 border border-gray-100">
+                                                        <div className="w-16 h-16 rounded-xl bg-gray-100 border border-gray-200 overflow-hidden flex items-center justify-center relative group">
+                                                            {stable.logo ? (
+                                                                <img src={stable.logo} alt="Stable Logo" className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                <div className="text-[10px] font-black text-gray-400 text-center uppercase p-1">No Logo</div>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex-1 flex flex-col gap-1.5">
+                                                            <div className="text-xs font-bold text-[#1e2330] truncate">{stable.name}</div>
+                                                            <div className="flex gap-2">
+                                                                {stable.logo ? (
+                                                                    <>
+                                                                        <label className="text-[11px] font-black uppercase tracking-wider text-[#964C2E] hover:underline cursor-pointer">
+                                                                            Change
+                                                                            <input
+                                                                                type="file"
+                                                                                accept="image/*"
+                                                                                className="hidden"
+                                                                                onChange={(e) => {
+                                                                                    if (e.target.files?.[0]) {
+                                                                                        handleUploadLogo(e.target.files[0], stable.id);
+                                                                                    }
+                                                                                }}
+                                                                            />
+                                                                        </label>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                deleteLogo(stable.id);
+                                                                            }}
+                                                                            className="text-[11px] font-black uppercase tracking-wider text-red-500 hover:underline"
+                                                                        >
+                                                                            Delete
+                                                                        </button>
+                                                                    </>
+                                                                ) : (
+                                                                    <label className="text-[11px] font-black uppercase tracking-wider text-[#964C2E] hover:underline cursor-pointer">
+                                                                        Upload Logo
+                                                                        <input
+                                                                            type="file"
+                                                                            accept="image/*"
+                                                                            className="hidden"
+                                                                            onChange={(e) => {
+                                                                                if (e.target.files?.[0]) {
+                                                                                    handleUploadLogo(e.target.files[0], stable.id);
+                                                                                }
+                                                                            }}
+                                                                        />
+                                                                    </label>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })()}
+                                        </div>
+                                    )}
+
+
                                 </>
                             )}
                         </div>
@@ -362,6 +529,19 @@ const UserManagement = () => {
                 <SendNotificationModal
                     user={notifyModal}
                     onClose={() => setNotifyModal(null)}
+                />
+            )}
+
+            {updateCenterModal && (
+                <UpdateCenterModal
+                    user={updateCenterModal.user}
+                    trainer={updateCenterModal.trainer}
+                    stables={stables}
+                    onClose={() => setUpdateCenterModal(null)}
+                    onSuccess={() => {
+                        fetchUsers();
+                        fetchTrainers();
+                    }}
                 />
             )}
 
@@ -637,7 +817,16 @@ const UserActionModal = ({ userType, setCreateModal, onSuccess, initialData }) =
                                     <span>Title</span>
                                     {errors.title && <span className="text-red-500 normal-case tracking-normal font-bold">{errors.title}</span>}
                                 </label>
-                                <input name="title" value={formData.title} onChange={handleChange} type="text" className={`w-full border ${errors.title ? 'border-red-400 bg-red-50' : 'border-gray-100'} bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold transition-all focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E] focus:bg-white`} placeholder="e.g. Senior Specialist" />
+                                <select
+                                    name="title"
+                                    value={formData.title}
+                                    onChange={handleChange}
+                                    className={`w-full border ${errors.title ? 'border-red-400 bg-red-50' : 'border-gray-100'} bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold transition-all focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E] focus:bg-white`}
+                                >
+                                    <option value="">Select Title</option>
+                                    <option value="Trainer">Trainer</option>
+                                    <option value="Head Trainer">Head Trainer</option>
+                                </select>
                             </div>
                         }
                         {userType === "trainer" &&
@@ -779,6 +968,99 @@ const SendNotificationModal = ({ user, onClose }) => {
                                 Broadcast Signal <Send size={18} />
                             </>
                         )}
+                    </button>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+const UpdateCenterModal = ({ user, trainer, stables, onClose, onSuccess }) => {
+    const [selectedStable, setSelectedStable] = useState(trainer?.stableId || "");
+    const [isHeadTrainer, setIsHeadTrainer] = useState(trainer?.title === "Head Trainer");
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    console.log(selectedStable)
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!selectedStable) {
+            toast.error("Please select a center");
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            // As per existing logic: update center
+
+            const centerRes = await apiFunction(updateTrainerApi, [trainer?.id], {
+                stableId: selectedStable,
+                title: isHeadTrainer ? "Head Trainer" : "Trainer"
+            }, "PUT", true);
+
+
+            if (centerRes.success) {
+                toast.success("Trainer updated successfully");
+                onSuccess();
+                onClose();
+            } else {
+                toast.error("Failed to update trainer details");
+            }
+        } catch (error) {
+            toast.error("Network error");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] animate-in fade-in duration-200">
+            <div className="bg-white rounded-[32px] p-10 w-[450px] shadow-2xl border border-gray-100 animate-in zoom-in-95 duration-200">
+                <div className="flex justify-between items-start mb-8">
+                    <div>
+                        <h3 className="text-[22px] font-black text-[#1e2330]">Update Center</h3>
+                        <p className="text-[13px] font-bold text-gray-400 mt-1">Assign {user.name} to a stable</p>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-gray-50 rounded-xl transition-all">
+                        <X className="w-6 h-6 text-gray-400" />
+                    </button>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    <div>
+                        <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">SELECT STABLE / CENTER</label>
+                        <select
+                            value={selectedStable}
+                            onChange={(e) => setSelectedStable(e.target.value)}
+                            className="w-full bg-gray-50/50 border border-gray-100 rounded-2xl p-4 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E] transition-all"
+                        >
+                            <option value="">Select a center...</option>
+                            {stables.map(stable => (
+                                <option key={stable.id} value={stable.id}>{stable.name} ({stable.location})</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="flex items-center gap-3 p-4 border border-gray-100 rounded-2xl bg-gray-50/30">
+                        <input
+                            type="checkbox"
+                            id="headTrainer"
+                            checked={isHeadTrainer}
+                            onChange={(e) => setIsHeadTrainer(e.target.checked)}
+                            className="w-5 h-5 rounded border-gray-300 text-[#964C2E] focus:ring-[#964C2E]"
+                        />
+                        <label htmlFor="headTrainer" className="text-[13px] font-black text-[#1e2330] cursor-pointer flex-1">
+                            Make Head Trainer
+                            <span className="block text-[11px] font-semibold text-gray-400 mt-0.5">Assign as the lead specialist for this center.</span>
+                        </label>
+                    </div>
+
+                    <button
+                        disabled={isSubmitting}
+                        type="submit"
+                        className="w-full bg-[#964C2E] text-white py-4 rounded-[20px] font-black text-[14px] uppercase tracking-wider shadow-xl hover:bg-[#7D3F25] transition-all active:scale-[0.98] disabled:opacity-50"
+                    >
+                        {isSubmitting ? 'Saving...' : 'Save Changes'}
                     </button>
                 </form>
             </div>

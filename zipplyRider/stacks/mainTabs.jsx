@@ -62,7 +62,7 @@ const MainTabsStack = () => {
             />
 
             <Tab.Screen
-                name="DashboardProfile"
+                name="Profile"
                 component={DashboardProfileScreen}
                 options={{
                     tabBarIcon: ({ color, size }) => (

@@ -14,6 +14,7 @@ export const enrollPackApi = `${baseURL}/rider/enroll`;
 export const updateLeaveApi = `${baseURL}/users/leave`;
 export const createOrderApi = `${baseURL}/plan/createOrder`;
 export const verifyRazorPayOrderApi = `${baseURL}/plan/verifyPayment`;
+export const getBatchesApi = `${baseURL}/batch`;
 
 export const getAllSessionsApi = `${baseURL}/session`;
 export const updateSessionApi = (id) => `${baseURL}/session/${id}`;

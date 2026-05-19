@@ -28,11 +28,24 @@ export const sessionTable = pgTable("sessions", {
   date: varchar("date", { length: 50 }).notNull(),
   joiningAmount: integer("joining_amount").notNull(),
   trainerId: uuid("trainers").references(() => trainerTable.id),
-  horseId: uuid("horse").notNull().references(() => horseTable.id),
+  horseId: uuid("horse_id").array().default([]),
   participants: jsonb("participants").default([]),
   duration: varchar("duration", { length: 50 }).notNull(),
   location: varchar("location", { length: 255 }).notNull(),
   totalSeats: integer("total_seats").notNull(),
+  note: varchar("note", { length: 500 }),
+  status: varchar("status", { length: 50 }).default("ACTIVE"),
+  batchsId: uuid("batchs_id").references(() => batchTable.id),
+});
+
+export const batchTable = pgTable("batches", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  title: varchar("title", { length: 255 }).notNull(),
+  timing: varchar("timing", { length: 255 }).notNull(),
+  date: varchar("date", { length: 50 }).notNull(),
+  joiningAmount: integer("joining_amount").notNull(),
+  duration: varchar("duration", { length: 50 }).notNull(),
+  location: varchar("location", { length: 255 }).notNull(),
   note: varchar("note", { length: 500 }),
   status: varchar("status", { length: 50 }).default("ACTIVE"),
 });
@@ -165,4 +178,7 @@ export const stableTable = pgTable("stable", {
   userId: uuid("user_id").notNull().references(() => userTable.id),
   stocks: jsonb("stocks").notNull().default([]),
   horses: varchar("horses", { length: 255 }).array().default([]),
+  headTrainer: uuid("head_trainer").references(() => trainerTable.id),
+  trainers: uuid("trainers").array().default([]),
+  logo: varchar("logo", { length: 255 }),
 });

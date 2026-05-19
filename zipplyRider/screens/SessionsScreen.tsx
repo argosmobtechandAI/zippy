@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, Image, SafeAreaView, Activity
 import { ArrowLeft, Calendar, Clock, Smartphone } from 'lucide-react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { apiFunction } from '../api/apifunction';
-import { getAllSessionsApi } from '../api/api';
+import { getAllSessionsApi, getBatchesApi } from '../api/api';
 
 export default function SessionsScreen() {
   const generateDates = () => {
@@ -30,13 +30,15 @@ export default function SessionsScreen() {
   const [sessions, setSessions] = useState<any[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [batches, setBatches] = useState([])
 
   const navigation = useNavigation();
-  
+
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       console.log("Refreshing Sessions...");
       fetchSessions();
+      fetchBatches();
     });
 
     return unsubscribe;
@@ -62,15 +64,28 @@ export default function SessionsScreen() {
     }
   };
 
-  const filteredSessions = sessions.filter(s => {
-    if (!s.date) return false;
-    // Handle both "2026-04-10" and "10" (day only) formats
-    if (s.date.includes('-')) {
-      const dayFromDate = s.date.split('-')[2];
+  const fetchBatches = async () => {
+    const res = await apiFunction(getBatchesApi, [], {}, "GET", true)
+    console.log("Batchres", res)
+    if (res && res.success) {
+      setBatches(res.batch)
+    }
+  }
+
+  console.log(batches, "batches")
+
+  const filteredBatches = batches.filter(b => {
+    if (!b.date) return false;
+    if (b.date.includes('-')) {
+      const dayFromDate = b.date.split('-')[2];
       return parseInt(dayFromDate) === parseInt(selectedDate);
     }
-    return s.date === selectedDate;
+    return b.date === selectedDate || b.date === "daily";
   });
+
+  const getBatchSlots = (batchId: string) => {
+    return sessions.filter(s => s.batchsId === batchId);
+  };
 
   return (
     <View className="flex-1 bg-[#F5EDDF]">
@@ -84,7 +99,7 @@ export default function SessionsScreen() {
         <Text className="text-white font-bold text-lg">zippy Equestrian Center</Text>
       </View>
 
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={{ paddingBottom: 120 }}
         refreshControl={
           <RefreshControl refreshing={loading} onRefresh={fetchSessions} colors={['#8C4A28']} />
@@ -134,37 +149,69 @@ export default function SessionsScreen() {
               <View className="mr-2">
                 <Clock color="#8C4A28" size={20} />
               </View>
-              <Text className="text-xl font-bold text-[#8C4A28]">Available Slots</Text>
+              <Text className="text-xl font-bold text-[#8C4A28]">Available Batches</Text>
             </View>
-            <Text className="text-[#8C4A28] text-sm opacity-80">{filteredSessions.length} sessions found</Text>
+            <Text className="text-[#8C4A28] text-sm opacity-80">{filteredBatches.length} batches found</Text>
           </View>
 
           <View className="space-y-3">
             {loading ? (
-                <ActivityIndicator size="large" color="#8C4A28" />
-            ) : filteredSessions.length === 0 ? (
-                <View className="py-10 items-center justify-center bg-white rounded-2xl border border-[#e2d5c3] border-dashed">
-                    <Calendar color="#94a3b8" size={32} />
-                    <Text className="text-[#64748b] mt-2 font-semibold">No sessions for this date</Text>
-                </View>
-            ) : filteredSessions.map((slot, idx) => {
+              <ActivityIndicator size="large" color="#8C4A28" />
+            ) : filteredBatches.length === 0 ? (
+              <View className="py-10 items-center justify-center bg-white rounded-2xl border border-[#e2d5c3] border-dashed">
+                <Calendar color="#94a3b8" size={32} />
+                <Text className="text-[#64748b] mt-2 font-semibold">No batches for this date</Text>
+              </View>
+            ) : filteredBatches.map((batch, idx) => {
+              const batchSlots = getBatchSlots(batch.id);
               return (
-                <TouchableOpacity
+                <View
                   key={idx}
-                  onPress={() => {
-                    navigation.navigate("SessionDetail", { session: slot })
-                  }}
-                  className={`bg-white rounded-2xl p-4 flex-row justify-between items-center border-l-[6px] border-[#8C4A28] border-t border-b border-r mb-3 border-[#e2e8f0] shadow-sm`}
+                  className="bg-white rounded-2xl p-4 border border-[#e2f0e8] shadow-sm mb-4 border-l-[6px] border-[#8C4A28]"
                 >
-                  <View>
-                    <Text className="text-[#8C4A28] font-bold text-base mb-1">{slot.timing}</Text>
-                    <Text className="text-[#64748b] text-sm">{slot.title}</Text>
+                  <View className="flex-row justify-between items-start mb-3">
+                    <View className="flex-1">
+                      <Text className="text-[#8C4A28] font-black text-lg mb-1">{batch.title}</Text>
+                      <View className="flex-row items-center opacity-70">
+                        <Clock size={12} color="#64748b" />
+                        <Text className="text-[#64748b] text-xs ml-1 font-bold">{batch.timing} • {batch.duration}</Text>
+                      </View>
+                    </View>
+                    <Text className="text-[#8C4A28] font-black text-xl">${batch.joiningAmount}</Text>
                   </View>
-                  <View className="items-end">
-                    <Text className={`text-green-600 font-bold text-[10px] mb-1`}>{(slot.totalSeats || 0) - (slot.participants?.length || 0)} seats left</Text>
-                    <Text className="text-[#8C4A28] font-bold text-lg">${slot.joiningAmount || '45.00'}</Text>
+
+                  <View className="mb-4 mt-2">
+                    <Text className="text-[#64748b] text-[10px] font-black uppercase tracking-[2px] mb-3 opacity-60">Select Training Slot</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
+                      {batchSlots.length === 0 ? (
+                        <View className="bg-gray-50 px-4 py-3 rounded-xl border border-gray-100 border-dashed w-full">
+                          <Text className="text-[#94a3b8] text-xs font-bold italic">No active slots available for this batch</Text>
+                        </View>
+                      ) : batchSlots.map((slot, sIdx) => (
+                        <TouchableOpacity
+                          key={sIdx}
+                          onPress={() => navigation.navigate("SessionDetail", { session: slot })}
+                          className="bg-[#F5EDDF] px-5 py-3 rounded-2xl mr-3 border border-[#e2d5c3] items-center shadow-sm"
+                        >
+                          <Text className="text-[#8C4A28] font-black text-[15px] mb-0.5">{slot.timing}</Text>
+                          <Text className={`text-[9px] font-black uppercase tracking-tighter ${ (slot.totalSeats || 0) - (slot.participants?.length || 0) <= 2 ? 'text-red-500' : 'text-green-600' }`}>
+                            {(slot.totalSeats || 0) - (slot.participants?.length || 0)} SEATS LEFT
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
                   </View>
-                </TouchableOpacity>
+
+                  <View className="flex-row items-center justify-between pt-4 border-t border-[#f1f5f9]">
+                    <View className="flex-row items-center">
+                       <Text className="text-[#8C4A28]/40 text-[10px] font-black uppercase tracking-widest mr-2">LOCATION</Text>
+                       <Text className="text-[#64748b] text-[11px] font-black uppercase">{batch.location}</Text>
+                    </View>
+                    <View className="bg-[#8C4A28]/10 px-3 py-1.5 rounded-full border border-[#8C4A28]/20">
+                        <Text className="text-[#8C4A28] text-[9px] font-black uppercase tracking-widest">Active Batch</Text>
+                    </View>
+                  </View>
+                </View>
               )
             })}
           </View>

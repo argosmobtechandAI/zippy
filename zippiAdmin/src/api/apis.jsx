@@ -16,9 +16,16 @@ export const createStableApi = `${baseUrl}/stable`;
 export const updateStableApi = `${baseUrl}/stable`;
 export const deleteStableApi = `${baseUrl}/stable`;
 
+export const batchesApi = `${baseUrl}/batch`;
+export const getAllBatchesApi = `${baseUrl}/batch`;
+export const createBatchApi = `${baseUrl}/batch`;
+export const updateBatchApi = `${baseUrl}/batch`;
+export const deleteBatchApi = `${baseUrl}/batch`;
+
 export const getAllSessionsApi = `${baseUrl}/session`;
 export const createSessionApi = `${baseUrl}/session`;
 export const updateSessionApi = `${baseUrl}/session`;
+export const deleteSessionApi = `${baseUrl}/session`;
 
 export const getAllHorsesApi = `${baseUrl}/horse`;
 export const createHorseApi = `${baseUrl}/horse`;
@@ -39,3 +46,6 @@ export const seedInventoryApi = `${baseUrl}/inventory/seed`;
 export const getAllTrainersApi = `${baseUrl}/users/trainers`;
 export const plansApi = `${baseUrl}/plan`;
 export const revenueStatsApi = `${baseUrl}/revenue/stats`;
+export const updateTrainerApi = `${baseUrl}/trainer`;
+export const uploadFileApi = `${baseUrl}/stable/uploadFile`;
+export const deleteStableLogoApi = `${baseUrl}/stable/deleteLogo`;

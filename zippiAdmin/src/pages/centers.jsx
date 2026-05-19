@@ -5,7 +5,8 @@ import {
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { apiFunction } from '../api/apiFunction';
-import { getAllStablesApi, getGlobalStatsApi, createStableApi, getAllHorsesApi, getAllUsersApi, deleteStableApi, updateStableApi } from '../api/apis';
+import { getAllStablesApi, getGlobalStatsApi, createStableApi, getAllHorsesApi, getAllUsersApi, deleteStableApi, updateStableApi, uploadFileApi, deleteStableLogoApi } from '../api/apis';
+import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { X } from 'lucide-react';
@@ -167,8 +168,8 @@ const Centers = () => {
                         centers.map((center, idx) => (
                             <div key={center.id || idx} className="grid grid-cols-[300px_120px_1fr_1fr_1fr_150px] gap-4 items-center border-b border-[#F0E6D8] py-5 px-10 hover:bg-[#FDFBF9] transition-colors">
                                 <div className="flex items-center gap-5">
-                                    <div className="w-12 h-12 rounded-full bg-[#FAF0EB] flex items-center justify-center text-[#964C2E] flex-shrink-0">
-                                        <Building2 className="w-6 h-6" />
+                                    <div className="w-12 h-12 rounded-full bg-[#FAF0EB] flex items-center justify-center text-[#964C2E] flex-shrink-0 overflow-hidden border border-gray-100">
+                                        {center.logo ? <img src={center.logo} alt="Logo" className="w-full h-full object-cover" /> : <Building2 className="w-6 h-6" />}
                                     </div>
                                     <div>
                                         <h4 className="text-[15px] font-black text-[#1e2330] mb-0.5">{center.name}</h4>
@@ -237,7 +238,8 @@ const CreateCenterModal = ({ setShowModal, editing, formDataa, onSuccess, stable
         location: "",
         totalRevenue: 0,
         horses: [],
-        userId: ""
+        userId: "",
+        logo: ""
     });
 
     useEffect(() => {
@@ -250,6 +252,49 @@ const CreateCenterModal = ({ setShowModal, editing, formDataa, onSuccess, stable
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [horses, setHorses] = useState([]);
     const [users, setUsers] = useState([]);
+
+    const handleUploadLogo = async (e) => {
+        const file = e.target.files[0];
+        if (!file || !formData.id) return;
+        
+        const uploadData = new FormData();
+        uploadData.append("file", file);
+        uploadData.append("stableId", formData.id);
+        
+        try {
+            const res = await axios.post(uploadFileApi, uploadData, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+            if (res && res.data && res.data.success) {
+                toast.success("Logo uploaded successfully");
+                setFormData({ ...formData, logo: res.data.url });
+                if (onSuccess) onSuccess();
+            } else {
+                toast.error(res?.data?.message || "Failed to upload logo");
+            }
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Failed to upload logo");
+        }
+    };
+
+    const handleDeleteLogo = async () => {
+        if (!formData.id) return;
+        try {
+            const res = await apiFunction(deleteStableLogoApi, [formData.id], {}, "DELETE", true);
+            if (res && res.success) {
+                toast.success("Logo deleted successfully");
+                setFormData({ ...formData, logo: null });
+                if (onSuccess) onSuccess();
+            } else {
+                toast.error(res?.message || "Failed to delete logo");
+            }
+        } catch (error) {
+            toast.error('Network error. Please try again.');
+        }
+    };
 
 
     useEffect(() => {
@@ -308,6 +353,31 @@ const CreateCenterModal = ({ setShowModal, editing, formDataa, onSuccess, stable
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
+                    {editing && (
+                        <div className="mb-2 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                            <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-3 block px-1">Center Logo</label>
+                            {formData.logo ? (
+                                <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
+                                    <div className="flex items-center gap-4">
+                                        <img src={formData.logo} alt="Logo" className="w-12 h-12 rounded-lg object-cover border border-gray-200" />
+                                        <span className="text-[12px] font-bold text-gray-600">Current Logo</span>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button type="button" onClick={() => document.getElementById('logo-upload').click()} className="p-2 bg-gray-50 text-gray-600 hover:text-[#964C2E] hover:bg-[#F9EFE5] rounded-lg transition-colors"><Edit2 className="w-4 h-4" /></button>
+                                        <button type="button" onClick={handleDeleteLogo} className="p-2 bg-gray-50 text-gray-600 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex items-center justify-center w-full">
+                                    <button type="button" onClick={() => document.getElementById('logo-upload').click()} className="flex items-center justify-center gap-2 w-full py-4 rounded-xl border-2 border-dashed border-gray-200 text-gray-400 hover:bg-[#F9EFE5] hover:border-[#964C2E] hover:text-[#964C2E] transition-all text-[13px] font-bold bg-white">
+                                        <Plus className="w-4 h-4" />
+                                        Upload Logo
+                                    </button>
+                                </div>
+                            )}
+                            <input type="file" id="logo-upload" className="hidden" accept="image/*" onChange={handleUploadLogo} />
+                        </div>
+                    )}
                     <div>
                         <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Center Name</label>
                         <input

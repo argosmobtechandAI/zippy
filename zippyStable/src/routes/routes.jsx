@@ -8,6 +8,8 @@ import Lessons from "../pages/lessons";
 import { RouteProtector } from "./routeProtector";
 import Login from "../pages/login";
 import ChooseStable from "../pages/chooseStable";
+import TrainerManagement from "../pages/trainerManagement";
+import SlotManagement from "../pages/slotManagement";
 
 const Layout = () => {
     return (
@@ -30,6 +32,8 @@ export const AppRoutes = () => {
                 <Route index element={<Dashboard />} />
                 <Route path="/inventory" element={<Inventory />} />
                 <Route path="/stable-management" element={<StableManagement />} />
+                <Route path="/trainer-management" element={<TrainerManagement />} />
+                <Route path="/slot-management" element={<SlotManagement />} />
                 <Route path="/lessons" element={<Lessons />} />
             </Route>
             <Route path="/login" element={<Login />} />

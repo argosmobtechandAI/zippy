@@ -2,7 +2,7 @@ import { Config } from './config';
 
 export const baseURL = Config.API_BASE_URL;
 
-export const getAllUsersApi = `${baseURL}/users`;
+export const getAllUsersApi = `${baseURL}/users/all`;
 export const getUserApi = `${baseURL}/users`;
 export const createUserApi = `${baseURL}/users`;
 export const getOTPApi = `${baseURL}/users/getOTP`;
@@ -11,7 +11,7 @@ export const updateUserApi = `${baseURL}/users`;
 export const deleteUserApi = `${baseURL}/users`;
 export const markNotificationsAsReadApi = (userId) => `${baseURL}/users/mark-as-read/${userId}`;
 export const getRiderApi = `${baseURL}/rider`;
-
+export const getAllTrainersApi = `${baseURL}/users/trainers`;
 export const getAllSessionsApi = `${baseURL}/session`;
 export const getSessionsByTrainerApi = (trainerId) => `${baseURL}/session?trainerId=${trainerId}`;
 export const updateSessionApi = `${baseURL}/session`;
@@ -21,3 +21,14 @@ export const updateAttendanceApi = `${baseURL}/session/attendance`;
 export const updateLeaveRequestApi = `${baseURL}/users/leave-request`;
 export const updateLeaveApi = `${baseURL}/users/leave`;
 export const uploadProfilePictureApi = (id) => `${baseURL}/users/profile-picture/${id}`;
+
+export const getAllBatchesApi = `${baseURL}/batch`;
+export const createBatchApi = `${baseURL}/batch`;
+export const updateBatchApi = `${baseURL}/batch`;
+export const deleteBatchApi = `${baseURL}/batch`;
+
+export const createSessionApi = `${baseURL}/session`;
+export const deleteSessionApi = `${baseURL}/session`;
+
+export const updateTrainerApi = `${baseURL}/trainer`;
+export const getAllStablesApi = `${baseURL}/stable`;
