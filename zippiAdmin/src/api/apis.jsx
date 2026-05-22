@@ -1,4 +1,4 @@
-const baseUrl = "http://localhost:3000/api"
+const baseUrl = "https://zippy-wg71.onrender.com/api"
 
 export const getAllUsersApi = `${baseUrl}/users/all`;
 export const getUserApi = `${baseUrl}/users`;
