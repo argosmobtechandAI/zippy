@@ -300,23 +300,23 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
               </View>
               <View className="flex-row gap-2">
                 <TouchableOpacity
-                  className={`px-4 py-2 rounded-lg items-center justify-center border ${(attendance[rider.riderId] === "present" || rider.attendance.toLowerCase() === "present")
+                  className={`px-4 py-2 rounded-lg items-center justify-center border ${(attendance[rider.riderId] === "present" || rider?.attendance?.toLowerCase() === "present")
                     ? 'bg-[#8C4A28] border-[#8C4A28]'
                     : 'bg-[#f8fafc] border-[#e2e8f0]'
                     }`}
                   onPress={() => handleAttendance(rider.riderId, currentSession.id, 'present')}
                 >
-                  <Text className={`text-xs font-bold ${(attendance[rider.riderId] === "present" || rider.attendance.toLowerCase() === "present") ? 'text-white' : 'text-[#64748b]'
+                  <Text className={`text-xs font-bold ${(attendance[rider.riderId] === "present" || rider?.attendance?.toLowerCase() === "present") ? 'text-white' : 'text-[#64748b]'
                     }`}>Present</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  className={`px-4 py-2 rounded-lg items-center justify-center border ${(attendance[rider.riderId] === "noshow" || rider.attendance.toLowerCase() === 'noshow')
+                  className={`px-4 py-2 rounded-lg items-center justify-center border ${(attendance[rider.riderId] === "noshow" || rider?.attendance?.toLowerCase() === 'noshow')
                     ? 'bg-red-500 border-red-500'
                     : 'bg-[#f8fafc] border-[#e2e8f0]'
                     }`}
                   onPress={() => handleAttendance(rider.riderId, currentSession.id, 'noshow')}
                 >
-                  <Text className={`text-xs font-bold ${(attendance[rider.riderId] === "noshow" || rider.attendance.toLowerCase() === 'noshow') ? 'text-white' : 'text-[#64748b]'
+                  <Text className={`text-xs font-bold ${(attendance[rider.riderId] === "noshow" || rider.attendance?.toLowerCase() === 'noshow') ? 'text-white' : 'text-[#64748b]'
                     }`}>No-Show</Text>
                 </TouchableOpacity>
               </View>

@@ -245,11 +245,8 @@ export const getRevenueStats = async (req, res) => {
       });
     }
 
-    // 1. Calculate Guest Revenue from filtered sessions
+    // 1. Calculate Guest Revenue from filtered sessions (joiningAmount removed)
     let guestRevenue = 0;
-    filteredSessions.forEach(s => {
-      guestRevenue += (s.participants?.length || 0) * (Number(s.joiningAmount) || 0);
-    });
 
     // 2. Global Stables Revenue (Scale based on range if today/week)
     let totalRevenue = stables.reduce((acc, s) => acc + (Number(s.totalRevenue) || 0), 0);

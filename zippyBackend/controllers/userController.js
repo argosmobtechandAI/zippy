@@ -40,7 +40,8 @@ export const getAllUsers = async (req, res) => {
             riderId: riderTable.id,
             vetId: vetTable.id,
             profilePicture: userTable.profilePicture,
-            leaves: userTable.leaves
+            leaves: userTable.leaves,
+            riderType: riderTable.riderType
         })
             .from(userTable)
             .leftJoin(trainerTable, eq(userTable.id, trainerTable.userId))
@@ -150,14 +151,7 @@ export const getUser = async (req, res) => {
             } catch (e) { console.error(`Failed to heal trainer ${user.id}:`, e.message); }
         }
 
-        // Anyone who is NOT a trainer should have a rider profile if they are accessing the system.
-        // This ensures Vets, Admins, and multi-role users can still book/test rider sessions.
-        if (user.type !== 'trainer' && !user.riderId) {
-            try {
-                const res = await db.insert(riderTable).values({ userId: user.id, level: "BEGINNER" }).returning();
-                if (res && res.length > 0) { user.riderId = res[0].id; healed = true; }
-            } catch (e) { console.error(`Failed to heal rider ${user.id}:`, e.message); }
-        }
+
 
         if (user.type === 'vet' && !user.vetId) {
             try {
@@ -177,7 +171,7 @@ export const createUser = async (req, res) => {
     const { data } = req.body;
 
     try {
-        const { name, mobile, email, dob, type, age, weight, password, parentName, title, experience, emergencyContact, allergies, medical, level, instructions, status } = data
+        const { name, mobile, email, dob, type, age, code, weight, password, parentName, title, riderType, experience, emergencyContact, allergies, medical, level, instructions, status } = data
 
         let hashedPassword = null;
         if (password) {
@@ -193,10 +187,12 @@ export const createUser = async (req, res) => {
             return res.status(400).json({ message: 'Error creating user - no record returned', success: false });
         }
 
-       
+
 
         if (type === "rider") {
-            const newRider = await db.insert(riderTable).values({ userId: newUser[0].id, allergies, medical, level, instructions })
+            const riders = await db.select().from(riderTable)
+            const newCode = `${code}-${(riders.length + 1001).toString()}`
+            const newRider = await db.insert(riderTable).values({ userId: newUser[0].id, allergies, medical, level, instructions, riderType, code: newCode }).returning();
             if (!newRider) {
                 return res.status(400).json({ message: 'Error creating rider', success: false });
             }
@@ -245,7 +241,7 @@ export const updateUser = async (req, res) => {
     const { data } = req.body;
 
     // Separate core user data from role-specific data
-    const { title, experience, level, medical, instructions, allergies, addHorseId, ...coreData } = data;
+    const { title, experience, level, medical, instructions, allergies, riderType, addHorseId, ...coreData } = data;
 
     try {
         // 1. Update Core User Data
@@ -263,6 +259,7 @@ export const updateUser = async (req, res) => {
             if (medical !== undefined) riderUpdateData.medical = medical;
             if (instructions !== undefined) riderUpdateData.instructions = instructions;
             if (allergies !== undefined) riderUpdateData.allergies = allergies;
+            if (riderType !== undefined) riderUpdateData.riderType = riderType;
 
             if (Object.keys(riderUpdateData).length > 0) {
                 await db.update(riderTable).set(riderUpdateData).where(eq(riderTable.userId, id));
@@ -351,10 +348,10 @@ export const updateLeave = async (req, res) => {
                 return res.status(404).json({ message: 'Trainer not found', success: false });
             }
             const trainerLeaves = trainer[0].leaveRequests;
-           
+
             const updatedTrainerLeaves = [...trainerLeaves, { ...leaves, name: user[0].name, riderId: user[0].id }];
             const updatedTrainer = await db.update(trainerTable).set({ leaveRequests: updatedTrainerLeaves }).where(eq(trainerTable.id, trainer[0].id)).returning();
-          
+
             if (!updatedTrainer || updatedTrainer.length === 0) {
                 return res.status(404).json({ message: 'Trainer not found', success: false });
             }
@@ -440,7 +437,7 @@ export const login = async (req, res) => {
     try {
         const { data } = req.body;
 
-       
+
         if (!data) {
             return res.status(400).json({ message: 'Missing request data', success: false });
         }
@@ -477,7 +474,6 @@ export const login = async (req, res) => {
             return res.status(500).json({ message: 'Authentication service unavailable (bcryptjs missing). Please run npm install on the server.', success: false });
         }
 
-        console.log(user)
 
         const isMatch = await bcrypt.compare(password, user[0].password);
         if (!isMatch) {
@@ -558,7 +554,7 @@ export const notifyAllUsers = async (req, res) => {
 export const runTrainerMigrations = async () => {
     try {
         await db.execute(sql`ALTER TABLE trainers ADD COLUMN IF NOT EXISTS stable_id UUID REFERENCES stable(id)`);
-        console.log("Trainer table migration complete.");
+
     } catch (error) {
         console.error("Trainer migration error:", error.message);
     }
@@ -594,7 +590,7 @@ export const updateTrainerLeaveRequest = async (req, res) => {
     const { userId } = req.params;
     const { startDate, endDate, status } = req.body.data;
 
-    console.log(userId, startDate, endDate, status);
+
 
     try {
         const user = await db.select().from(userTable).where(eq(userTable.id, userId));
@@ -619,10 +615,10 @@ export const updateTrainerLeaveRequest = async (req, res) => {
 };
 
 export const getAllTrainers = async (req, res) => {
-    console.log("getAllTrainers")
+
     try {
         const trainers = await db.select().from(trainerTable);
-        console.log(trainers, "trainers")
+
         return res.status(200).json({ trainers, message: 'Trainers fetched successfully', success: true });
     } catch (error) {
         return res.status(500).json({ message: `Error: ${error.message}`, success: false });

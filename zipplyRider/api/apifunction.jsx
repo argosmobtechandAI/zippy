@@ -3,8 +3,6 @@ import axios from 'axios';
 
 export const apiFunction = async (api, params = [], data = {}, method, withAuth) => {
 
-  console.log(api)
-
   let headers = {}
   if (withAuth) {
     const token = await AsyncStorage.getItem('token');
@@ -16,16 +14,19 @@ export const apiFunction = async (api, params = [], data = {}, method, withAuth)
   let response;
   const fullURL = params.length > 0 ? `${api}/${params.join('/')}` : api;
 
+  console.log(fullURL, "fullURL")
+
   switch (method) {
     case 'GET':
       response = await axios.get(fullURL, { headers });
+      console.log(response, "hellowos")
       break;
     case 'POST':
       response = await axios.post(fullURL, { data }, { headers });
       break;
     case 'POST_FORM':
-      response = await axios.post(fullURL, data, { 
-        headers: { ...headers, 'Content-Type': 'multipart/form-data' } 
+      response = await axios.post(fullURL, data, {
+        headers: { ...headers, 'Content-Type': 'multipart/form-data' }
       });
       break;
     case 'PUT':

@@ -1,5 +1,5 @@
 const liveUrl = "https://zippy-wg71.onrender.com"
-const localUrl = "http://192.168.1.52:3000"
+const localUrl = "http://192.168.1.44:3000"
 
 export const Config = {
   API_BASE_URL: `${liveUrl}/api`

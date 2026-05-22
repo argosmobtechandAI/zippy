@@ -3,7 +3,8 @@ import {
     ChevronLeft, MoreHorizontal, UserCheck, Activity, Award, X, BellRing, Send, Megaphone, Search,
     Edit,
     Delete,
-    Plus
+    Plus,
+    Download
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -124,6 +125,52 @@ const UserManagement = () => {
     const [stables, setStables] = useState([])
     const navigate = useNavigate();
 
+    const handleExportCSV = () => {
+        if (!users || users.length === 0) {
+            toast.error("No users to export");
+            return;
+        }
+
+        const headers = ["ID", "Name", "Email", "Mobile", "Date of Birth", "Age", "Weight (kg)", "Type", "Status", "Emergency Contact", "Title", "Experience", "Rider Type"];
+        
+        const csvRows = [
+            headers.join(","),
+            ...users.map(user => {
+                const values = [
+                    user.id || "",
+                    user.name || "",
+                    user.email || "",
+                    user.mobile || "",
+                    user.dob || "",
+                    user.age || "",
+                    user.weight || "",
+                    user.type || "",
+                    user.status || "",
+                    user.emergencyContact || "",
+                    user.title || "",
+                    user.experience || "",
+                    user.riderType || ""
+                ];
+                return values.map(val => {
+                    const escaped = String(val).replace(/"/g, '""');
+                    return `"${escaped}"`;
+                }).join(",");
+            })
+        ];
+
+        const csvContent = csvRows.join("\n");
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `users_export_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast.success("CSV exported successfully");
+    };
+
     const handleStatusUpdate = async (userId, newStatus) => {
         try {
             const res = await apiFunction(`${updateUserApi}/${userId}`, [], { status: newStatus }, "PUT", true);
@@ -172,6 +219,7 @@ const UserManagement = () => {
         fetchTrainers();
         fetchStables();
     }, []);
+
 
     const handleApproveRequest = async (userId, leave, status) => {
         try {
@@ -278,6 +326,13 @@ const UserManagement = () => {
                     </div>
 
                     <div className="flex items-center gap-3">
+                        <button
+                            onClick={handleExportCSV}
+                            className="bg-white border border-[#964C2E]/20 text-[#964C2E] text-[13px] font-bold px-6 py-3.5 rounded-xl shadow-sm flex items-center gap-2.5 hover:bg-[#FDF9F4] transition-all"
+                        >
+                            <Download className="w-4 h-4" strokeWidth={2.5} />
+                            Export CSV
+                        </button>
                         <button
                             onClick={() => setNotifyModal({ all: true })}
                             className="bg-white border border-[#964C2E]/20 text-[#964C2E] text-[13px] font-bold px-6 py-3.5 rounded-xl shadow-sm flex items-center gap-2.5 hover:bg-[#FDF9F4] transition-all"
@@ -659,9 +714,11 @@ const UserActionModal = ({ userType, setCreateModal, onSuccess, initialData }) =
         experience: initialData?.experience || "",
         status: initialData?.status || "ACTIVE",
         password: "",
+        riderType: initialData?.riderType || "Regular",
     })
 
     const [isSubmitting, setIsSubmitting] = useState(false);
+    console.log(initialData, "initialData")
     const [errors, setErrors] = useState({})
 
     const isEdit = !!initialData;
@@ -846,6 +903,16 @@ const UserActionModal = ({ userType, setCreateModal, onSuccess, initialData }) =
                                 <option value="BANNED">BANNED</option>
                             </select>
                         </div>
+
+                        {userType === "rider" && (
+                            <div className="col-span-1">
+                                <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Rider Type</label>
+                                <select name="riderType" value={formData.riderType} onChange={handleChange} className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]">
+                                    <option value="Regular">Weekend</option>
+                                    <option value="weekdays">Weekdays</option>
+                                </select>
+                            </div>
+                        )}
                     </div>
                     <div className="mt-10 flex justify-end gap-4 pt-8 border-t border-gray-50">
                         <button type="button" onClick={() => setCreateModal(false)} className="px-8 py-3.5 rounded-2xl border border-gray-200 text-[#1e2330] text-[14px] font-bold hover:bg-gray-50 transition-all active:scale-95">

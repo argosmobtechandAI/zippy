@@ -260,6 +260,55 @@
       "when": 1778828603649,
       "tag": "0036_classy_wrecker",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1779353194650,
+      "tag": "0037_minor_killmonger",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1779359882137,
+      "tag": "0038_flowery_firelord",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1779368011192,
+      "tag": "0039_smart_swarm",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1779368111574,
+      "tag": "0040_sad_living_lightning",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1779439068458,
+      "tag": "0041_gorgeous_deathstrike",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1779446841187,
+      "tag": "0042_strange_next_avengers",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1779446860419,
+      "tag": "0043_eminent_edwin_jarvis",
+      "breakpoints": true
     }
   ]
 }

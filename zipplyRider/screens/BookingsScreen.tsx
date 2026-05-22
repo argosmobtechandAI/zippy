@@ -7,15 +7,15 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { apiFunction } from '../api/apifunction';
 import { getSessionsByRiderApi, updateLeaveApi } from '../api/api';
 import { useSelector, useDispatch } from 'react-redux';
-import { fetchUser } from '../redux/getDataSlice';
+import { fetchRider, fetchUser } from '../redux/getDataSlice';
 
 export default function BookingsScreen() {
-  const [tab, setTab] = useState('PENDING');
+  const [tab, setTab] = useState('CONFIRMED');
   const [loading, setLoading] = useState(true);
   const [sessions, setSessions] = useState([]);
   const navigation = useNavigation();
   const dispatch = useDispatch<any>();
-  const { user } = useSelector((state: any) => state.getData);
+  const { user, rider } = useSelector((state: any) => state.getData);
 
   const [activeLeaveSessionId, setActiveLeaveSessionId] = useState<string | null>(null);
   const [requesting, setRequesting] = useState(false);
@@ -28,7 +28,16 @@ export default function BookingsScreen() {
     status: 'pending',
   });
 
-  const currentRiderId = user?.riderId;
+  const currentRiderId = rider?.id;
+
+  useEffect(() => {
+    if (!user) {
+      dispatch(fetchUser())
+    }
+    if (!rider) {
+      dispatch(fetchRider())
+    }
+  }, [dispatch])
 
   const handleRequestLeave = async () => {
     if (!leaveForm.startDate || !leaveForm.endDate || !leaveForm.reason) {
@@ -70,16 +79,19 @@ export default function BookingsScreen() {
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       console.log("Refreshing Bookings...");
+      dispatch(fetchUser());
+      dispatch(fetchRider());
       fetchBookings();
     });
 
     return unsubscribe;
-  }, [navigation, currentRiderId]);
+  }, [navigation, currentRiderId, dispatch]);
 
   const fetchBookings = async () => {
     setLoading(true);
     try {
       let activeRiderId = currentRiderId;
+      dispatch(fetchRider());
 
       if (!activeRiderId) {
         // Try to fetch latest user data (self-healing)
@@ -119,26 +131,39 @@ export default function BookingsScreen() {
     return sessionDate < now;
   };
 
-  // Filter sessions based on rider's status in the participants list
-  const pendingSessions = sessions.filter(s => {
+  const confirmedSessions = sessions.filter(s => {
+    const isJoined = rider?.joinedSessions?.includes(s.id);
+    if (!isJoined) return false;
+
     const me = s.participants?.find((p: any) =>
       p.riderId && currentRiderId && String(p.riderId).toLowerCase() === String(currentRiderId).toLowerCase()
     );
-    const status = me?.status?.toUpperCase();
-    const isActive = status === 'BOOKED' || status === 'PENDING' || status === 'CONFIRMED' || !status;
+    const bookedDate = me?.date || s.date;
+    return !isSessionPassed(bookedDate, s.timing);
+  });
 
-    // It must have an active status AND not have passed its time yet
-    return isActive && !isSessionPassed(s.date, s.timing);
+  const pendingSessions = sessions.filter(s => {
+    const isPending = rider?.pendingSessions?.includes(s.id);
+    if (!isPending) return false;
+
+    const me = s.participants?.find((p: any) =>
+      p.riderId && currentRiderId && String(p.riderId).toLowerCase() === String(currentRiderId).toLowerCase()
+    );
+    const bookedDate = me?.date || s.date;
+    return !isSessionPassed(bookedDate, s.timing);
   });
 
   const pastSessions = sessions.filter(s => {
+    const isAssociated = rider?.joinedSessions?.includes(s.id) || rider?.pendingSessions?.includes(s.id);
+    if (!isAssociated) return false;
+
     const me = s.participants?.find((p: any) =>
       p.riderId && currentRiderId && String(p.riderId).toLowerCase() === String(currentRiderId).toLowerCase()
     );
+    const bookedDate = me?.date || s.date;
     const status = me?.status?.toUpperCase();
 
-    // It is past if it's explicitly marked as finished OR if its time has passed
-    return status === 'PRESENT' || status === 'NOSHOW' || isSessionPassed(s.date, s.timing);
+    return status === 'PRESENT' || status === 'NOSHOW' || isSessionPassed(bookedDate, s.timing);
   });
 
   return (
@@ -154,16 +179,22 @@ export default function BookingsScreen() {
       {/* Top Tabs */}
       <View className="flex-row bg-white border-b border-[#e2e8f0]">
         <TouchableOpacity
+          className={`flex-1 items-center justify-center py-4 border-b-2 ${tab === 'CONFIRMED' ? 'border-[#8C4A28]' : 'border-transparent'}`}
+          onPress={() => setTab('CONFIRMED')}
+        >
+          <Text className={`font-bold text-xs ${tab === 'CONFIRMED' ? 'text-[#8C4A28]' : 'text-[#64748b]'}`}>CONFIRMED</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
           className={`flex-1 items-center justify-center py-4 border-b-2 ${tab === 'PENDING' ? 'border-[#8C4A28]' : 'border-transparent'}`}
           onPress={() => setTab('PENDING')}
         >
-          <Text className={`font-bold text-xs ${tab === 'PENDING' ? 'text-[#8C4A28]' : 'text-[#64748b]'}`}>PENDING APPROVAL</Text>
+          <Text className={`font-bold text-xs ${tab === 'PENDING' ? 'text-[#8C4A28]' : 'text-[#64748b]'}`}>PENDING</Text>
         </TouchableOpacity>
         <TouchableOpacity
           className={`flex-1 items-center justify-center py-4 border-b-2 ${tab === 'PAST' ? 'border-[#8C4A28]' : 'border-transparent'}`}
           onPress={() => setTab('PAST')}
         >
-          <Text className={`font-bold text-xs ${tab === 'PAST' ? 'text-[#8C4A28]' : 'text-[#64748b]'}`}>PAST SESSIONS</Text>
+          <Text className={`font-bold text-xs ${tab === 'PAST' ? 'text-[#8C4A28]' : 'text-[#64748b]'}`}>PAST</Text>
         </TouchableOpacity>
       </View>
 
@@ -179,7 +210,7 @@ export default function BookingsScreen() {
             <RefreshControl refreshing={loading} onRefresh={fetchBookings} colors={['#8C4A28']} />
           }
         >
-          {tab === 'PENDING' ? (
+          {tab === 'CONFIRMED' && (
             <>
               {/* Cancellation Policy Alert */}
               <View className="bg-[#fceddf] border border-[#eabba4] rounded-2xl p-4 mb-6">
@@ -240,116 +271,181 @@ export default function BookingsScreen() {
 
               <View className="flex-row items-center mb-4">
                 <View className="w-1 h-5 bg-[#8C4A28] rounded mr-2" />
-                <Text className="text-[#1a202c] font-bold text-lg">Scheduled Sessions</Text>
+                <Text className="text-[#1a202c] font-bold text-lg">Confirmed Sessions</Text>
+              </View>
+
+              <View className="space-y-4">
+                {confirmedSessions.length === 0 ? (
+                  <View className="p-8 items-center justify-center bg-white rounded-2xl border border-[#e2e8f0] mb-4">
+                    <Text className="text-[#64748b] font-bold">No confirmed sessions found.</Text>
+                  </View>
+                ) : confirmedSessions.map((session, idx) => {
+                  const me = session.participants?.find((p: any) =>
+                    p.riderId && currentRiderId && String(p.riderId).toLowerCase() === String(currentRiderId).toLowerCase()
+                  );
+                  const bookedDate = me?.date || session.date;
+                  return (
+                    <View key={idx} className="bg-white rounded-2xl p-4 border border-[#e2e8f0] shadow-sm mb-4">
+                      <View className="flex-row justify-between items-start mb-3">
+                        <View className="px-2 py-1 rounded bg-green-100">
+                          <Text className="font-bold text-[8px] tracking-widest uppercase text-green-700">
+                            CONFIRMED
+                          </Text>
+                        </View>
+                        <View className="bg-[#fceddf] p-1.5 rounded-lg">
+                          <Calendar color="#8C4A28" size={16} />
+                        </View>
+                      </View>
+
+                      <Text className="text-[#1a202c] font-bold text-lg mb-3">{session.title}</Text>
+
+                      <View className="space-y-2 mb-4 mt-2">
+                        <View className="flex-row items-center">
+                          <View className="w-6 items-center mr-1">
+                            <Calendar color="#8C4A28" size={14} />
+                          </View>
+                          <Text className="text-[#64748b] text-xs">{session.timing} • {bookedDate}</Text>
+                        </View>
+                        <View className="flex-row items-center mt-1">
+                          <View className="w-6 items-center mr-1">
+                            <UserIcon color="#8C4A28" size={14} />
+                          </View>
+                          <Text className="text-[#64748b] text-xs">Location: {session.location}</Text>
+                        </View>
+                      </View>
+
+                      <View className="h-[1px] bg-[#f1f5f9] mb-4" />
+
+                      <View className="flex-row justify-between items-center mt-2">
+
+                        <TouchableOpacity onPress={() => navigation.navigate("SessionDetail", { session, date: bookedDate })} className="bg-[#8C4A28] py-2 px-4 rounded-lg">
+                          <Text className="text-white font-bold text-xs">View Details</Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      {/* Inline Leave Form */}
+                      {activeLeaveSessionId === session.id && (
+                        <View className="mt-4 pt-4 border-t border-[#f1f5f9]">
+                          <Text className="text-[#1a202c] font-bold text-sm mb-3">Request Leave</Text>
+
+                          <View className="mb-3">
+                            <Text className="text-[#94a3b8] text-[10px] font-bold tracking-widest uppercase mb-1 ml-1">Leave Reason</Text>
+                            <TextInput
+                              value={leaveForm.reason}
+                              onChangeText={t => setLeaveForm({ ...leaveForm, reason: t })}
+                              placeholder="e.g. Vacation, Medical"
+                              className="bg-[#f8fafc] border border-[#e2e8f0] rounded-xl px-4 py-3 text-[#1a202c] font-bold text-xs"
+                            />
+                          </View>
+
+                          <View className="flex-row gap-3 mb-4">
+                            <View className="flex-1">
+                              <Text className="text-[#94a3b8] text-[10px] font-bold tracking-widest uppercase mb-1 ml-1">Start Date</Text>
+                              <TouchableOpacity onPress={() => setShowDatePicker('startDate')}>
+                                <View pointerEvents="none">
+                                  <TextInput
+                                    value={leaveForm.startDate}
+                                    placeholder="YYYY-MM-DD"
+                                    editable={false}
+                                    className="bg-[#f8fafc] border border-[#e2e8f0] rounded-xl px-4 py-3 text-[#1a202c] font-bold text-xs"
+                                  />
+                                </View>
+                              </TouchableOpacity>
+                            </View>
+                            <View className="flex-1">
+                              <Text className="text-[#94a3b8] text-[10px] font-bold tracking-widest uppercase mb-1 ml-1">End Date</Text>
+                              <TouchableOpacity onPress={() => setShowDatePicker('endDate')}>
+                                <View pointerEvents="none">
+                                  <TextInput
+                                    value={leaveForm.endDate}
+                                    placeholder="YYYY-MM-DD"
+                                    editable={false}
+                                    className="bg-[#f8fafc] border border-[#e2e8f0] rounded-xl px-4 py-3 text-[#1a202c] font-bold text-xs"
+                                  />
+                                </View>
+                              </TouchableOpacity>
+                            </View>
+                          </View>
+
+                          <TouchableOpacity
+                            onPress={handleRequestLeave}
+                            disabled={requesting}
+                            className={`py-3 rounded-xl items-center justify-center flex-row ${requesting ? 'bg-[#94a3b8]' : 'bg-[#8C4A28]'}`}
+                          >
+                            {requesting ? <ActivityIndicator color="white" size="small" /> : <CalendarRange color="white" size={16} className="mr-2" />}
+                            <Text className="text-white font-bold text-sm ml-1">{requesting ? 'Submitting...' : 'Submit Request'}</Text>
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                    </View>
+                  );
+                })}
+              </View>
+            </>
+          )}
+
+          {tab === 'PENDING' && (
+            <>
+              <View className="flex-row items-center mb-4">
+                <View className="w-1 h-5 bg-[#8C4A28] rounded mr-2" />
+                <Text className="text-[#1a202c] font-bold text-lg">Pending Sessions</Text>
               </View>
 
               <View className="space-y-4">
                 {pendingSessions.length === 0 ? (
-                  <View className="p-8 items-center justify-center">
+                  <View className="p-8 items-center justify-center bg-white rounded-2xl border border-[#e2e8f0] mb-4">
                     <Text className="text-[#64748b] font-bold">No pending sessions found.</Text>
                   </View>
-                ) : pendingSessions.map((session, idx) => (
-                  <View key={idx} className="bg-white rounded-2xl p-4 border border-[#e2e8f0] shadow-sm mb-4">
-                    <View className="flex-row justify-between items-start mb-3">
-                      <View className={`px-2 py-1 rounded ${session.participants?.find((p: any) => p.riderId === currentRiderId)?.status === 'CONFIRMED' ? 'bg-green-100' : 'bg-[#fceddf]'}`}>
-                        <Text className={`font-bold text-[8px] tracking-widest uppercase ${session.participants?.find((p: any) => p.riderId && currentRiderId && String(p.riderId).toLowerCase() === String(currentRiderId).toLowerCase())?.status === 'CONFIRMED' ? 'text-green-700' : 'text-[#8C4A28]'}`}>
-                          {session.participants?.find((p: any) => p.riderId && currentRiderId && String(p.riderId).toLowerCase() === String(currentRiderId).toLowerCase())?.status || 'PENDING'}
-                        </Text>
-                      </View>
-                      <View className="bg-[#fceddf] p-1.5 rounded-lg">
-                        <Calendar color="#8C4A28" size={16} />
-                      </View>
-                    </View>
-
-                    <Text className="text-[#1a202c] font-bold text-lg mb-3">{session.title}</Text>
-
-                    <View className="space-y-2 mb-4 mt-2">
-                      <View className="flex-row items-center">
-                        <View className="w-6 items-center mr-1">
-                          <Calendar color="#8C4A28" size={14} />
+                ) : pendingSessions.map((session, idx) => {
+                  const me = session.participants?.find((p: any) =>
+                    p.riderId && currentRiderId && String(p.riderId).toLowerCase() === String(currentRiderId).toLowerCase()
+                  );
+                  const bookedDate = me?.date || session.date;
+                  return (
+                    <View key={idx} className="bg-white rounded-2xl p-4 border border-[#e2e8f0] shadow-sm mb-4">
+                      <View className="flex-row justify-between items-start mb-3">
+                        <View className="px-2 py-1 rounded bg-[#fceddf]">
+                          <Text className="font-bold text-[8px] tracking-widest uppercase text-[#8C4A28]">
+                            PENDING
+                          </Text>
                         </View>
-                        <Text className="text-[#64748b] text-xs">{session.timing} • {session.date}</Text>
-                      </View>
-                      <View className="flex-row items-center mt-1">
-                        <View className="w-6 items-center mr-1">
-                          <UserIcon color="#8C4A28" size={14} />
+                        <View className="bg-[#fceddf] p-1.5 rounded-lg">
+                          <Calendar color="#8C4A28" size={16} />
                         </View>
-                        <Text className="text-[#64748b] text-xs">Location: {session.location}</Text>
                       </View>
-                    </View>
 
-                    <View className="h-[1px] bg-[#f1f5f9] mb-4" />
+                      <Text className="text-[#1a202c] font-bold text-lg mb-3">{session.title}</Text>
 
-                    <View className="flex-row justify-between items-center mt-2">
-                      <TouchableOpacity onPress={() => setActiveLeaveSessionId(activeLeaveSessionId === session.id ? null : session.id)}>
-                        <Text className="text-[#94a3b8] font-bold text-xs tracking-wider uppercase">
-                          {activeLeaveSessionId === session.id ? '✕ Cancel Leave' : 'Apply Leave'}
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity onPress={() => navigation.navigate("SessionDetail", { session })} className="bg-[#8C4A28] py-2 px-4 rounded-lg">
-                        <Text className="text-white font-bold text-xs">View Details</Text>
-                      </TouchableOpacity>
-                    </View>
-
-                    {/* Inline Leave Form */}
-                    {activeLeaveSessionId === session.id && (
-                      <View className="mt-4 pt-4 border-t border-[#f1f5f9]">
-                        <Text className="text-[#1a202c] font-bold text-sm mb-3">Request Leave</Text>
-
-                        <View className="mb-3">
-                          <Text className="text-[#94a3b8] text-[10px] font-bold tracking-widest uppercase mb-1 ml-1">Leave Reason</Text>
-                          <TextInput
-                            value={leaveForm.reason}
-                            onChangeText={t => setLeaveForm({ ...leaveForm, reason: t })}
-                            placeholder="e.g. Vacation, Medical"
-                            className="bg-[#f8fafc] border border-[#e2e8f0] rounded-xl px-4 py-3 text-[#1a202c] font-bold text-xs"
-                          />
-                        </View>
-
-                        <View className="flex-row gap-3 mb-4">
-                          <View className="flex-1">
-                            <Text className="text-[#94a3b8] text-[10px] font-bold tracking-widest uppercase mb-1 ml-1">Start Date</Text>
-                            <TouchableOpacity onPress={() => setShowDatePicker('startDate')}>
-                              <View pointerEvents="none">
-                                <TextInput
-                                  value={leaveForm.startDate}
-                                  placeholder="YYYY-MM-DD"
-                                  editable={false}
-                                  className="bg-[#f8fafc] border border-[#e2e8f0] rounded-xl px-4 py-3 text-[#1a202c] font-bold text-xs"
-                                />
-                              </View>
-                            </TouchableOpacity>
+                      <View className="space-y-2 mb-4 mt-2">
+                        <View className="flex-row items-center">
+                          <View className="w-6 items-center mr-1">
+                            <Calendar color="#8C4A28" size={14} />
                           </View>
-                          <View className="flex-1">
-                            <Text className="text-[#94a3b8] text-[10px] font-bold tracking-widest uppercase mb-1 ml-1">End Date</Text>
-                            <TouchableOpacity onPress={() => setShowDatePicker('endDate')}>
-                              <View pointerEvents="none">
-                                <TextInput
-                                  value={leaveForm.endDate}
-                                  placeholder="YYYY-MM-DD"
-                                  editable={false}
-                                  className="bg-[#f8fafc] border border-[#e2e8f0] rounded-xl px-4 py-3 text-[#1a202c] font-bold text-xs"
-                                />
-                              </View>
-                            </TouchableOpacity>
-                          </View>
+                          <Text className="text-[#64748b] text-xs">{session.timing} • {bookedDate}</Text>
                         </View>
+                        <View className="flex-row items-center mt-1">
+                          <View className="w-6 items-center mr-1">
+                            <UserIcon color="#8C4A28" size={14} />
+                          </View>
+                          <Text className="text-[#64748b] text-xs">Location: {session.location}</Text>
+                        </View>
+                      </View>
 
-                        <TouchableOpacity
-                          onPress={handleRequestLeave}
-                          disabled={requesting}
-                          className={`py-3 rounded-xl items-center justify-center flex-row ${requesting ? 'bg-[#94a3b8]' : 'bg-[#8C4A28]'}`}
-                        >
-                          {requesting ? <ActivityIndicator color="white" size="small" /> : <CalendarRange color="white" size={16} className="mr-2" />}
-                          <Text className="text-white font-bold text-sm ml-1">{requesting ? 'Submitting...' : 'Submit Request'}</Text>
+                      <View className="h-[1px] bg-[#f1f5f9] mb-4" />
+
+                      <View className="flex-row justify-end items-center mt-2">
+                        <TouchableOpacity onPress={() => navigation.navigate("SessionDetail", { session, date: bookedDate })} className="bg-[#8C4A28] py-2 px-4 rounded-lg">
+                          <Text className="text-white font-bold text-xs">View Details</Text>
                         </TouchableOpacity>
                       </View>
-                    )}
-                  </View>
-                ))}
+                    </View>
+                  );
+                })}
               </View>
             </>
-          ) : (
+          )}
+
+          {tab === 'PAST' && (
             <View className="flex-1">
               <View className="flex-row items-center mb-6 mt-2">
                 <View>
@@ -360,51 +456,59 @@ export default function BookingsScreen() {
 
               <View className="space-y-4">
                 {pastSessions.length === 0 ? (
-                  <View className="p-8 items-center justify-center">
+                  <View className="p-8 items-center justify-center bg-white rounded-2xl border border-[#e2e8f0] mb-4">
                     <Text className="text-[#64748b] font-bold">No past sessions found.</Text>
                   </View>
-                ) : pastSessions.map((session, idx) => (
-                  <View key={idx} className="bg-white rounded-3xl p-5 shadow-sm border border-[#e2e8f0] mb-4">
-                    <View className="flex-row justify-between items-start mb-3">
-                      <Text className="text-[#1a202c] font-bold text-lg flex-1 mr-2">{session.title}</Text>
-                      <View className="bg-[#fceddf] px-2 py-1 rounded-lg">
-                        <Text className="text-[#8C4A28] font-bold text-[8px] uppercase tracking-widest">COMPLETED</Text>
-                      </View>
-                    </View>
-
-                    <View className="flex-row items-center space-x-2 mb-4">
-                      <Clock color="#64748b" size={16} />
-                      <Text className="text-[#64748b] text-sm ml-2">{session.timing} • {session.date}</Text>
-                    </View>
-
-                    <View className="flex-row justify-between items-center bg-[#f8fafc] p-3 rounded-2xl mb-4">
-                      <View className="flex-1 border-r border-[#e2e8f0]">
-                        <Text className="text-[#94a3b8] text-[10px] uppercase font-bold tracking-wider mb-1">Location</Text>
-                        <Text className="text-[#1a202c] font-semibold text-sm">{session.location}</Text>
-                      </View>
-                      <View className="flex-1 pl-4">
-                        <Text className="text-[#94a3b8] text-[10px] uppercase font-bold tracking-wider mb-1">Status</Text>
-                        <Text className="text-[#1a202c] font-semibold text-sm capitalize">
-                          {session.participants?.find((p: any) => p.riderId)?.status || 'Completed'}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View className="flex-row justify-between items-center border-t border-[#f1f5f9] pt-4">
-                      <View className="flex-row items-center">
-                        <Text className="text-xs text-[#64748b] mr-2">Your Rating:</Text>
-                        <View className="flex-row">
-                          {[...Array(5)].map((_, i) => (
-                            <Star key={i} size={12} color={i < 5 ? '#f59e0b' : '#cbd5e1'} fill={i < 5 ? '#f59e0b' : 'transparent'} />
-                          ))}
+                ) : pastSessions.map((session, idx) => {
+                  const me = session.participants?.find((p: any) =>
+                    p.riderId && currentRiderId && String(p.riderId).toLowerCase() === String(currentRiderId).toLowerCase()
+                  );
+                  const bookedDate = me?.date || session.date;
+                  return (
+                    <View key={idx} className="bg-white rounded-3xl p-5 shadow-sm border border-[#e2e8f0] mb-4">
+                      <View className="flex-row justify-between items-start mb-3">
+                        <Text className="text-[#1a202c] font-bold text-lg flex-1 mr-2">{session.title}</Text>
+                        <View className="bg-[#fceddf] px-2 py-1 rounded-lg">
+                          <Text className="text-[#8C4A28] font-bold text-[8px] uppercase tracking-widest">
+                            {me?.status || 'COMPLETED'}
+                          </Text>
                         </View>
                       </View>
-                      <TouchableOpacity onPress={() => navigation.navigate("SessionDetail", { session })}>
-                        <Text className="text-[#8C4A28] font-bold text-sm">View Details →</Text>
-                      </TouchableOpacity>
+
+                      <View className="flex-row items-center space-x-2 mb-4">
+                        <Clock color="#64748b" size={16} />
+                        <Text className="text-[#64748b] text-sm ml-2">{session.timing} • {bookedDate}</Text>
+                      </View>
+
+                      <View className="flex-row justify-between items-center bg-[#f8fafc] p-3 rounded-2xl mb-4">
+                        <View className="flex-1 border-r border-[#e2e8f0]">
+                          <Text className="text-[#94a3b8] text-[10px] uppercase font-bold tracking-wider mb-1">Location</Text>
+                          <Text className="text-[#1a202c] font-semibold text-sm">{session.location}</Text>
+                        </View>
+                        <View className="flex-1 pl-4">
+                          <Text className="text-[#94a3b8] text-[10px] uppercase font-bold tracking-wider mb-1">Status</Text>
+                          <Text className="text-[#1a202c] font-semibold text-sm capitalize">
+                            {me?.status?.toLowerCase() || 'completed'}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View className="flex-row justify-between items-center border-t border-[#f1f5f9] pt-4">
+                        <View className="flex-row items-center">
+                          <Text className="text-xs text-[#64748b] mr-2">Your Rating:</Text>
+                          <View className="flex-row">
+                            {[...Array(5)].map((_, i) => (
+                              <Star key={i} size={12} color={i < 5 ? '#f59e0b' : '#cbd5e1'} fill={i < 5 ? '#f59e0b' : 'transparent'} />
+                            ))}
+                          </View>
+                        </View>
+                        <TouchableOpacity onPress={() => navigation.navigate("SessionDetail", { session, date: bookedDate })}>
+                          <Text className="text-[#8C4A28] font-bold text-sm">View Details →</Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
-                  </View>
-                ))}
+                  );
+                })}
               </View>
             </View>
           )}

@@ -117,12 +117,12 @@ export default function EnrolmentScreen() {
                 <View>
                     <Text className="text-[#64748b] text-xs font-semibold mb-1">Total Investment</Text>
                     <View className="flex-row items-center">
-                        <Text className="text-[#1a202c] text-2xl font-black mr-2">$1,250</Text>
+                        <Text className="text-[#1a202c] text-2xl font-black mr-2">₹1,250</Text>
                         <View>
                             <View className="bg-[#e2d5c3] px-2 py-[2px] rounded mb-[2px]">
                                 <Text className="text-[#8C4A28] text-[8px] font-extrabold">BEST VALUE</Text>
                             </View>
-                            <Text className="text-[#94a3b8] text-[10px] line-through font-semibold">$1,500</Text>
+                            <Text className="text-[#94a3b8] text-[10px] line-through font-semibold">₹1,500</Text>
                         </View>
                     </View>
                 </View>

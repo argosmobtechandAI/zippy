@@ -100,22 +100,18 @@ export const mapSessionToCamel = (s) => {
     if (!s) return s;
     return {
         ...s,
-        joiningAmount: s.joining_amount,
         trainerId: s.trainers, // the DB column is "trainers" !
         horseId: s.horse,     // the DB column is "horse" !
         totalSeats: s.total_seats,
-        batchsId: s.batchs_id
     };
 };
 export const mapSessionToSnake = (s) => {
     if (!s) return s;
     const db = { ...s };
-    if (s.joiningAmount !== undefined) db.joining_amount = s.joiningAmount;
     if (s.trainerId !== undefined) db.trainers = s.trainerId;
     if (s.horseId !== undefined) db.horse = s.horseId;
     if (s.totalSeats !== undefined) db.total_seats = s.totalSeats;
-    if (s.batchsId !== undefined) db.batchs_id = s.batchsId;
-    delete db.joiningAmount; delete db.trainerId; delete db.horseId; delete db.totalSeats; delete db.batchsId;
+    delete db.trainerId; delete db.horseId; delete db.totalSeats;
     return db;
 };
 

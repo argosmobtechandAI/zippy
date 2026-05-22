@@ -5,6 +5,8 @@ import { riderTable, planTable, userTable, revenueTable } from "../schema.js";
 export const getRider = async (req, res) => {
     const userId = req.userId;
 
+    console.log("Fetching rider for userId:", userId);
+
     try {
         const rider = await db
             .select()
@@ -39,6 +41,8 @@ export const getRider = async (req, res) => {
             }
         }
 
+        console.log(rider[0], "rider")
+
         return res.status(200).json({
             rider: rider[0],
             message: 'Rider fetched successfully',
@@ -46,6 +50,7 @@ export const getRider = async (req, res) => {
         });
 
     } catch (error) {
+        console.log(error)
         return res.status(500).json({
             message: `Error: ${error.message}`,
             success: false

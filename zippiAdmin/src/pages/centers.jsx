@@ -22,7 +22,8 @@ const Centers = () => {
         location: "",
         totalRevenue: 0,
         horse: [],
-        userId: ""
+        userId: "",
+        code: "",
     });
 
     const navigate = useNavigate();
@@ -239,7 +240,8 @@ const CreateCenterModal = ({ setShowModal, editing, formDataa, onSuccess, stable
         totalRevenue: 0,
         horses: [],
         userId: "",
-        logo: ""
+        logo: "",
+        code: "",
     });
 
     useEffect(() => {
@@ -256,11 +258,11 @@ const CreateCenterModal = ({ setShowModal, editing, formDataa, onSuccess, stable
     const handleUploadLogo = async (e) => {
         const file = e.target.files[0];
         if (!file || !formData.id) return;
-        
+
         const uploadData = new FormData();
         uploadData.append("file", file);
         uploadData.append("stableId", formData.id);
-        
+
         try {
             const res = await axios.post(uploadFileApi, uploadData, {
                 headers: {
@@ -396,6 +398,17 @@ const CreateCenterModal = ({ setShowModal, editing, formDataa, onSuccess, stable
                             name="location"
                             value={formData.location}
                             onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                            className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E] focus:bg-white transition-all"
+                            placeholder="e.g. Kentucky, USA"
+                        />
+                    </div>
+                    <div>
+                        <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Unique Code</label>
+                        <input
+                            required
+                            name="code"
+                            value={formData.code}
+                            onChange={(e) => setFormData({ ...formData, code: e.target.value })}
                             className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E] focus:bg-white transition-all"
                             placeholder="e.g. Kentucky, USA"
                         />

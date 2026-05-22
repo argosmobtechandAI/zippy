@@ -24,6 +24,7 @@
     "nativewind": "^4.2.3",
     "prettier-plugin-tailwindcss": "^0.7.2",
     "react": "19.2.3",
+    "react-devtools-core": "^7.0.1",
     "react-native": "0.84.1",
     "react-native-blob-util": "^0.24.7",
     "react-native-image-picker": "^8.2.1",

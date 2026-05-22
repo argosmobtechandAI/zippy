@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
-import { getRiderApi, getUserApi, getSessionsByRiderApi } from '../api/api';
+import { getRiderApi, getUserApi, getSessionsByRiderApi, getAllStablesApi } from '../api/api';
 import { apiFunction } from '../api/apifunction';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -47,13 +47,24 @@ export const fetchRider = createAsyncThunk('getData/fetchRider', async () => {
     }
 });
 
+export const fetchStables = createAsyncThunk('getData/fetchStables', async () => {
+    try {
+        const response = await apiFunction(getAllStablesApi, [], {}, 'GET', false);
+        console.log(response, "responseee")
+        return response?.stables;
+    } catch (error) {
+        throw error;
+    }
+});
+
 const initialState = {
     users: [],
     loading: false,
     error: null,
     user: null,
     rider: null,
-    sessions: []
+    sessions: [],
+    stables: null
 };
 
 const getDataSlice = createSlice({
@@ -65,6 +76,7 @@ const getDataSlice = createSlice({
             state.rider = null;
             state.users = [];
             state.sessions = [];
+            state.stables = null;
             state.loading = false;
             state.error = null;
         }
@@ -115,6 +127,17 @@ const getDataSlice = createSlice({
                 state.sessions = action.payload;
             })
             .addCase(fetchRiderSessions.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.error.message;
+            })
+            .addCase(fetchStables.pending, (state) => {
+                state.loading = true;
+            })
+            .addCase(fetchStables.fulfilled, (state, action) => {
+                state.loading = false;
+                state.stables = action.payload;
+            })
+            .addCase(fetchStables.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.error.message;
             })

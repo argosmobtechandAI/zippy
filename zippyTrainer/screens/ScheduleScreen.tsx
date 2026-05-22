@@ -93,7 +93,6 @@ export default function ScheduleScreen() {
       date: selectedDate,
       timing: '',
       location: '',
-      joiningAmount: '0',
       totalSeats: '10',
       duration: '1 hr',
       horseId: '',
@@ -114,7 +113,6 @@ export default function ScheduleScreen() {
          const payload = {
             ...newSession,
             trainerId: user.id,
-            joiningAmount: parseInt(newSession.joiningAmount),
             totalSeats: parseInt(newSession.totalSeats)
          };
 
@@ -140,6 +138,7 @@ export default function ScheduleScreen() {
 
    // Formatter for nicer date display - prevent UTC shifting
    const formatDateFriendly = (dateString) => {
+      if(dateString === "daily") return "Daily";
       if (!dateString) return 'Today';
       const [year, month, day] = dateString.split('-').map(Number);
       const dateObj = new Date(year, month - 1, day);

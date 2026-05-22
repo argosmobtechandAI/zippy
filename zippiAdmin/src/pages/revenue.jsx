@@ -244,7 +244,7 @@ const Revenue = () => {
                             </div>
                             <div className="relative z-10">
                                 <h3 className="text-[13px] font-semibold text-white/80 mb-2">Total Global Revenue</h3>
-                                <p className="text-[40px] font-bold mb-5 tracking-tight">${Number(stats.totalRevenue).toLocaleString()}</p>
+                                <p className="text-[40px] font-bold mb-5 tracking-tight">₹{Number(stats.totalRevenue).toLocaleString()}</p>
                                 <div className="flex items-center gap-1.5 text-sm font-bold text-[#4ADE80]">
                                     <TrendingUp className="w-4 h-4" strokeWidth={2.5} />
                                     {stats.revenueGrowth} <span className="text-white/70 font-medium ml-1">from last month</span>
@@ -255,7 +255,7 @@ const Revenue = () => {
                         {/* Info Card 1 */}
                         <div className="bg-white rounded-2xl p-7 shadow-sm border border-gray-100/80">
                             <h3 className="text-[13px] font-bold text-[#818C99] mb-2 uppercase tracking-wide">Enrollment Revenue</h3>
-                            <p className="text-[40px] font-bold text-[#1e2330] mb-5 tracking-tight">${Number(stats.enrollmentRevenue).toLocaleString()}</p>
+                            <p className="text-[40px] font-bold text-[#1e2330] mb-5 tracking-tight">₹{Number(stats.enrollmentRevenue).toLocaleString()}</p>
                             <div className="flex items-center gap-1.5 text-sm font-bold text-[#34D399]">
                                 <TrendingUp className="w-4 h-4" strokeWidth={2.5} />
                                 +4.2% <span className="text-gray-400 font-medium ml-1">from last month</span>
@@ -265,7 +265,7 @@ const Revenue = () => {
                         {/* Info Card 2 */}
                         <div className="bg-white rounded-2xl p-7 shadow-sm border border-gray-100/80">
                             <h3 className="text-[13px] font-bold text-[#818C99] mb-2 uppercase tracking-wide">Renewal Revenue</h3>
-                            <p className="text-[40px] font-bold text-[#1e2330] mb-5 tracking-tight">${Number(stats.renewalRevenue).toLocaleString()}</p>
+                            <p className="text-[40px] font-bold text-[#1e2330] mb-5 tracking-tight">₹{Number(stats.renewalRevenue).toLocaleString()}</p>
                             <div className="flex items-center gap-1.5 text-sm font-bold text-[#34D399]">
                                 <TrendingUp className="w-4 h-4" strokeWidth={2.5} />
                                 +5.4% <span className="text-gray-400 font-medium ml-1">from last month</span>
@@ -275,7 +275,7 @@ const Revenue = () => {
                         {/* Info Card 3 */}
                         <div className="bg-white rounded-2xl p-7 shadow-sm border border-gray-100/80">
                             <h3 className="text-[13px] font-bold text-[#818C99] mb-2 uppercase tracking-wide">Guest Ride Revenue</h3>
-                            <p className="text-[40px] font-bold text-[#1e2330] mb-5 tracking-tight">${Number(stats.guestRevenue).toLocaleString()}</p>
+                            <p className="text-[40px] font-bold text-[#1e2330] mb-5 tracking-tight">₹{Number(stats.guestRevenue).toLocaleString()}</p>
                             <div className="flex items-center gap-1.5 text-sm font-bold text-[#34D399]">
                                 <TrendingUp className="w-4 h-4" strokeWidth={2.5} />
                                 +8.2% <span className="text-gray-400 font-medium ml-1">from last month</span>
@@ -384,10 +384,10 @@ const Revenue = () => {
                                     {stables.map((stable, idx) => (
                                         <tr key={stable.id || idx} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
                                             <td className="py-5 px-8 font-bold text-[#1e2330] max-w-[220px]">{stable.name || 'Unnamed Center'}</td>
-                                            <td className="py-5 px-6 font-semibold text-gray-600">${Math.round(stable.totalRevenue * 0.5)}</td>
-                                            <td className="py-5 px-6 font-semibold text-gray-600">${Math.round(stable.totalRevenue * 0.35)}</td>
-                                            <td className="py-5 px-6 font-semibold text-gray-600">${Math.round(stable.totalRevenue * 0.15)}</td>
-                                            <td className="py-5 px-6 font-bold text-[#964C2E]">${stable.totalRevenue || 0}</td>
+                                            <td className="py-5 px-6 font-semibold text-gray-600">₹{Math.round(stable.totalRevenue * 0.5)}</td>
+                                            <td className="py-5 px-6 font-semibold text-gray-600">₹{Math.round(stable.totalRevenue * 0.35)}</td>
+                                            <td className="py-5 px-6 font-semibold text-gray-600">₹{Math.round(stable.totalRevenue * 0.15)}</td>
+                                            <td className="py-5 px-6 font-bold text-[#964C2E]">₹{stable.totalRevenue || 0}</td>
                                             <td className="py-5 px-8">
                                                 <span className="inline-flex items-center px-2.5 py-1.5 rounded-md text-[11px] font-bold bg-[#DCFCE7] text-[#166534]">
                                                     Active
@@ -416,10 +416,10 @@ const Revenue = () => {
                             </div>
                             <div className="relative z-10">
                                 <h3 className="text-[13px] font-semibold text-white/80 mb-2">Total Plan Revenue</h3>
-                                <p className="text-[40px] font-bold mb-5 tracking-tight">${Number(revenueData?.totalRevenue || 0).toLocaleString()}</p>
+                                <p className="text-[40px] font-bold mb-5 tracking-tight">₹{Number(revenueData?.totalRevenue || 0).toLocaleString()}</p>
                                 <div className="flex items-center gap-1.5 text-sm font-bold text-[#4ADE80]">
                                     <TrendingUp className="w-4 h-4" strokeWidth={2.5} />
-                                    <span>Active: ${Number(revenueData?.totalActiveRevenue || 0).toLocaleString()}</span>
+                                    <span>Active: ₹{Number(revenueData?.totalActiveRevenue || 0).toLocaleString()}</span>
                                 </div>
                             </div>
                         </div>
@@ -447,7 +447,7 @@ const Revenue = () => {
                         {/* Inactive Revenue */}
                         <div className="bg-white rounded-2xl p-7 shadow-sm border border-gray-100/80">
                             <h3 className="text-[13px] font-bold text-[#818C99] mb-2 uppercase tracking-wide">Past Revenue</h3>
-                            <p className="text-[40px] font-bold text-[#1e2330] mb-5 tracking-tight">${Number(revenueData?.totalInactiveRevenue || 0).toLocaleString()}</p>
+                            <p className="text-[40px] font-bold text-[#1e2330] mb-5 tracking-tight">₹{Number(revenueData?.totalInactiveRevenue || 0).toLocaleString()}</p>
                             <div className="flex items-center gap-1.5 text-sm font-bold text-gray-400">
                                 <FileText className="w-4 h-4" strokeWidth={2.5} />
                                 <span className="font-medium ml-1">From expired plans</span>
@@ -492,7 +492,7 @@ const Revenue = () => {
                                     </div>
                                     <h3 className="text-xl font-bold text-[#1e2330] mb-2">{plan.name}</h3>
                                     <div className="flex items-baseline gap-1 mb-6">
-                                        <span className="text-3xl font-bold text-[#964C2E]">${plan.amount}</span>
+                                        <span className="text-3xl font-bold text-[#964C2E]">₹{plan.amount}</span>
                                         <span className="text-sm text-gray-500 font-medium">/ {plan.validity} months</span>
                                     </div>
 
@@ -554,7 +554,7 @@ const Revenue = () => {
                                                 </div>
                                             </td>
                                             <td className="py-5 px-6 font-bold text-[#964C2E]">
-                                                ${txn.amount}
+                                                ₹{txn.amount}
                                             </td>
                                             <td className="py-5 px-6">
                                                 <span className={`inline-flex items-center px-2.5 py-1.5 rounded-md text-[11px] font-bold ${txn.status === 'Active' ? 'bg-[#DCFCE7] text-[#166534]' : 'bg-gray-100 text-gray-600'}`}>
@@ -638,7 +638,7 @@ const Revenue = () => {
                                     />
                                 </div>
                                 <div className="col-span-2">
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Amount ($)</label>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Amount (₹)</label>
                                     <input
                                         type="number"
                                         required

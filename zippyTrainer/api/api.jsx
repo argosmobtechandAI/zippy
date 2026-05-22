@@ -21,14 +21,8 @@ export const updateAttendanceApi = `${baseURL}/session/attendance`;
 export const updateLeaveRequestApi = `${baseURL}/users/leave-request`;
 export const updateLeaveApi = `${baseURL}/users/leave`;
 export const uploadProfilePictureApi = (id) => `${baseURL}/users/profile-picture/${id}`;
-
-export const getAllBatchesApi = `${baseURL}/batch`;
-export const createBatchApi = `${baseURL}/batch`;
-export const updateBatchApi = `${baseURL}/batch`;
-export const deleteBatchApi = `${baseURL}/batch`;
-
 export const createSessionApi = `${baseURL}/session`;
 export const deleteSessionApi = `${baseURL}/session`;
-
+export const approveSessionApi = `${baseURL}/session/status`;
 export const updateTrainerApi = `${baseURL}/trainer`;
 export const getAllStablesApi = `${baseURL}/stable`;

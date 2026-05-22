@@ -32,13 +32,13 @@ export const createStable = async (req, res) => {
         }
 
         // 3. Response
-        res.status(201).json({
+        return res.status(201).json({
             success: true,
             stable: newStable[0],
         });
 
     } catch (error) {
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: error.message,
         });
@@ -53,9 +53,9 @@ export const getStable = async (req, res) => {
         const stables = await db.select().from(stableTable).where(eq(stableTable.userId, id));
 
 
-        res.status(200).json({ success: true, stables });
+        return res.status(200).json({ success: true, stables });
     } catch (error) {
-        res.status(500).json({ success: false, message: `Error: ${error.message}` });
+        return res.status(500).json({ success: false, message: `Error: ${error.message}` });
     }
 }
 
@@ -68,18 +68,19 @@ export const updateStable = async (req, res) => {
         if (!updatedStable.length) {
             return res.status(404).json({ success: false, message: 'Stable not found' });
         }
-        res.status(200).json({ success: true, stable: updatedStable[0] });
+        return res.status(200).json({ success: true, stable: updatedStable[0] });
     } catch (error) {
-        res.status(500).json({ success: false, message: `Error: ${error.message}` });
+        return res.status(500).json({ success: false, message: `Error: ${error.message}` });
     }
 };
 
 export const getStables = async (req, res) => {
     try {
+        console.log("hello")
         const stables = await db.select().from(stableTable);
-        res.status(200).json({ success: true, stables });
+        return res.status(200).json({ success: true, stables });
     } catch (error) {
-        res.status(500).json({ success: false, message: `Error: ${error.message}` });
+        return res.status(500).json({ success: false, message: `Error: ${error.message}` });
     }
 };
 
@@ -101,9 +102,9 @@ export const deleteStable = async (req, res) => {
             .where(eq(inventoryTable.stableId, id));
 
         const stable = await db.delete(stableTable).where(eq(stableTable.id, id)).returning();
-        res.status(200).json({ success: true, stable });
+        return res.status(200).json({ success: true, stable });
     } catch (error) {
-        res.status(500).json({ success: false, message: `Error: ${error.message}` });
+        return res.status(500).json({ success: false, message: `Error: ${error.message}` });
     }
 };
 
@@ -149,14 +150,14 @@ export const uploadLogo = async (req, res) => {
             fs.unlinkSync(file.path);
         }
 
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
             message: "File uploaded successfully",
             url
         });
     } catch (error) {
         console.log(error)
-        res.status(500).json({ success: false, message: "Failed to upload file: " + error.message });
+        return res.status(500).json({ success: false, message: "Failed to upload file: " + error.message });
     }
 };
 
@@ -174,8 +175,8 @@ export const deleteLogo = async (req, res) => {
             throw error;
         }
         await db.update(stableTable).set({ logo: null }).where(eq(stableTable.id, id));
-        res.status(200).json({ success: true, message: "Logo deleted successfully" });
+        return res.status(200).json({ success: true, message: "Logo deleted successfully" });
     } catch (error) {
-        res.status(500).json({ success: false, message: "Failed to delete logo: " + error.message });
+        return res.status(500).json({ success: false, message: "Failed to delete logo: " + error.message });
     }
 };

@@ -193,7 +193,7 @@ export default function CompetitiveRiderPacksScreen() {
                                     {enrolling === pack.id ? (
                                         <ActivityIndicator size="small" color="white" />
                                     ) : (
-                                        <Text className={`font-black text-[13px] text-white`}>Enroll for ${pack.amount}</Text>
+                                        <Text className={`font-black text-[13px] text-white`}>Enroll for ₹{pack.amount}</Text>
                                     )}
                                 </TouchableOpacity>
 

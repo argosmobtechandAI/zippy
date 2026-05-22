@@ -1,4 +1,4 @@
-const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+const baseUrl = "http://localhost:3000/api"
 
 export const getAllUsersApi = `${baseUrl}/users/all`;
 export const getUserApi = `${baseUrl}/users`;
@@ -15,16 +15,10 @@ export const getAllStablesApi = `${baseUrl}/stable`;
 export const createStableApi = `${baseUrl}/stable`;
 export const updateStableApi = `${baseUrl}/stable`;
 export const deleteStableApi = `${baseUrl}/stable`;
-
-export const batchesApi = `${baseUrl}/batch`;
-export const getAllBatchesApi = `${baseUrl}/batch`;
-export const createBatchApi = `${baseUrl}/batch`;
-export const updateBatchApi = `${baseUrl}/batch`;
-export const deleteBatchApi = `${baseUrl}/batch`;
-
 export const getAllSessionsApi = `${baseUrl}/session`;
 export const createSessionApi = `${baseUrl}/session`;
 export const updateSessionApi = `${baseUrl}/session`;
+export const approveSessionApi = `${baseUrl}/session/status`
 export const deleteSessionApi = `${baseUrl}/session`;
 
 export const getAllHorsesApi = `${baseUrl}/horse`;

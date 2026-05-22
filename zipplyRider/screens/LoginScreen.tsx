@@ -129,21 +129,24 @@ export default function LoginScreen() {
                   keyboardType="phone-pad"
                   value={mobileNumber}
                   onChangeText={(Text) => {
-                    if (Text.length > 10) {
-                      Toast.show({
-                        type: "error",
-                        text1: "Error",
-                        text2: "Mobile number should be 10 digits"
-                      })
-                      return
-                    }
-                    if (!/^[0-9]+$/.test(Text)) {
-                      Toast.show({
-                        type: "error",
-                        text1: "Error",
-                        text2: "Mobile number should be only digits"
-                      })
-                      return
+                    if(Text.length > 1){
+
+                      if (Text.length > 10) {
+                        Toast.show({
+                          type: "error",
+                          text1: "Error",
+                          text2: "Mobile number should be 10 digits"
+                        })
+                        return
+                      }
+                      if (!/^[0-9]+$/.test(Text)) {
+                        Toast.show({
+                          type: "error",
+                          text1: "Error",
+                          text2: "Mobile number should be only digits"
+                        })
+                        return
+                      }
                     }
                     setMobileNumber(Text)
                   }}

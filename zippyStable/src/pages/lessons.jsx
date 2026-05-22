@@ -85,7 +85,6 @@ const Lessons = () => {
                 status: 'UnAvailable',
                 title: "Unavailable",
                 trainerId: null,
-                joiningAmount: 0,
                 participants: [],
                 duration: 0,
                 location: "",

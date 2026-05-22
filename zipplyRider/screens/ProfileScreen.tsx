@@ -1,16 +1,22 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
-import { ArrowLeft, ArrowRight, User, Users, Clipboard, Flag, Smile, Activity, Zap, Star } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, User, Users, Clipboard, Flag, Smile, Activity, Zap, Star, ChevronDown, ChevronUp } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Toast from "react-native-toast-message"
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchStables } from '../redux/getDataSlice';
 
 
 export default function ProfileScreen() {
   const navigation = useNavigation();
+  const { stables } = useSelector((state) => state.getData)
+
   const [date, setDate] = useState(new Date())
-  const [formData, setFormData] = useState({ name: "", mobile: "", email: "", type: "rider", dob: "", age: "", weight: 0, parent_name: "", emergency_contact: "", allergies: "", medical: "", level: "Novice", instructions: "" })
+  const [formData, setFormData] = useState({ name: "", mobile: "", email: "", type: "rider", dob: "", age: "", code: "", weight: 0, parent_name: "", emergency_contact: "", allergies: "", medical: "", level: "Novice", instructions: "", riderType: "Regular" })
   const [dateTimePicker, setDateTimePicker] = useState(false)
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const dispatch = useDispatch()
 
 
   const getExperienceIcon = (level: string, active: boolean) => {
@@ -23,6 +29,14 @@ export default function ProfileScreen() {
       default: return <Smile color={color} size={24} />;
     }
   };
+
+  console.log("stables", stables)
+
+  useEffect(() => {
+    if (!stables) {
+      dispatch(fetchStables())
+    }
+  }, [dispatch])
 
   const formatDate = (date) => {
     if (!date) return "";
@@ -47,7 +61,7 @@ export default function ProfileScreen() {
 
 
   const handleSubmit = () => {
-    if (!formData.name || !formData.mobile || !formData.email || !formData.dob || !formData.age || !formData.weight || !formData.parent_name || !formData.emergency_contact || !formData.allergies || !formData.medical || !formData.level || !formData.instructions) {
+    if (!formData.name || !formData.code || !formData.mobile || !formData.email || !formData.dob || !formData.age || !formData.weight || !formData.parent_name || !formData.emergency_contact || !formData.allergies || !formData.medical || !formData.level || !formData.riderType) {
       Toast.show({
         type: "error",
         text1: "Error",
@@ -182,6 +196,64 @@ export default function ProfileScreen() {
             }}
           />
 
+          <Text className="text-[#1a202c] font-semibold text-xs mb-1">Select Center</Text>
+          <View className="mb-4">
+            <TouchableOpacity
+              onPress={() => setDropdownOpen(!dropdownOpen)}
+              className="flex-row justify-between items-center bg-white border border-[#e2d5c3] rounded-xl px-4 py-3 text-[#1e293b]"
+            >
+              {stables?.find((stable: any) => stable.code === formData.code) ? (
+                <View>
+                  <Text className="text-[#1a202c] font-semibold text-sm">
+                    {stables.find((stable: any) => stable.code === formData.code).name}
+                  </Text>
+                  <Text className="text-[#64748b] text-xs mt-0.5">
+                    {stables.find((stable: any) => stable.code === formData.code).location}
+                  </Text>
+                </View>
+              ) : (
+                <Text className="text-[#94a3b8] font-semibold text-sm">Please Choose a Center</Text>
+              )}
+              {dropdownOpen ? (
+                <ChevronUp color="#8C4A28" size={20} />
+              ) : (
+                <ChevronDown color="#8C4A28" size={20} />
+              )}
+            </TouchableOpacity>
+
+            {dropdownOpen && (
+              <View className="mt-2 bg-white border border-[#e2d5c3] rounded-xl overflow-hidden shadow-sm">
+                {stables && stables.length > 0 ? (
+                  stables.map((stable: any, index: number) => {
+                    const isSelected = formData.code === stable.code;
+                    return (
+                      <TouchableOpacity
+                        key={stable._id || stable.code}
+                        onPress={() => {
+                          setFormData((prev) => ({ ...prev, code: stable.code }));
+                          setDropdownOpen(false);
+                        }}
+                        className={`px-4 py-3 flex-col justify-center ${index !== stables.length - 1 ? 'border-b border-[#f3ebdf]' : ''
+                          } ${isSelected ? 'bg-[#faeadd]' : 'bg-white'}`}
+                      >
+                        <Text className={`font-semibold text-sm ${isSelected ? 'text-[#8C4A28]' : 'text-[#1e293b]'}`}>
+                          {stable.name}
+                        </Text>
+                        <Text className={`text-xs mt-0.5 ${isSelected ? 'text-[#8C4A28]' : 'text-[#64748b]'}`}>
+                          {stable.location}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })
+                ) : (
+                  <View className="px-4 py-3">
+                    <Text className="text-[#64748b] text-sm text-center">No stables available</Text>
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
+
           <Text className="text-[#1a202c] font-semibold text-xs mb-1">Weight (kg)</Text>
           <TextInput
             className="bg-white border border-[#e2d5c3] rounded-xl px-4 py-3 mb-4 text-[#1e293b]"
@@ -201,6 +273,20 @@ export default function ProfileScreen() {
               setFormData((prev) => ({ ...prev, weight: Text }))
             }}
           />
+
+          <Text className="text-[#1a202c] font-semibold text-xs mb-1">Type of joining</Text>
+          <View className="flex-row flex-wrap justify-between mb-4 w-full">
+            <TouchableOpacity onPress={() => setFormData((prev) => ({ ...prev, riderType: "Regular" }))} className={`w-[48%] py-4 rounded-xl items-center border mb-3 ${formData.riderType === "Regular" ? 'bg-[#faeadd] border-[#8C4A28]' : 'bg-white border-[#e2d5c3]'}`}>
+              <Text className={`text-[10px] font-bold uppercase ${formData.riderType === "Regular" ? 'text-[#8C4A28]' : 'text-[#64748b]'}`}>
+                Weekend Rider
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setFormData((prev) => ({ ...prev, riderType: "weekdays" }))} className={`w-[48%] py-4 rounded-xl items-center border mb-3 ${formData.riderType === "weekdays" ? 'bg-[#faeadd] border-[#8C4A28]' : 'bg-white border-[#e2d5c3]'}`}>
+              <Text className={`text-[10px] font-bold uppercase ${formData.riderType === "weekdays" ? 'text-[#8C4A28]' : 'text-[#64748b]'}`}>
+                Weekdays Rider
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {dateTimePicker &&

@@ -1,54 +1,85 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Image, SafeAreaView, ActivityIndicator, RefreshControl } from 'react-native';
-import { ArrowLeft, Calendar, Clock, Smartphone } from 'lucide-react-native';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { ArrowLeft, Calendar, Clock } from 'lucide-react-native';
+import { useNavigation } from '@react-navigation/native';
 import { apiFunction } from '../api/apifunction';
-import { getAllSessionsApi, getBatchesApi } from '../api/api';
+import { getAllSessionsApi, getRiderApi, getUserApi } from '../api/api';
 
 export default function SessionsScreen() {
-  const generateDates = () => {
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [riderType, setRiderType] = useState<string | null>(null);
+
+  const generateDates = (type: string | null) => {
     const dates = [];
     const today = new Date();
     const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-    const weekdays = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+    const weekdaysNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
-    for (let i = 0; i < 7; i++) {
+    let addedCount = 0;
+    let daysToCheck = 0;
+    const isWeekDaysOnly = type?.toLowerCase() === 'weekdays';
+
+    while (addedCount < 7 && daysToCheck < 30) {
       const d = new Date();
-      d.setDate(today.getDate() + i);
+      d.setDate(today.getDate() + daysToCheck);
+      const dayOfWeek = d.getDay();
+
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+      if (isWeekDaysOnly && isWeekend) {
+        daysToCheck++;
+        continue;
+      }
+
       dates.push({
         day: months[d.getMonth()],
         date: d.getDate().toString(),
-        weekday: weekdays[d.getDay()],
+        weekday: weekdaysNames[dayOfWeek],
         fullDate: d.toISOString().split('T')[0]
       });
+
+      addedCount++;
+      daysToCheck++;
     }
     return dates;
   };
 
-  const dates = generateDates();
-  const [selectedDate, setSelectedDate] = useState(dates[0].date);
-  const [sessions, setSessions] = useState<any[]>([]);
-  const [selectedSlot, setSelectedSlot] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [batches, setBatches] = useState([])
+  const dates = useMemo(() => {
+    return generateDates(riderType || "Regular");
+  }, [riderType]);
 
-  const navigation = useNavigation();
+  const [selectedDate, setSelectedDate] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (dates.length > 0) {
+      const exists = dates.some(d => d.fullDate === selectedDate);
+      if (!exists) {
+        setSelectedDate(dates[0].fullDate);
+      }
+    }
+  }, [dates, selectedDate]);
+
+  const navigation = useNavigation<any>();
+
+  useEffect(() => {
+    const getRider = async () => {
+      const res = await apiFunction(getRiderApi, [], {}, "GET", true)
+      if (res && res.success) {
+        setRiderType(res.rider.riderType);
+      }
+    }
+
+    getRider();
+  }, [])
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       console.log("Refreshing Sessions...");
       fetchSessions();
-      fetchBatches();
     });
 
     return unsubscribe;
   }, [navigation]);
-
-  useEffect(() => {
-    if (sessions.length > 0 && !selectedSlot) {
-      setSelectedSlot(sessions[0]);
-    }
-  }, [sessions]);
 
   const fetchSessions = async () => {
     setLoading(true);
@@ -64,31 +95,15 @@ export default function SessionsScreen() {
     }
   };
 
-  const fetchBatches = async () => {
-    const res = await apiFunction(getBatchesApi, [], {}, "GET", true)
-    console.log("Batchres", res)
-    if (res && res.success) {
-      setBatches(res.batch)
-    }
-  }
-
-  console.log(batches, "batches")
-
-  const filteredBatches = batches.filter(b => {
-    if (!b.date) return false;
-    if (b.date.includes('-')) {
-      const dayFromDate = b.date.split('-')[2];
-      return parseInt(dayFromDate) === parseInt(selectedDate);
-    }
-    return b.date === selectedDate || b.date === "daily";
+  const filteredSessions = sessions.filter(s => {
+    if (!s.date) return false;
+    if (s.date === "daily") return true;
+    return s.date === selectedDate;
   });
-
-  const getBatchSlots = (batchId: string) => {
-    return sessions.filter(s => s.batchsId === batchId);
-  };
 
   return (
     <View className="flex-1 bg-[#F5EDDF]">
+
       {/* Header */}
       <View className="bg-[#8C4A28] px-4 py-4 flex-row items-center">
         <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -128,11 +143,11 @@ export default function SessionsScreen() {
 
           <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-8">
             {dates.map((d) => {
-              const isActive = selectedDate === d.date;
+              const isActive = selectedDate === d.fullDate;
               return (
                 <TouchableOpacity
-                  key={d.date}
-                  onPress={() => setSelectedDate(d.date)}
+                  key={d.fullDate}
+                  onPress={() => setSelectedDate(d.fullDate)}
                   className={`items-center justify-center p-3 rounded-2xl mr-3 w-16 h-20 border ${isActive ? 'bg-[#8C4A28] border-[#8C4A28]' : 'bg-white border-[#e2d5c3]'
                     }`}
                 >
@@ -149,69 +164,49 @@ export default function SessionsScreen() {
               <View className="mr-2">
                 <Clock color="#8C4A28" size={20} />
               </View>
-              <Text className="text-xl font-bold text-[#8C4A28]">Available Batches</Text>
+              <Text className="text-xl font-bold text-[#8C4A28]">Available Sessions</Text>
             </View>
-            <Text className="text-[#8C4A28] text-sm opacity-80">{filteredBatches.length} batches found</Text>
+            <Text className="text-[#8C4A28] text-sm opacity-80">{filteredSessions.length} sessions found</Text>
           </View>
 
           <View className="space-y-3">
             {loading ? (
               <ActivityIndicator size="large" color="#8C4A28" />
-            ) : filteredBatches.length === 0 ? (
+            ) : filteredSessions.length === 0 ? (
               <View className="py-10 items-center justify-center bg-white rounded-2xl border border-[#e2d5c3] border-dashed">
                 <Calendar color="#94a3b8" size={32} />
-                <Text className="text-[#64748b] mt-2 font-semibold">No batches for this date</Text>
+                <Text className="text-[#64748b] mt-2 font-semibold">No sessions for this date</Text>
               </View>
-            ) : filteredBatches.map((batch, idx) => {
-              const batchSlots = getBatchSlots(batch.id);
+            ) : filteredSessions.map((session, idx) => {
+              const seatsLeft = (session.totalSeats || 10) - (session.participants?.length || 0);
               return (
-                <View
+                <TouchableOpacity
                   key={idx}
-                  className="bg-white rounded-2xl p-4 border border-[#e2f0e8] shadow-sm mb-4 border-l-[6px] border-[#8C4A28]"
+                  onPress={() => navigation.navigate("SessionDetail", { session, date: selectedDate })}
+                  className="bg-white rounded-2xl p-4 border border-[#e2d5c3] shadow-sm mb-4 border-l-[6px] border-[#8C4A28] active:opacity-90"
                 >
                   <View className="flex-row justify-between items-start mb-3">
                     <View className="flex-1">
-                      <Text className="text-[#8C4A28] font-black text-lg mb-1">{batch.title}</Text>
+                      <Text className="text-[#8C4A28] font-black text-lg mb-1">{session.title}</Text>
                       <View className="flex-row items-center opacity-70">
                         <Clock size={12} color="#64748b" />
-                        <Text className="text-[#64748b] text-xs ml-1 font-bold">{batch.timing} • {batch.duration}</Text>
+                        <Text className="text-[#64748b] text-xs ml-1 font-bold">{session.timing} • {session.duration}</Text>
                       </View>
                     </View>
-                    <Text className="text-[#8C4A28] font-black text-xl">${batch.joiningAmount}</Text>
-                  </View>
-
-                  <View className="mb-4 mt-2">
-                    <Text className="text-[#64748b] text-[10px] font-black uppercase tracking-[2px] mb-3 opacity-60">Select Training Slot</Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
-                      {batchSlots.length === 0 ? (
-                        <View className="bg-gray-50 px-4 py-3 rounded-xl border border-gray-100 border-dashed w-full">
-                          <Text className="text-[#94a3b8] text-xs font-bold italic">No active slots available for this batch</Text>
-                        </View>
-                      ) : batchSlots.map((slot, sIdx) => (
-                        <TouchableOpacity
-                          key={sIdx}
-                          onPress={() => navigation.navigate("SessionDetail", { session: slot })}
-                          className="bg-[#F5EDDF] px-5 py-3 rounded-2xl mr-3 border border-[#e2d5c3] items-center shadow-sm"
-                        >
-                          <Text className="text-[#8C4A28] font-black text-[15px] mb-0.5">{slot.timing}</Text>
-                          <Text className={`text-[9px] font-black uppercase tracking-tighter ${ (slot.totalSeats || 0) - (slot.participants?.length || 0) <= 2 ? 'text-red-500' : 'text-green-600' }`}>
-                            {(slot.totalSeats || 0) - (slot.participants?.length || 0)} SEATS LEFT
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
                   </View>
 
                   <View className="flex-row items-center justify-between pt-4 border-t border-[#f1f5f9]">
-                    <View className="flex-row items-center">
-                       <Text className="text-[#8C4A28]/40 text-[10px] font-black uppercase tracking-widest mr-2">LOCATION</Text>
-                       <Text className="text-[#64748b] text-[11px] font-black uppercase">{batch.location}</Text>
+                    <View className="flex-row items-center flex-1 mr-2">
+                      <Text className="text-[#8C4A28]/40 text-[10px] font-black uppercase tracking-widest mr-2">LOCATION</Text>
+                      <Text className="text-[#64748b] text-[11px] font-black uppercase truncate">{session.location}</Text>
                     </View>
-                    <View className="bg-[#8C4A28]/10 px-3 py-1.5 rounded-full border border-[#8C4A28]/20">
-                        <Text className="text-[#8C4A28] text-[9px] font-black uppercase tracking-widest">Active Batch</Text>
+                    <View className={`px-3 py-1.5 rounded-full border ${seatsLeft <= 2 ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
+                      <Text className={`text-[9px] font-black uppercase tracking-widest ${seatsLeft <= 2 ? 'text-red-600' : 'text-green-600'}`}>
+                        {seatsLeft <= 0 ? 'Fully Booked' : `${seatsLeft} Seats Left`}
+                      </Text>
                     </View>
                   </View>
-                </View>
+                </TouchableOpacity>
               )
             })}
           </View>

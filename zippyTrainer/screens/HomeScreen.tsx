@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator, RefreshControl } from 'react-native';
 import { Bell, ChevronRight, Bookmark } from 'lucide-react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -50,7 +50,20 @@ export default function HomeScreen() {
          }
 
 
-         const sessionRes = await apiFunction(getSessionsByTrainerApi(trainer?.id), [], {}, "GET", true);
+       
+
+      } catch (error) {
+         console.error("Home Dashboard data fetch error:", error);
+      } finally {
+         setLoading(false);
+         setRefreshing(false);
+      }
+   };
+
+   useEffect(() => {
+
+      const getSessionsAndHorses = async () => {
+        const sessionRes = await apiFunction(getSessionsByTrainerApi(trainer?.id), [], {}, "GET", true);
          if (sessionRes && sessionRes.success) {
             const allSessions = (sessionRes.sessions || []).filter((s: any) => s.status !== 'BLOCKED');
             console.log("All sessions: ", allSessions);
@@ -66,15 +79,15 @@ export default function HomeScreen() {
             setAssignedHorses(filtered);
             setStats(prev => ({ ...prev, assignedHorsesCount: filtered.length }));
          }
+      };
 
-
-      } catch (error) {
-         console.error("Home Dashboard data fetch error:", error);
-      } finally {
-         setLoading(false);
-         setRefreshing(false);
+      if (trainer) {
+         getSessionsAndHorses();
       }
-   };
+
+
+
+   },[trainer])
 
    console.log("Trainer: ", trainer);
 
@@ -151,7 +164,7 @@ export default function HomeScreen() {
                      <Text className="text-brand-orange text-[9px] font-display uppercase tracking-[2px] mb-1">Administrative</Text>
                      <Text className="text-brand-brown text-lg font-display mb-1">Slot Management</Text>
                      <Text className="text-brand-brown/50 text-[11px] font-body leading-tight">
-                        Configure training batches, manage slots, and approve rider requests.
+                        Configure sessions, manage seats, and approve rider requests.
                      </Text>
                   </View>
                   <View className="w-12 h-12 rounded-2xl bg-brand-orange/10 items-center justify-center">

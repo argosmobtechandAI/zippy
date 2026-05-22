@@ -10,7 +10,7 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = 'public/uploads/';
     if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
+      fs.mkdirSync(dir, { recursive: true });
     }
     cb(null, dir);
   },
@@ -22,7 +22,7 @@ const upload = multer({ storage: storage });
 
 router.post('/', auth, createStable);
 router.put('/:id', auth, updateStable);
-router.get('/', auth, getStables);
+router.get('/', getStables);
 router.get('/single', auth, getStable);
 router.delete('/:id', auth, deleteStable);
 router.post('/uploadFile', auth, upload.single('file'), uploadLogo);

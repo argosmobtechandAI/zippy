@@ -106,7 +106,7 @@ export default function RiderPlanManagementScreen() {
                                         </Text>
                                     </View>
                                     <View className="bg-[#F5EDDF] rounded-xl px-4 py-2">
-                                        <Text className="text-[#8C4A28] font-extrabold text-[15px]">${plan.amount}</Text>
+                                        <Text className="text-[#8C4A28] font-extrabold text-[15px]">₹{plan.amount}</Text>
                                     </View>
                                 </View>
 
