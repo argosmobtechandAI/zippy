@@ -1,4 +1,5 @@
-const baseUrl = "https://zippy-wg71.onrender.com/api"
+// const baseUrl = "https://zippy-wg71.onrender.com/api"
+const baseUrl = "https://api.zippyapp.online/api";
 
 export const getAllUsersApi = `${baseUrl}/users/all`;
 export const getUserApi = `${baseUrl}/users`;
