@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
-import { ArrowLeft, ArrowRight, Smartphone, Mail, ScanLine } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, Smartphone, Mail, ScanLine, Lock } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { apiFunction } from "../api/apiFunction"
-import { getOTPApi, verifyOTPApi } from '../api/api';
+import { getOTPApi, verifyOTPApi, loginApi } from '../api/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function LoginScreen() {
@@ -13,6 +13,8 @@ export default function LoginScreen() {
   const [getOtp, setGetOtp] = useState("")
   const [loading, setLoading] = useState(false)
   const [otp, setOtp] = useState(["", "", "", "", "", "", ""])
+  const [loginMode, setLoginMode] = useState('password'); // 'password' or 'otp'
+  const [password, setPassword] = useState('');
   const otpRef = useRef([])
 
   useEffect(() => {
@@ -30,6 +32,43 @@ export default function LoginScreen() {
     // deleteToken();
   }, [])
 
+
+  const handlePasswordLogin = async () => {
+    if (!mobileNumber) {
+      Alert.alert("Error", "Please enter your mobile number");
+      return;
+    }
+    if (!password) {
+      Alert.alert("Error", "Please enter your password");
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await apiFunction(
+        loginApi,
+        [],
+        { mobile: mobileNumber, password, type: 'trainer' },
+        "POST",
+        false
+      );
+
+      console.log(res);
+
+      if (res.success) {
+        await AsyncStorage.setItem("token", res.token);
+        await AsyncStorage.setItem("user", JSON.stringify(res.user));
+        console.log("Token saved:", res.token);
+        navigation.navigate("Tabs");
+      } else {
+        Alert.alert("Error", res.message);
+      }
+    } catch (error) {
+      console.log("Trainer password login error:", error);
+      Alert.alert("Error", "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmitNumber = async () => {
     setLoading(true)
@@ -100,7 +139,9 @@ export default function LoginScreen() {
             <View>
               <Text className="text-2xl font-bold text-[#1a202c] mb-2">Trainer Login</Text>
               <Text className="text-[#64748b] mb-8 text-sm">
-                Enter your registered mobile number to access your dashboard.
+                {loginMode === 'password'
+                  ? 'Enter your registered mobile number and password to access your dashboard.'
+                  : 'Enter your registered mobile number to access your dashboard.'}
               </Text>
 
               <Text className="text-[#1a202c] font-semibold text-xs mb-2">Mobile Number</Text>
@@ -131,18 +172,62 @@ export default function LoginScreen() {
                 />
               </View>
 
+              {loginMode === 'password' && (
+                <>
+                  <Text className="text-[#1a202c] font-semibold text-xs mb-2">Password</Text>
+                  <View className="flex-row items-center border border-[#e2e8f0] rounded-xl px-4 py-3 mb-6 bg-[#f8fafc]">
+                    <View className="mr-2 opacity-50">
+                      <Lock color="#94a3b8" size={20} />
+                    </View>
+                    <TextInput
+                      className="flex-1 text-[#1e293b]"
+                      placeholder="••••••••"
+                      placeholderTextColor="#94a3b8"
+                      secureTextEntry={true}
+                      value={password}
+                      onChangeText={(Text) => setPassword(Text)}
+                    />
+                  </View>
+                </>
+              )}
+
+              {loginMode === 'password' ? (
+                <TouchableOpacity
+                  className="w-full bg-[#8C4A28] py-4 rounded-xl items-center flex-row justify-center mb-4"
+                  onPress={handlePasswordLogin}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
+                    <>
+                      <Text className="text-white font-bold text-lg mr-2">Log In</Text>
+                      <ArrowRight color="white" size={20} />
+                    </>
+                  )}
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  className="w-full bg-[#8C4A28] py-4 rounded-xl items-center flex-row justify-center mb-4"
+                  onPress={handleSubmitNumber}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
+                    <>
+                      <Text className="text-white font-bold text-lg mr-2">Get OTP</Text>
+                      <ArrowRight color="white" size={20} />
+                    </>
+                  )}
+                </TouchableOpacity>
+              )}
+
               <TouchableOpacity
-                className="w-full bg-[#8C4A28] py-4 rounded-xl items-center flex-row justify-center mb-8"
-                onPress={handleSubmitNumber}
+                onPress={() => setLoginMode(loginMode === 'password' ? 'otp' : 'password')}
+                className="w-full py-2 mb-6 items-center"
               >
-                {loading ? (
-                  <ActivityIndicator color="white" />
-                ) : (
-                  <>
-                    <Text className="text-white font-bold text-lg mr-2">Get OTP</Text>
-                    <ArrowRight color="white" size={20} />
-                  </>
-                )}
+                <Text className="text-[#8C4A28] font-bold text-sm">
+                  {loginMode === 'password' ? 'Login with OTP' : 'Login with Password'}
+                </Text>
               </TouchableOpacity>
 
               <View className="flex-row items-center mb-6">

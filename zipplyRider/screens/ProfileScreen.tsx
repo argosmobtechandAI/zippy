@@ -13,7 +13,7 @@ export default function ProfileScreen() {
   const { stables } = useSelector((state) => state.getData)
 
   const [date, setDate] = useState(new Date())
-  const [formData, setFormData] = useState({ name: "", mobile: "", email: "", type: "rider", dob: "", age: "", code: "", weight: 0, parent_name: "", emergency_contact: "", allergies: "", medical: "", level: "Novice", instructions: "", riderType: "Regular" })
+  const [formData, setFormData] = useState({ name: "", mobile: "", email: "", password: "", type: "rider", dob: "", age: "", code: "", weight: 0, parent_name: "", emergency_contact: "", allergies: "", medical: "", level: "Novice", instructions: "", riderType: "Regular" })
   const [dateTimePicker, setDateTimePicker] = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dispatch = useDispatch()
@@ -61,11 +61,19 @@ export default function ProfileScreen() {
 
 
   const handleSubmit = () => {
-    if (!formData.name || !formData.code || !formData.mobile || !formData.email || !formData.dob || !formData.age || !formData.weight || !formData.parent_name || !formData.emergency_contact || !formData.allergies || !formData.medical || !formData.level || !formData.riderType) {
+    if (!formData.name || !formData.code || !formData.mobile || !formData.email || !formData.password || !formData.dob || !formData.age || !formData.weight || !formData.parent_name || !formData.emergency_contact || !formData.allergies || !formData.medical || !formData.level || !formData.riderType) {
       Toast.show({
         type: "error",
         text1: "Error",
         text2: "Please fill all the fields"
+      })
+      return
+    }
+    if (formData.password.length < 6) {
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Password must be at least 6 characters"
       })
       return
     }
@@ -165,6 +173,18 @@ export default function ProfileScreen() {
             value={formData.email}
             onChangeText={(Text) => {
               setFormData((prev) => ({ ...prev, email: Text }))
+            }}
+          />
+
+          <Text className="text-[#1a202c] font-semibold text-xs mb-1">Password</Text>
+          <TextInput
+            className="bg-white border border-[#e2d5c3] rounded-xl px-4 py-3 mb-4 text-[#1e293b]"
+            placeholder="Choose a secure password"
+            placeholderTextColor="#94a3b8"
+            secureTextEntry={true}
+            value={formData.password}
+            onChangeText={(Text) => {
+              setFormData((prev) => ({ ...prev, password: Text }))
             }}
           />
 

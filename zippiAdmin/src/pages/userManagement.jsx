@@ -577,6 +577,7 @@ const UserManagement = () => {
                     }}
                     onSuccess={fetchUsers}
                     initialData={editingUser}
+                    stables={stables}
                 />
             )}
 
@@ -699,7 +700,7 @@ const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave }) => {
 };
 
 
-const UserActionModal = ({ userType, setCreateModal, onSuccess, initialData }) => {
+const UserActionModal = ({ userType, setCreateModal, onSuccess, initialData, stables }) => {
 
     const [formData, setFormData] = useState({
         name: initialData?.name || "",
@@ -715,6 +716,12 @@ const UserActionModal = ({ userType, setCreateModal, onSuccess, initialData }) =
         status: initialData?.status || "ACTIVE",
         password: "",
         riderType: initialData?.riderType || "Regular",
+        code: initialData?.code || "",
+        level: initialData?.level || "Novice",
+        parentName: initialData?.parentName || "",
+        allergies: initialData?.allergies || "",
+        medical: initialData?.medical || "",
+        instructions: initialData?.instructions || "",
     })
 
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -761,6 +768,11 @@ const UserActionModal = ({ userType, setCreateModal, onSuccess, initialData }) =
         if (userType === "trainer") {
             if (!formData.title.trim()) newErrors.title = "Required";
             if (!formData.experience.trim()) newErrors.experience = "Required";
+        }
+
+        if (userType === "rider") {
+            if (!formData.code) newErrors.code = "Required";
+            if (!formData.level) newErrors.level = "Required";
         }
 
         setErrors(newErrors);
@@ -830,14 +842,15 @@ const UserActionModal = ({ userType, setCreateModal, onSuccess, initialData }) =
                             </label>
                             <input name="mobile" value={formData.mobile} onChange={handleChange} type="tel" className={`w-full border ${errors.mobile ? 'border-red-400 bg-red-50' : 'border-gray-100'} bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold transition-all focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E] focus:bg-white`} placeholder="Phone number" />
                         </div>
-                        {userType === "stableStaff" &&
+                        {/* {userType === "stableStaff" && */}
                             <div className="col-span-1">
                                 <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 flex justify-between items-center px-1">
                                     <span>Password</span>
                                     {errors.password && <span className="text-red-500 normal-case tracking-normal font-bold">{errors.password}</span>}
                                 </label>
                                 <input required={!isEdit} name="password" value={formData.password} onChange={handleChange} type="password" className={`w-full border ${errors.password ? 'border-red-400 bg-red-50' : 'border-gray-100'} bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold transition-all focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E] focus:bg-white`} placeholder="Password" />
-                            </div>}
+                            </div>
+                            {/* } */}
                         <div className="col-span-1">
                             <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 flex justify-between items-center px-1">
                                 <span>Date of Birth</span>
@@ -905,13 +918,67 @@ const UserActionModal = ({ userType, setCreateModal, onSuccess, initialData }) =
                         </div>
 
                         {userType === "rider" && (
-                            <div className="col-span-1">
-                                <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Rider Type</label>
-                                <select name="riderType" value={formData.riderType} onChange={handleChange} className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]">
-                                    <option value="Regular">Weekend</option>
-                                    <option value="weekdays">Weekdays</option>
-                                </select>
-                            </div>
+                            <>
+                                <div className="col-span-1">
+                                    <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 flex justify-between items-center px-1">
+                                        <span>Select Center (Stable)</span>
+                                        {errors.code && <span className="text-red-500 normal-case tracking-normal font-bold">{errors.code}</span>}
+                                    </label>
+                                    <select
+                                        name="code"
+                                        value={formData.code}
+                                        onChange={handleChange}
+                                        className={`w-full border ${errors.code ? 'border-red-400 bg-red-50' : 'border-gray-100'} bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold transition-all focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E] focus:bg-white`}
+                                    >
+                                        <option value="">Select Center</option>
+                                        {stables && stables.map(stable => (
+                                            <option key={stable.id} value={stable.code}>{stable.name} ({stable.location})</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="col-span-1">
+                                    <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Rider Type</label>
+                                    <select name="riderType" value={formData.riderType} onChange={handleChange} className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]">
+                                        <option value="Regular">Weekend</option>
+                                        <option value="weekdays">Weekdays</option>
+                                    </select>
+                                </div>
+                                <div className="col-span-1">
+                                    <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 flex justify-between items-center px-1">
+                                        <span>Riding Experience Level</span>
+                                        {errors.level && <span className="text-red-500 normal-case tracking-normal font-bold">{errors.level}</span>}
+                                    </label>
+                                    <select
+                                        name="level"
+                                        value={formData.level}
+                                        onChange={handleChange}
+                                        className={`w-full border ${errors.level ? 'border-red-400 bg-red-50' : 'border-gray-100'} bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold transition-all focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E] focus:bg-white`}
+                                    >
+                                        <option value="Novice">Novice</option>
+                                        <option value="Beginner">Beginner</option>
+                                        <option value="Intermediate">Intermediate</option>
+                                        <option value="Advanced">Advanced</option>
+                                    </select>
+                                </div>
+                                <div className="col-span-1">
+                                    <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 flex justify-between items-center px-1">
+                                        <span>Parent/Guardian Name</span>
+                                    </label>
+                                    <input name="parentName" value={formData.parentName} onChange={handleChange} type="text" className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold transition-all focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E] focus:bg-white" placeholder="Parent or guardian name" />
+                                </div>
+                                <div className="col-span-2">
+                                    <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Medical Conditions</label>
+                                    <textarea name="medical" value={formData.medical} onChange={handleChange} rows={2} className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold transition-all focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E] focus:bg-white" placeholder="Any medical conditions or historical injuries" />
+                                </div>
+                                <div className="col-span-2">
+                                    <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Allergies</label>
+                                    <textarea name="allergies" value={formData.allergies} onChange={handleChange} rows={2} className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold transition-all focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E] focus:bg-white" placeholder="Food, environmental, or medical allergies" />
+                                </div>
+                                <div className="col-span-2">
+                                    <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Special Safety Instructions</label>
+                                    <textarea name="instructions" value={formData.instructions} onChange={handleChange} rows={2} className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold transition-all focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E] focus:bg-white" placeholder="Instructions for trainer/center staff" />
+                                </div>
+                            </>
                         )}
                     </div>
                     <div className="mt-10 flex justify-end gap-4 pt-8 border-t border-gray-50">
