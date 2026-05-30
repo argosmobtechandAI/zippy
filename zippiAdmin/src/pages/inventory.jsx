@@ -1,35 +1,35 @@
 import React, { useState, useEffect } from 'react';
-import { 
-    Search, 
-    Bell, 
-    Plus, 
-    MoreHorizontal, 
-    Filter, 
-    ArrowUpDown, 
-    Download, 
-    Edit, 
-    Trash2, 
-    AlertCircle, 
-    Package, 
+import {
+    Search,
+    Bell,
+    Plus,
+    MoreHorizontal,
+    Filter,
+    ArrowUpDown,
+    Download,
+    Edit,
+    Trash2,
+    AlertCircle,
+    Package,
     ChevronRight,
     ChevronDown,
-    Loader2, 
-    ShieldCheck, 
-    Clipboard, 
-    Activity, 
-    Droplets, 
-    Zap, 
-    Wrench, 
+    Loader2,
+    ShieldCheck,
+    Clipboard,
+    Activity,
+    Droplets,
+    Zap,
+    Wrench,
     LayoutDashboard
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { apiFunction } from '../api/apiFunction';
-import { 
-    getAllInventoryApi, 
-    createInventoryApi, 
-    updateInventoryApi, 
+import {
+    getAllInventoryApi,
+    createInventoryApi,
+    updateInventoryApi,
     deleteInventoryApi,
-    seedInventoryApi, 
+    seedInventoryApi,
     getAllStablesApi
 } from '../api/apis';
 
@@ -141,13 +141,13 @@ const Inventory = () => {
                     <button className="flex items-center gap-2 px-5 py-3 rounded-xl bg-white border border-gray-100 text-[11px] font-black uppercase tracking-widest text-gray-500 hover:text-[#964C2E] transition-all shadow-sm">
                         <Download className="w-4 h-4" /> Export CSV
                     </button>
-                    <button 
+                    <button
                         onClick={() => { setEditingItem(null); setShowModal(true); }}
                         className="flex items-center gap-2 px-6 py-3.5 rounded-xl bg-[#964C2E] text-white text-[11px] font-black uppercase tracking-widest shadow-lg shadow-[#964C2E]/20 hover:scale-[1.02] active:scale-95 transition-all"
                     >
                         <Plus className="w-4 h-4" /> Add Stock
                     </button>
-                    <button 
+                    <button
                         onClick={handleSeed}
                         className="p-3.5 rounded-xl bg-white border border-gray-100 text-gray-400 hover:text-[#964C2E] transition-all shadow-sm"
                         title="Seed Demo Data"
@@ -160,8 +160,8 @@ const Inventory = () => {
             {/* Filter Bar */}
             <div className="flex flex-col md:flex-row gap-4 mb-8">
                 <div className="relative w-full md:w-64">
-                    <select 
-                        value={activeCategory} 
+                    <select
+                        value={activeCategory}
                         onChange={(e) => setActiveCategory(e.target.value)}
                         className="w-full appearance-none bg-white border border-gray-100 rounded-[1.2rem] py-4 pl-6 pr-12 text-[13px] font-bold text-gray-500 hover:text-[#1e2330] outline-none cursor-pointer focus:ring-2 focus:ring-[#964C2E]/20 shadow-sm transition-all"
                     >
@@ -173,8 +173,8 @@ const Inventory = () => {
                 </div>
 
                 <div className="relative w-full md:w-64">
-                    <select 
-                        value={activeStable} 
+                    <select
+                        value={activeStable}
                         onChange={(e) => setActiveStable(e.target.value)}
                         className="w-full appearance-none bg-white border border-gray-100 rounded-[1.2rem] py-4 pl-6 pr-12 text-[13px] font-bold text-gray-500 hover:text-[#1e2330] outline-none cursor-pointer focus:ring-2 focus:ring-[#964C2E]/20 shadow-sm transition-all"
                     >
@@ -190,7 +190,7 @@ const Inventory = () => {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                 <div className="md:col-span-3 relative">
                     <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300" />
-                    <input 
+                    <input
                         type="text"
                         placeholder="Search inventory..."
                         value={searchQuery}
@@ -240,7 +240,7 @@ const Inventory = () => {
                                             </div>
                                             <div>
                                                 <p className="font-bold text-[#1e2330] text-sm">{item.name}</p>
-                                                <p className="text-[10px] text-gray-400 uppercase font-bold tracking-widest mt-0.5">ID: {item.id.slice(0,8)}</p>
+                                                <p className="text-[10px] text-gray-400 uppercase font-bold tracking-widest mt-0.5">ID: {item.id.slice(0, 8)}</p>
                                             </div>
                                         </td>
                                         <td className="px-8 py-6">
@@ -252,7 +252,7 @@ const Inventory = () => {
                                         <td className="px-8 py-6">
                                             <div className="flex items-center gap-3">
                                                 <span className={`text-2xl font-black ${item.currentStock <= item.minThreshold ? 'text-red-600 animate-pulse' : 'text-[#1e2330]'}`}>{item.currentStock}</span>
-                                                <button 
+                                                <button
                                                     onClick={async () => {
                                                         try {
                                                             const newStock = item.currentStock + 10;
@@ -280,13 +280,13 @@ const Inventory = () => {
                                         </td>
                                         <td className="px-8 py-6">
                                             <div className="flex items-center justify-end gap-2">
-                                                <button 
+                                                <button
                                                     onClick={() => { setEditingItem(item); setShowModal(true); }}
                                                     className="p-2.5 hover:bg-[#964C2E]/10 rounded-xl text-gray-400 hover:text-[#964C2E] transition-all"
                                                 >
                                                     <Edit className="w-5 h-5" />
                                                 </button>
-                                                <button 
+                                                <button
                                                     onClick={() => handleDelete(item.id)}
                                                     className="p-2.5 hover:bg-red-50 rounded-xl text-gray-400 hover:text-red-500 transition-all"
                                                 >
@@ -313,24 +313,26 @@ const Inventory = () => {
 
             {/* Inventory Modal */}
             {showModal && (
-                <InventoryModal 
-                    item={editingItem} 
-                    onClose={() => setShowModal(false)} 
-                    onSuccess={() => { setShowModal(false); fetchData(); }} 
+                <InventoryModal
+                    item={editingItem}
+                    stables={allStables}
+                    onClose={() => setShowModal(false)}
+                    onSuccess={() => { setShowModal(false); fetchData(); }}
                 />
             )}
         </div>
     );
 };
 
-const InventoryModal = ({ item, onClose, onSuccess }) => {
+const InventoryModal = ({ item, onClose, onSuccess, stables = [] }) => {
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         name: item?.name || "",
         category: item?.category || "Feed",
         currentStock: item?.currentStock || "",
         unit: item?.unit || "",
-        minThreshold: item?.minThreshold || 10
+        minThreshold: item?.minThreshold || 10,
+        stableId: item?.stableId || item?.stable?.id || ""
     });
 
     const categories = ["Feed", "Medicines", "Equipment", "Consumables"];
@@ -351,6 +353,8 @@ const InventoryModal = ({ item, onClose, onSuccess }) => {
             } else {
                 res = await apiFunction(createInventoryApi, [], payload, "POST", true);
             }
+
+            console.log("res", res);
 
             if (res && res.success) {
                 toast.success(item ? "Stock updated" : "Item added to inventory");
@@ -379,34 +383,55 @@ const InventoryModal = ({ item, onClose, onSuccess }) => {
                         <div className="space-y-6">
                             <div className="space-y-2">
                                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Item Description</label>
-                                <input 
-                                    required 
-                                    value={formData.name} 
-                                    onChange={e => setFormData({...formData, name: e.target.value})}
-                                    className="w-full bg-white border border-gray-100 rounded-2xl px-6 py-4 text-sm font-bold text-[#1e2330] focus:outline-none focus:border-[#964C2E]/30 transition-all" 
-                                    placeholder="e.g., Premium Alfalfa" 
+                                <input
+                                    required
+                                    value={formData.name}
+                                    onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                    className="w-full bg-white border border-gray-100 rounded-2xl px-6 py-4 text-sm font-bold text-[#1e2330] focus:outline-none focus:border-[#964C2E]/30 transition-all"
+                                    placeholder="e.g., Premium Alfalfa"
                                 />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Stable</label>
+                                <div className="relative">
+                                    <select
+                                        required
+                                        value={formData.stableId}
+                                        onChange={e => setFormData({ ...formData, stableId: e.target.value })}
+                                        className="w-full bg-white border border-gray-100 rounded-2xl px-6 py-4 text-sm font-bold text-[#1e2330] focus:outline-none focus:border-[#964C2E]/30 transition-all appearance-none pr-10"
+                                    >
+                                        <option value="" disabled>Select Stable</option>
+                                        {stables.map(s => (
+                                            <option key={s.id} value={s.id}>{s.name}</option>
+                                        ))}
+                                    </select>
+                                    <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-6">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Category</label>
-                                    <select 
-                                        value={formData.category} 
-                                        onChange={e => setFormData({...formData, category: e.target.value})}
-                                        className="w-full bg-white border border-gray-100 rounded-2xl px-6 py-4 text-sm font-bold text-[#1e2330] focus:outline-none focus:border-[#964C2E]/30 transition-all appearance-none"
-                                    >
-                                        {categories.map(c => <option key={c} value={c}>{c}</option>)}
-                                    </select>
+                                    <div className="relative">
+                                        <select
+                                            value={formData.category}
+                                            onChange={e => setFormData({ ...formData, category: e.target.value })}
+                                            className="w-full bg-white border border-gray-100 rounded-2xl px-6 py-4 text-sm font-bold text-[#1e2330] focus:outline-none focus:border-[#964C2E]/30 transition-all appearance-none pr-10"
+                                        >
+                                            {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                                        </select>
+                                        <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                    </div>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Display Unit</label>
-                                    <input 
-                                        required 
-                                        value={formData.unit} 
-                                        onChange={e => setFormData({...formData, unit: e.target.value})}
-                                        className="w-full bg-white border border-gray-100 rounded-2xl px-6 py-4 text-sm font-bold text-[#1e2330] focus:outline-none focus:border-[#964C2E]/30 transition-all" 
-                                        placeholder="e.g., Bales, Vials" 
+                                    <input
+                                        required
+                                        value={formData.unit}
+                                        onChange={e => setFormData({ ...formData, unit: e.target.value })}
+                                        className="w-full bg-white border border-gray-100 rounded-2xl px-6 py-4 text-sm font-bold text-[#1e2330] focus:outline-none focus:border-[#964C2E]/30 transition-all"
+                                        placeholder="e.g., Bales, Vials"
                                     />
                                 </div>
                             </div>
@@ -414,24 +439,24 @@ const InventoryModal = ({ item, onClose, onSuccess }) => {
                             <div className="grid grid-cols-2 gap-6">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Current Stock Level</label>
-                                    <input 
+                                    <input
                                         type="number"
-                                        required 
-                                        value={formData.currentStock} 
-                                        onChange={e => setFormData({...formData, currentStock: e.target.value})}
-                                        className="w-full bg-white border border-gray-100 rounded-2xl px-6 py-4 text-sm font-bold text-[#1e2330] focus:outline-none focus:border-[#964C2E]/30 transition-all" 
-                                        placeholder="0" 
+                                        required
+                                        value={formData.currentStock}
+                                        onChange={e => setFormData({ ...formData, currentStock: e.target.value })}
+                                        className="w-full bg-white border border-gray-100 rounded-2xl px-6 py-4 text-sm font-bold text-[#1e2330] focus:outline-none focus:border-[#964C2E]/30 transition-all"
+                                        placeholder="0"
                                     />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Low Stock Alert at</label>
-                                    <input 
+                                    <input
                                         type="number"
-                                        required 
-                                        value={formData.minThreshold} 
-                                        onChange={e => setFormData({...formData, minThreshold: e.target.value})}
-                                        className="w-full bg-white border border-gray-100 rounded-2xl px-6 py-4 text-sm font-bold text-[#1e2330] focus:outline-none focus:border-[#964C2E]/30 transition-all" 
-                                        placeholder="10" 
+                                        required
+                                        value={formData.minThreshold}
+                                        onChange={e => setFormData({ ...formData, minThreshold: e.target.value })}
+                                        className="w-full bg-white border border-gray-100 rounded-2xl px-6 py-4 text-sm font-bold text-[#1e2330] focus:outline-none focus:border-[#964C2E]/30 transition-all"
+                                        placeholder="10"
                                     />
                                 </div>
                             </div>
@@ -440,8 +465,8 @@ const InventoryModal = ({ item, onClose, onSuccess }) => {
 
                     <div className="p-8 bg-white/50 border-t border-gray-50 flex gap-4">
                         <button type="button" onClick={onClose} className="flex-1 px-8 py-4 rounded-2xl bg-gray-100 text-gray-500 text-[11px] font-black uppercase tracking-widest transition-all">Cancel</button>
-                        <button 
-                            type="submit" 
+                        <button
+                            type="submit"
                             disabled={loading}
                             className="flex-[2] px-8 py-4 rounded-2xl bg-[#964C2E] text-white text-[11px] font-black uppercase tracking-widest shadow-xl shadow-[#964C2E]/20 hover:scale-[1.02] active:scale-95 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
                         >
