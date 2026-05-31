@@ -601,13 +601,55 @@ const UserManagement = () => {
                 />
             )}
 
-            {viewUser && <ProfileQuickView user={viewUser} onClose={() => setViewUser(null)} navigate={navigate} onApproveLeave={handleApproveRequest} />}
+            {viewUser && (
+                <ProfileQuickView
+                    user={users.find(u => u.id === viewUser.id) || viewUser}
+                    onClose={() => setViewUser(null)}
+                    navigate={navigate}
+                    onApproveLeave={handleApproveRequest}
+                    onUpdate={fetchUsers}
+                />
+            )}
         </div>
     );
 };
 
 
-const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave }) => {
+const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave, onUpdate }) => {
+    const [walletAmount, setWalletAmount] = useState("");
+    const [isUpdatingWallet, setIsUpdatingWallet] = useState(false);
+
+    const handleWalletAction = async (actionType, amount) => {
+        const parsedAmount = parseInt(amount, 10);
+        if (isNaN(parsedAmount) || parsedAmount < 0) {
+            toast.error("Please enter a valid positive number");
+            return;
+        }
+
+        let newWallet = user.wallet || 0;
+        if (actionType === 'add') {
+            newWallet += parsedAmount;
+        } else if (actionType === 'set') {
+            newWallet = parsedAmount;
+        }
+
+        setIsUpdatingWallet(true);
+        try {
+            const res = await apiFunction(`${updateUserApi}/${user.id}`, [], { wallet: newWallet }, "PUT", true);
+            if (res && res.success) {
+                toast.success(`Wallet balance updated to ₹${newWallet}`);
+                setWalletAmount("");
+                if (onUpdate) onUpdate();
+            } else {
+                toast.error(res?.message || "Failed to update wallet");
+            }
+        } catch (error) {
+            toast.error("Network error");
+        } finally {
+            setIsUpdatingWallet(false);
+        }
+    };
+
     return (
         <div className="fixed inset-0 bg-black/20 flex justify-end z-[60] animate-in fade-in duration-300">
             <div className="w-[450px] bg-white h-full shadow-2xl p-8 overflow-y-auto animate-in slide-in-from-right duration-300">
@@ -645,6 +687,68 @@ const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave }) => {
                             </div>
                         </div>
                     </div>
+
+                    {user.type === 'rider' && (
+                        <div className="p-5 bg-gradient-to-br from-[#FCF8F5] to-[#F5EFEA] rounded-2xl border border-[#FAE9DB] shadow-sm">
+                            <h4 className="text-[10px] font-black text-[#964C2E] tracking-widest uppercase mb-4 flex items-center justify-between">
+                                <span>RIDER WALLET</span>
+                                <span className="bg-[#FAE9DB] px-2 py-0.5 rounded text-[8px] font-black uppercase text-[#964C2E]">Active Balance</span>
+                            </h4>
+                            <div className="flex items-baseline gap-1 mb-5">
+                                <span className="text-[28px] font-black text-[#1e2330]">₹{(user.wallet || 0).toLocaleString()}</span>
+                                <span className="text-xs font-bold text-gray-400">INR</span>
+                            </div>
+                            
+                            <div className="space-y-4">
+                                <div>
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Quick Add Funds</p>
+                                    <div className="flex gap-2">
+                                        {[100, 500, 1000, 5000].map((amt) => (
+                                            <button
+                                                key={amt}
+                                                type="button"
+                                                onClick={() => handleWalletAction('add', amt)}
+                                                disabled={isUpdatingWallet}
+                                                className="flex-1 py-2 bg-white border border-[#EACDBA]/50 rounded-xl text-xs font-black text-[#964C2E] hover:bg-[#FAE9DB]/30 transition-all active:scale-95 disabled:opacity-50"
+                                            >
+                                                +₹{amt}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Custom Transaction</p>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="number"
+                                            value={walletAmount}
+                                            onChange={(e) => setWalletAmount(e.target.value)}
+                                            placeholder="Enter amount..."
+                                            disabled={isUpdatingWallet}
+                                            className="flex-1 px-3.5 py-2 bg-white border border-gray-100 rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E] disabled:opacity-50"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => handleWalletAction('add', walletAmount)}
+                                            disabled={isUpdatingWallet || !walletAmount}
+                                            className="px-4 py-2 bg-[#964C2E] text-white rounded-xl text-xs font-black uppercase tracking-wider hover:bg-[#7D3F25] transition-all active:scale-95 disabled:opacity-50"
+                                        >
+                                            Add
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleWalletAction('set', walletAmount)}
+                                            disabled={isUpdatingWallet || !walletAmount}
+                                            className="px-4 py-2 border border-[#964C2E] text-[#964C2E] rounded-xl text-xs font-black uppercase tracking-wider hover:bg-[#FAE9DB]/20 transition-all active:scale-95 disabled:opacity-50"
+                                        >
+                                            Set
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="p-5 bg-[#F8F9FA] rounded-2xl border border-gray-100">
                         <h4 className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-4">PERSONAL DETAILS</h4>

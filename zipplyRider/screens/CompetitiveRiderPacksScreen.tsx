@@ -4,19 +4,35 @@ import { ChevronLeft, Bell, CheckCircle2, Gavel, Calendar, CalendarClock, Ban, C
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiFunction } from '../api/apifunction';
-import { getAllPlansApi, enrollPackApi, createOrderApi, verifyRazorPayOrderApi } from '../api/api';
+import { getAllPlansApi, enrollPackApi, createOrderApi, verifyRazorPayOrderApi, purchasePlanWithWalletApi, getRiderApi } from '../api/api';
 import Toast from 'react-native-toast-message';
 import RazorpayCheckout from 'react-native-razorpay';
+import { useDispatch } from 'react-redux';
+import { fetchRider, fetchUser } from '../redux/getDataSlice';
 
 export default function CompetitiveRiderPacksScreen() {
     const navigation = useNavigation();
+    const dispatch = useDispatch();
     const [loading, setLoading] = useState(true);
     const [plans, setPlans] = useState([]);
     const [enrolling, setEnrolling] = useState(null);
+    const [riderDetails, setRiderDetails] = useState<any>(null);
 
     useEffect(() => {
         fetchPlans();
+        fetchRiderDetails();
     }, []);
+
+    const fetchRiderDetails = async () => {
+        try {
+            const res = await apiFunction(getRiderApi, [], {}, "GET", true);
+            if (res && res.success) {
+                setRiderDetails(res.rider);
+            }
+        } catch (error) {
+            console.error("Fetch rider error:", error);
+        }
+    };
 
     const fetchPlans = async () => {
         setLoading(true);
@@ -35,6 +51,45 @@ export default function CompetitiveRiderPacksScreen() {
     const handleEnrollment = async (packId) => {
         setEnrolling(packId);
         try {
+            const selectedPlan = plans.find((p: any) => p.id === packId);
+            if (!selectedPlan) {
+                Toast.show({
+                    type: 'error',
+                    text1: "Plan not found",
+                });
+                return;
+            }
+
+            // Refresh rider details to get latest wallet balance
+            let currentRider = riderDetails;
+            try {
+                const resDetails = await apiFunction(getRiderApi, [], {}, "GET", true);
+                if (resDetails && resDetails.success) {
+                    currentRider = resDetails.rider;
+                    setRiderDetails(resDetails.rider);
+                }
+            } catch (err) {
+                console.error("Could not refresh rider details:", err);
+            }
+
+            if (!currentRider) {
+                Toast.show({
+                    type: 'error',
+                    text1: "Rider details not loaded yet. Please try again.",
+                });
+                return;
+            }
+
+            if ((currentRider.wallet || 0) < selectedPlan.amount) {
+                Toast.show({
+                    type: 'error',
+                    text1: `Insufficient wallet balance! Pack costs ₹${selectedPlan.amount}, but you only have ₹${currentRider.wallet || 0}.`,
+                });
+                return;
+            }
+
+            /*
+            // Commented Razorpay Setup
             const res = await apiFunction(createOrderApi, [], { planId: packId }, "POST", true);
             console.log("Res", res);
             if (res && res.success) {
@@ -83,33 +138,41 @@ export default function CompetitiveRiderPacksScreen() {
                 }
 
             }
-            // const res = await apiFunction(enrollPackApi, [], { planId: packId }, "POST", true);
-            // if (res && res.success) {
-            //     // Update local storage with new session count/plan info
-            //     const userData = await AsyncStorage.getItem('user');
-            //     if (userData) {
-            //         const user = JSON.parse(userData);
-            //         user.sessionCount = res.rider?.sessionCount;
-            //         user.plan = res.rider?.plan;
-            //         await AsyncStorage.setItem('user', JSON.stringify(user));
-            //     }
-            //     Toast.show({
-            //         type: 'success',
-            //         text1: res.message || "Enrollment successful",
-            //     })
-            //     navigation.navigate('Home');
-            // } else {
-            //     Toast.show({
-            //         type: 'error',
-            //         text1: res.message || "Enrollment failed",
-            //     })
-            // }
-        } catch (error) {
+            */
+
+            // Wallet Purchase Flow
+            const res = await apiFunction(purchasePlanWithWalletApi, [], { planId: packId }, "POST", true);
+            if (res && res.success) {
+                // Update local storage with new session count/plan info
+                const userData = await AsyncStorage.getItem('user');
+                if (userData) {
+                    const user = JSON.parse(userData);
+                    user.sessionCount = res.rider?.sessionCount;
+                    user.plan = res.rider?.plan;
+                    await AsyncStorage.setItem('user', JSON.stringify(user));
+                }
+
+                // Dispatch redux actions to keep state in sync
+                dispatch(fetchRider() as any);
+                dispatch(fetchUser() as any);
+
+                Toast.show({
+                    type: 'success',
+                    text1: res.message || "Plan enrolled successfully using wallet!",
+                });
+                navigation.navigate('Home' as never);
+            } else {
+                Toast.show({
+                    type: 'error',
+                    text1: res?.message || "Enrollment failed",
+                });
+            }
+        } catch (error: any) {
             console.error("Enrollment error:", error);
             Toast.show({
                 type: 'error',
-                text1: "An error occurred during enrollment.",
-            })
+                text1: error?.message || "An error occurred during enrollment.",
+            });
         } finally {
             setEnrolling(null);
         }
@@ -132,6 +195,17 @@ export default function CompetitiveRiderPacksScreen() {
                 <TouchableOpacity className="w-10 h-10 items-center justify-center">
                     <Bell color="#1a202c" size={20} />
                 </TouchableOpacity>
+            </View>
+
+            {/* Wallet Balance Card */}
+            <View className="px-6 py-4 flex-row items-center justify-between bg-white rounded-2xl mx-5 mt-2 border border-[#e2d5c3] shadow-sm">
+                <View>
+                    <Text className="text-[#64748b] text-[10px] font-bold uppercase tracking-wider mb-1">Available Wallet Balance</Text>
+                    <Text className="text-[#8C4A28] text-[22px] font-black">₹{riderDetails ? (riderDetails.wallet || 0).toLocaleString() : '0'}</Text>
+                </View>
+                <View className="bg-[#8C4A28]/10 px-3 py-1.5 rounded-xl">
+                    <Text className="text-[#8C4A28] text-[10px] font-bold uppercase tracking-wide">Wallet Payment</Text>
+                </View>
             </View>
 
             {loading ? (

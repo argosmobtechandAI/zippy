@@ -41,7 +41,8 @@ export const getAllUsers = async (req, res) => {
             vetId: vetTable.id,
             profilePicture: userTable.profilePicture,
             leaves: userTable.leaves,
-            riderType: riderTable.riderType
+            riderType: riderTable.riderType,
+            wallet: riderTable.wallet
         })
             .from(userTable)
             .leftJoin(trainerTable, eq(userTable.id, trainerTable.userId))
@@ -128,7 +129,8 @@ export const getUser = async (req, res) => {
             riderId: riderTable.id,
             vetId: vetTable.id,
             profilePicture: userTable.profilePicture,
-            leaves: userTable.leaves
+            leaves: userTable.leaves,
+            wallet: riderTable.wallet
         })
             .from(userTable)
             .leftJoin(trainerTable, eq(userTable.id, trainerTable.userId))
@@ -241,16 +243,24 @@ export const updateUser = async (req, res) => {
     const { data } = req.body;
 
     // Separate core user data from role-specific data
-    const { title, experience, level, medical, instructions, allergies, riderType, addHorseId, ...coreData } = data;
+    const { title, experience, level, medical, instructions, allergies, riderType, addHorseId, wallet, ...coreData } = data;
 
     try {
         // 1. Update Core User Data
-        const updatedUser = await db.update(userTable).set(coreData).where(eq(userTable.id, id)).returning();
-        if (!updatedUser || updatedUser.length === 0) {
-            return res.status(404).json({ message: 'User not found', success: false });
+        let user;
+        if (Object.keys(coreData).length > 0) {
+            const updatedUser = await db.update(userTable).set(coreData).where(eq(userTable.id, id)).returning();
+            if (!updatedUser || updatedUser.length === 0) {
+                return res.status(404).json({ message: 'User not found', success: false });
+            }
+            user = updatedUser[0];
+        } else {
+            const existingUser = await db.select().from(userTable).where(eq(userTable.id, id));
+            if (!existingUser || existingUser.length === 0) {
+                return res.status(404).json({ message: 'User not found', success: false });
+            }
+            user = existingUser[0];
         }
-
-        const user = updatedUser[0];
 
         // 2. Update Role-Specific Data
         if (user.type === "rider") {
@@ -260,6 +270,7 @@ export const updateUser = async (req, res) => {
             if (instructions !== undefined) riderUpdateData.instructions = instructions;
             if (allergies !== undefined) riderUpdateData.allergies = allergies;
             if (riderType !== undefined) riderUpdateData.riderType = riderType;
+            if (wallet !== undefined) riderUpdateData.wallet = wallet !== null ? Number(wallet) : null;
 
             if (Object.keys(riderUpdateData).length > 0) {
                 await db.update(riderTable).set(riderUpdateData).where(eq(riderTable.userId, id));
@@ -312,7 +323,7 @@ export const updateUser = async (req, res) => {
             }
         }
 
-        return res.status(200).json({ user: updatedUser[0], message: 'User updated successfully', success: true });
+        return res.status(200).json({  message: 'User updated successfully', success: true });
     } catch (error) {
         console.error('CRITICAL ERROR IN UPDATE_USER:', error);
         const errorMessage = error.detail || error.message || 'An unknown error occurred';
@@ -416,7 +427,10 @@ export const verifyOTP = async (req, res) => {
             if (trainer.length > 0) roleData.trainerId = trainer[0].id;
         } else if (user[0].type === "rider") {
             const rider = await db.select().from(riderTable).where(eq(riderTable.userId, user[0].id));
-            if (rider.length > 0) roleData.riderId = rider[0].id;
+            if (rider.length > 0) {
+                roleData.riderId = rider[0].id;
+                roleData.wallet = rider[0].wallet;
+            }
         } else if (user[0].type === "vet") {
             const vet = await db.select().from(vetTable).where(eq(vetTable.userId, user[0].id));
             if (vet.length > 0) roleData.vetId = vet[0].id;
@@ -488,7 +502,10 @@ export const login = async (req, res) => {
             if (trainer.length > 0) roleData.trainerId = trainer[0].id;
         } else if (user[0].type === "rider") {
             const rider = await db.select().from(riderTable).where(eq(riderTable.userId, user[0].id));
-            if (rider.length > 0) roleData.riderId = rider[0].id;
+            if (rider.length > 0) {
+                roleData.riderId = rider[0].id;
+                roleData.wallet = rider[0].wallet;
+            }
         } else if (user[0].type === "vet") {
             const vet = await db.select().from(vetTable).where(eq(vetTable.userId, user[0].id));
             if (vet.length > 0) roleData.vetId = vet[0].id;

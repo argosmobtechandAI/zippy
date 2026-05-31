@@ -12,6 +12,7 @@ export const updateUserApi = `${baseURL}/users`;
 export const deleteUserApi = `${baseURL}/users`;
 export const getRiderApi = `${baseURL}/rider`;
 export const enrollPackApi = `${baseURL}/rider/enroll`;
+export const purchasePlanWithWalletApi = `${baseURL}/rider/purchase-plan-wallet`;
 export const updateLeaveApi = `${baseURL}/users/leave`;
 export const createOrderApi = `${baseURL}/plan/createOrder`;
 export const verifyRazorPayOrderApi = `${baseURL}/plan/verifyPayment`;

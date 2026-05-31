@@ -63,7 +63,7 @@ export const horseTable = pgTable("horse", {
   age: integer("age"),
   trainerId: uuid("trainer_id").references(() => userTable.id),
   vatId: uuid("vat_id").references(() => vetTable.id),
-  scheduleSessions: uuid("sessions").array().default([]),
+  scheduleSessions: uuid("schedule_sessions").array().default([]),
   lastVisit: varchar("last_visit", { length: 50 }),
   status: varchar("status", { length: 50 }).default("Available"), // Available, Resting, Competition, Medical, Training
   dewormingRecord: varchar("deworming_record", { length: 500 }),
@@ -91,6 +91,7 @@ export const riderTable = pgTable("rider", {
   medical: varchar("medical", { length: 255 }),
   userId: uuid("user_id").notNull().references(() => userTable.id),
   riderType: varchar("rider_type", { length: 50 }).default("Regular"),
+  wallet: integer("wallet").default(0),
   code: varchar("code", { length: 50 }).notNull().unique(),
   planEndDate: varchar("plan_end_date", { length: 50 }).default(""),
 });
