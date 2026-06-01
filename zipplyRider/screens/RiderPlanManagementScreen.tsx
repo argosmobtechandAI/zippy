@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, Search, Bell, Calendar } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { apiFunction } from '../api/apifunction';
@@ -29,7 +30,7 @@ export default function RiderPlanManagementScreen() {
     };
 
     return (
-        <View className="flex-1 bg-[#F5EDDF]">
+        <SafeAreaView className="flex-1 bg-[#F5EDDF]">
             <View className="px-6 pt-6 pb-4 flex-row items-center justify-between">
                 <View className="flex-row items-center">
                     <TouchableOpacity
@@ -133,6 +134,6 @@ export default function RiderPlanManagementScreen() {
                 </View>
             </ScrollView>
             )}
-        </View>
+        </SafeAreaView>
     );
 }

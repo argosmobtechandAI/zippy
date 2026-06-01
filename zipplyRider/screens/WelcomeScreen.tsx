@@ -32,7 +32,7 @@ export default function WelcomeScreen() {
         </View>
       </View>
 
-      <View className="flex-1 px-6 pt-10 pb-6 justify-between">
+      <SafeAreaView edges={['bottom']} className="flex-1 px-6 pt-10 pb-6 justify-between">
         <View className="items-center">
           <Text className="text-3xl font-bold text-[#1a202c] text-center leading-10">
             Experience the{'\n'}Heritage of{' '}
@@ -83,7 +83,7 @@ export default function WelcomeScreen() {
             <Text className="text-[#7d8b99] text-[10px] uppercase font-bold text-center">Safety First</Text>
           </View>
         </View>
-      </View>
+      </SafeAreaView>
     </View>
   );
 }

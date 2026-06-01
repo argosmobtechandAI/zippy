@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Image, SafeAreaView } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { View, Text, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Settings, Check, Info, AlertOctagon, Stethoscope, ClipboardList, Trophy, Medal, Star, Award } from 'lucide-react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchRider, fetchUser } from '../redux/getDataSlice';

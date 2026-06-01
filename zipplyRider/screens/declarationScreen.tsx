@@ -1,5 +1,6 @@
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native'
 import React, { useRef, useState } from 'react'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { ArrowLeft, ChevronUp, FileText, ShieldAlert, PenTool, Check } from 'lucide-react-native'
 import { useNavigation } from '@react-navigation/native'
 import Signature from "react-native-signature-canvas"
@@ -42,7 +43,7 @@ export default function DeclarationScreen({route}) {
 
 
     return (
-        <View className="flex-1 bg-[#F5EDDF]">
+        <SafeAreaView className="flex-1 bg-[#F5EDDF]">
             {/* Header */}
             <View className="bg-[#8C4A28] px-4 py-4 flex-row items-center justify-between shadow-md">
                 <TouchableOpacity onPress={() => navigation.goBack()} className="flex-row items-center">
@@ -168,6 +169,6 @@ export default function DeclarationScreen({route}) {
                     <Text className="text-white font-bold text-lg">Sign & Submit</Text>
                 </TouchableOpacity>
             </View>
-        </View>
+        </SafeAreaView>
     )
 }

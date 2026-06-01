@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Calendar, User as UserIcon, Star, Clock, CheckCircle2 } from 'lucide-react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -164,7 +165,7 @@ export default function SessionDetailScreen() {
   };
 
   return (
-    <View className="flex-1 bg-[#F5EDDF]">
+    <SafeAreaView className="flex-1 bg-[#F5EDDF]">
       <Text>{date}</Text>
       {/* Header */}
       <View className="flex-row items-center px-6 py-4 bg-white border-b border-[#e2e8f0] mt-2">
@@ -249,6 +250,6 @@ export default function SessionDetailScreen() {
           </TouchableOpacity>
         )}
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
