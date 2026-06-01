@@ -1,10 +1,12 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, ImageBackground, StatusBar } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, ImageBackground, StatusBar } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft, Calendar, Clock, Info, CheckSquare, Layers, RefreshCcw, ArrowRight } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 
 export default function EnrolmentScreen() {
     const navigation = useNavigation();
+    const insets = useSafeAreaInsets();
 
     return (
         <View className="flex-1 bg-[#F5EDDF]">
@@ -18,7 +20,7 @@ export default function EnrolmentScreen() {
                     resizeMode="cover"
                 >
                     {/* Header Controls */}
-                    <View className="absolute top-12 left-0 right-0 px-6 flex-row items-center justify-center">
+                    <View style={{ top: Math.max(insets.top, 12) }} className="absolute left-0 right-0 px-6 flex-row items-center justify-center">
                         <TouchableOpacity 
                             className="absolute left-6 w-10 h-10 rounded-full bg-[#e2d5c3]/90 items-center justify-center"
                             onPress={() => {
@@ -113,7 +115,7 @@ export default function EnrolmentScreen() {
             </ScrollView>
 
             {/* Bottom Footer Fixed */}
-            <View className="absolute bottom-0 left-0 right-0 bg-[#F5EDDF] border-t border-[#e2d5c3] px-6 py-5 pb-8 flex-row items-center justify-between">
+            <View style={{ paddingBottom: Math.max(insets.bottom, 20) }} className="absolute bottom-0 left-0 right-0 bg-[#F5EDDF] border-t border-[#e2d5c3] px-6 py-5 flex-row items-center justify-between">
                 <View>
                     <Text className="text-[#64748b] text-xs font-semibold mb-1">Total Investment</Text>
                     <View className="flex-row items-center">

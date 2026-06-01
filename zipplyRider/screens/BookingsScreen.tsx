@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl, TextInput, Alert, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Info, ArrowUpRight, Calendar, User as UserIcon, Clock, Star, CalendarRange, XCircle } from 'lucide-react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -142,7 +143,7 @@ export default function BookingsScreen() {
   });
 
   return (
-    <View className="flex-1 bg-[#F5EDDF]">
+    <SafeAreaView className="flex-1 bg-[#F5EDDF]">
       {/* Header */}
       <View className="flex-row items-center px-4 py-4 bg-white">
         <TouchableOpacity onPress={() => navigation.goBack()} className="mr-4 p-2">
@@ -410,6 +411,6 @@ export default function BookingsScreen() {
           )}
         </ScrollView>
       )}
-    </View>
+    </SafeAreaView>
   );
 }

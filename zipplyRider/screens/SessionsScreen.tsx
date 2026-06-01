@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Image, SafeAreaView, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator, RefreshControl } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Calendar, Clock, Smartphone } from 'lucide-react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { apiFunction } from '../api/apifunction';
@@ -88,7 +89,7 @@ export default function SessionsScreen() {
   };
 
   return (
-    <View className="flex-1 bg-[#F5EDDF]">
+    <SafeAreaView className="flex-1 bg-[#F5EDDF]">
       {/* Header */}
       <View className="bg-[#8C4A28] px-4 py-4 flex-row items-center">
         <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -218,6 +219,6 @@ export default function SessionsScreen() {
         </View>
       </ScrollView>
 
-    </View>
+    </SafeAreaView>
   );
 }
