@@ -4,16 +4,16 @@ import {
     Edit,
     Delete,
     Plus,
-    Download
+    Download, Wallet
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFunction } from '../api/apiFunction';
-import { createUserApi, getAllUsersApi, notifyUserApi, notifyAllUsersApi, updateUserApi, updateUserLeaveApi, getAllTrainersApi, updateTrainerApi, getAllStablesApi, deleteStableLogoApi, uploadFileApi } from '../api/apis';
+import { createUserApi, getAllUsersApi, notifyUserApi, notifyAllUsersApi, updateUserApi, updateUserLeaveApi, getAllTrainersApi, updateTrainerApi, getAllStablesApi, deleteStableLogoApi, uploadFileApi, deleteUserApi } from '../api/apis';
 import toast from 'react-hot-toast';
 import axios from 'axios';
 
-const TrainerCard = ({ user, trainers, stables, onNotify, onEdit, onStatusUpdate, onUpdateCenterClick, navigate }) => {
+const TrainerCard = ({ user, trainers, stables, onNotify, onEdit, onStatusUpdate, onDelete, onUpdateCenterClick, navigate }) => {
 
     console.log(user, "userr")
     console.log(trainers, "trainerr")
@@ -48,10 +48,10 @@ const TrainerCard = ({ user, trainers, stables, onNotify, onEdit, onStatusUpdate
                             onStatusUpdate(nextStatus);
                         }}
                         className="p-1.5 hover:bg-gray-50 rounded-lg transition-colors"
-                        title="Toggle Status"
                     >
                         <Activity className="w-4 h-4" />
                     </button>
+                    <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="p-1.5 hover:bg-red-50 hover:text-red-500 rounded-lg transition-colors" title="Delete User"><Delete className="w-4 h-4" /></button>
                 </div>
             </div>
 
@@ -182,6 +182,22 @@ const UserManagement = () => {
             }
         } catch (error) {
             toast.error("Network error");
+        }
+    }
+
+    const handleDeleteUser = async (userId) => {
+        if (window.confirm("Are you sure you want to delete this user?")) {
+            try {
+                const res = await apiFunction(`${deleteUserApi}/${userId}`, [], {}, "DELETE", true);
+                if (res && res.success) {
+                    toast.success("User deleted successfully");
+                    fetchUsers();
+                } else {
+                    toast.error(res?.message || "Failed to delete user");
+                }
+            } catch (error) {
+                toast.error("Network error");
+            }
         }
     }
 
@@ -401,6 +417,7 @@ const UserManagement = () => {
                                     onNotify={() => setNotifyModal(user)}
                                     onEdit={() => { setEditingUser(user); setCreateModal(true); }}
                                     onStatusUpdate={(status) => handleStatusUpdate(user.id, status)}
+                                    onDelete={() => handleDeleteUser(user.id)}
                                     onUpdateCenterClick={() => setUpdateCenterModal({ user, trainer: trainers.find(t => t.userId === user.id) })}
                                     navigate={navigate}
                                 />
@@ -440,10 +457,31 @@ const UserManagement = () => {
                                                     setCreateModal(true);
                                                 }}
                                                 className="p-1.5 hover:bg-gray-50 rounded-lg transition-colors"
+                                                title="Edit User"
                                             >
                                                 <Edit2 className="w-4 h-4" />
                                             </button>
-                                            <button onClick={(e) => e.stopPropagation()} className="p-1.5 hover:bg-gray-50 rounded-lg transition-colors"><MoreVertical className="w-4 h-4" /></button>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    const nextStatus = user.status === 'INACTIVE' ? 'ACTIVE' : 'INACTIVE';
+                                                    handleStatusUpdate(user.id, nextStatus);
+                                                }}
+                                                className="p-1.5 hover:bg-gray-50 rounded-lg transition-colors"
+                                                title="Toggle Status"
+                                            >
+                                                <Activity className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDeleteUser(user.id);
+                                                }}
+                                                className="p-1.5 hover:bg-red-50 hover:text-red-500 rounded-lg transition-colors"
+                                                title="Delete User"
+                                            >
+                                                <Delete className="w-4 h-4" />
+                                            </button>
                                         </div>
                                     </div>
 
@@ -632,6 +670,17 @@ const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave }) => {
                 </div>
 
                 <div className="space-y-6">
+                    {user.type === 'rider' && (
+                        <div className="p-5 bg-[#FAF3EC] rounded-2xl border border-[#964C2E]/20 flex justify-between items-center shadow-sm">
+                            <div>
+                                <h4 className="text-[10px] font-black text-[#964C2E] tracking-widest uppercase mb-1">Rider Wallet Balance</h4>
+                                <p className="text-[24px] font-black text-[#1e2330]">₹{(user.riderWallet || 0).toLocaleString()}</p>
+                            </div>
+                            <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-[#964C2E] border border-[#964C2E]/10 shadow-sm">
+                                <Wallet className="w-6 h-6" />
+                            </div>
+                        </div>
+                    )}
                     <div className="p-5 bg-[#F8F9FA] rounded-2xl border border-gray-100">
                         <h4 className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-4">CONTACT INFORMATION</h4>
                         <div className="space-y-4">
@@ -722,6 +771,7 @@ const UserActionModal = ({ userType, setCreateModal, onSuccess, initialData, sta
         allergies: initialData?.allergies || "",
         medical: initialData?.medical || "",
         instructions: initialData?.instructions || "",
+        riderWallet: initialData?.riderWallet || 0,
     })
 
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -965,6 +1015,12 @@ const UserActionModal = ({ userType, setCreateModal, onSuccess, initialData, sta
                                         <span>Parent/Guardian Name</span>
                                     </label>
                                     <input name="parentName" value={formData.parentName} onChange={handleChange} type="text" className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold transition-all focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E] focus:bg-white" placeholder="Parent or guardian name" />
+                                </div>
+                                <div className="col-span-1">
+                                    <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 flex justify-between items-center px-1">
+                                        <span>Wallet Balance (₹)</span>
+                                    </label>
+                                    <input name="riderWallet" value={formData.riderWallet} onChange={handleChange} type="number" min="0" className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold transition-all focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E] focus:bg-white" placeholder="0" />
                                 </div>
                                 <div className="col-span-2">
                                     <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Medical Conditions</label>

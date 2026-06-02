@@ -1,10 +1,14 @@
-import React, { useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Image } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, Image, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Settings, Check, Info, AlertOctagon, Stethoscope, ClipboardList, Trophy, Medal, Star, Award } from 'lucide-react-native';
+import { ArrowLeft, Settings, Check, Info, AlertOctagon, Stethoscope, ClipboardList, Trophy, Medal, Star, Award, Wallet } from 'lucide-react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchRider, fetchUser } from '../redux/getDataSlice';
 import { Config } from '../api/config';
+import { useNavigation } from '@react-navigation/native';
+import { apiFunction } from '../api/apifunction';
+import { updateUserApi } from '../api/api';
+import Toast from 'react-native-toast-message';
 
 const getIconComp = (iconName: string) => {
   switch (iconName) {
@@ -17,8 +21,12 @@ const getIconComp = (iconName: string) => {
 
 export default function DashboardProfileScreen() {
   const navigation = useNavigation<any>();
-  const { user, rider } = useSelector((state) => state.getData)
-  const dispatch = useDispatch();
+  const { user, rider } = useSelector((state: any) => state.getData)
+  const dispatch = useDispatch<any>();
+
+  const [showAddMoney, setShowAddMoney] = useState(false);
+  const [amountToAdd, setAmountToAdd] = useState('');
+  const [updatingWallet, setUpdatingWallet] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -28,6 +36,48 @@ export default function DashboardProfileScreen() {
       dispatch(fetchRider())
     }
   }, [dispatch])
+
+  const handleAddMoney = async () => {
+    if (!amountToAdd || isNaN(Number(amountToAdd))) return;
+    setUpdatingWallet(true);
+    try {
+      const currentWallet = Number(rider?.wallet || user?.riderWallet || 0);
+      const newWallet = currentWallet + Number(amountToAdd);
+      
+      const payload = {
+        riderWallet: newWallet,
+        wallet: newWallet
+      };
+
+      const res = await apiFunction(updateUserApi, [user.id], payload, 'PUT', true);
+      if (res && res.success) {
+        Toast.show({
+          type: 'success',
+          text1: 'Wallet Updated',
+          text2: `Successfully added ₹${amountToAdd} to your wallet.`
+        });
+        setAmountToAdd('');
+        setShowAddMoney(false);
+        dispatch(fetchUser());
+        dispatch(fetchRider());
+      } else {
+        Toast.show({
+          type: 'error',
+          text1: 'Failed to update',
+          text2: res?.message || 'Please try again'
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Network error occurred'
+      });
+    } finally {
+      setUpdatingWallet(false);
+    }
+  };
 
   const essentialDetails = [
     { icon: AlertOctagon, title: 'Emergency Contact', desc: user?.emergencyContact || 'Not Set', color: '#85431E' },
@@ -80,7 +130,60 @@ export default function DashboardProfileScreen() {
             <Text className="text-brand-brown/40 font-body-light text-xs mt-1">
               Member since {user?.createdAt?.split("-")[0] || "April 2021"}
             </Text>
+        </View>
+
+        {/* Premium Wallet Balance Card */}
+        <View className="mx-6 mb-8 bg-[#FAF3EC] border border-brand-brown/15 rounded-[28px] p-6 shadow-sm">
+          <View className="flex-row justify-between items-center">
+            <View className="flex-row items-center">
+              <View className="bg-white w-12 h-12 rounded-2xl items-center justify-center border border-brand-brown/10 shadow-xs mr-3">
+                <Wallet color="#85431E" size={24} />
+              </View>
+              <View>
+                <Text className="text-brand-brown/40 text-[9px] uppercase font-bold tracking-[2.5px]">Your Wallet</Text>
+                <Text className="text-2xl font-display text-brand-brown">₹{(rider?.wallet || user?.riderWallet || 0).toLocaleString()}</Text>
+              </View>
+            </View>
+            <TouchableOpacity 
+              onPress={() => setShowAddMoney(true)}
+              className="bg-brand-orange py-2.5 px-4 rounded-xl shadow-sm active:scale-95"
+            >
+              <Text className="text-white font-bold text-[11px] uppercase tracking-wider">Add Money</Text>
+            </TouchableOpacity>
           </View>
+
+          {showAddMoney && (
+            <View className="mt-4 border-t border-brand-brown/10 pt-4">
+              <Text className="text-brand-brown/60 font-body text-xs mb-2">Enter amount to add (₹):</Text>
+              <View className="flex-row">
+                <TextInput
+                  value={amountToAdd}
+                  onChangeText={setAmountToAdd}
+                  placeholder="e.g. 500"
+                  keyboardType="numeric"
+                  placeholderTextColor="#cbd5e1"
+                  className="flex-1 bg-white border border-brand-brown/10 rounded-xl px-3 py-2 text-brand-brown font-bold text-sm mr-2"
+                />
+                <TouchableOpacity 
+                  onPress={handleAddMoney}
+                  disabled={updatingWallet || !amountToAdd}
+                  className="bg-brand-brown py-3 px-4 rounded-xl flex-row items-center justify-center mr-2"
+                >
+                  {updatingWallet ? (
+                    <ActivityIndicator color="white" size="small" />
+                  ) : (
+                    <Text className="text-white font-bold text-xs uppercase tracking-wider">Confirm</Text>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  onPress={() => { setShowAddMoney(false); setAmountToAdd(''); }}
+                  className="bg-white border border-brand-brown/10 px-3 rounded-xl items-center justify-center"
+                >
+                  <Text className="text-brand-brown/60 font-bold text-xs">Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
         </View>
 
         {/* High-Fidelity Stats Row */}

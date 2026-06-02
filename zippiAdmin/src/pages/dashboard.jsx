@@ -80,7 +80,7 @@ const Dashboard = () => {
                     </div>
                     <div>
                         <h3 className="text-[12px] font-semibold text-[#818C99] mb-1">Total Revenue</h3>
-                        <p className="text-[28px] font-black text-[#1e2330] leading-none tracking-tight">${Number(stats.totalRevenue).toLocaleString()}</p>
+                        <p className="text-[28px] font-black text-[#1e2330] leading-none tracking-tight">₹{Number(stats.totalRevenue).toLocaleString()}</p>
                     </div>
                 </div>
 
@@ -172,7 +172,7 @@ const Dashboard = () => {
                                         {center.manager}
                                     </td>
                                     <td className="py-4 px-6 font-bold text-[#1e2330]">{center.stocksCount}</td>
-                                    <td className="py-4 px-6 font-bold text-[#1e2330]">${Number(center.monthlyRevenue).toLocaleString()}</td>
+                                    <td className="py-4 px-6 font-bold text-[#1e2330]">₹{Number(center.monthlyRevenue).toLocaleString()}</td>
                                     <td className="py-4 px-6 font-semibold text-[#1e2330]">{center.horseCount}</td>
                                     <td className="py-4 px-6">
                                         <span className={`inline-flex min-w-[100px] text-center justify-center px-3 py-1 rounded-full text-[9px] font-black tracking-wider uppercase ${center.status === 'PEEK PERFORMANCE' ? 'bg-[#D1FAE5] text-[#065F46]' :

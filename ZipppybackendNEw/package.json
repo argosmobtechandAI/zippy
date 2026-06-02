@@ -1,0 +1,27 @@
+{
+  "name": "zippy-nextjs-backend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start -p 3000"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.106.2",
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.4.5",
+    "drizzle-orm": "^0.30.10",
+    "formidable": "^3.5.4",
+    "jose": "^6.2.3",
+    "jsonwebtoken": "^9.0.2",
+    "next": "^14.2.3",
+    "pg": "^8.11.3",
+    "razorpay": "^2.9.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.21.4"
+  }
+}

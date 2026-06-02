@@ -301,15 +301,36 @@ const Revenue = () => {
                                 </div>
                             </div>
                             {/* Visual Bar Chart */}
-                            <div className="flex-1 flex items-end gap-1.5 px-4 relative pt-4">
-                                {(stats.trends || []).map((t, idx) => (
-                                    <div key={idx} className="flex-1 flex flex-col justify-end group px-0.5">
-                                        <div className="w-full flex-col flex relative transition-opacity group-hover:opacity-90">
-                                            <div className="w-full bg-[#DBCBBF] rounded-t-sm" style={{ height: `${(t.revenue2023 / stats.totalRevenue) * 200}%` }}></div>
-                                            <div className="w-full bg-[#964C2E] mt-[2px] rounded-b-sm" style={{ height: `${(t.revenue2024 / stats.totalRevenue) * 300}%` }}></div>
+                            <div className="flex-1 flex items-end gap-6 px-4 relative pt-4 h-full">
+                                {(stats.trends || []).map((t, idx) => {
+                                    const maxVal = Math.max(...(stats.trends || []).map(item => Math.max(item.revenue2023 || 0, item.revenue2024 || 0)), 1);
+                                    const height2023 = `${((t.revenue2023 || 0) / maxVal) * 100}%`;
+                                    const height2024 = `${((t.revenue2024 || 0) / maxVal) * 100}%`;
+                                    return (
+                                        <div key={idx} className="flex-1 flex flex-col items-center justify-end h-full group">
+                                            <div className="w-full flex items-end justify-center gap-1.5 h-full relative">
+                                                {/* 2023 Bar */}
+                                                <div 
+                                                    className="w-1/2 bg-[#DBCBBF] rounded-t-sm transition-all duration-300 hover:brightness-95 relative group/bar" 
+                                                    style={{ height: height2023 }}
+                                                >
+                                                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover/bar:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 shadow-md">
+                                                        2023: ₹{t.revenue2023?.toLocaleString()}
+                                                    </div>
+                                                </div>
+                                                {/* 2024 Bar */}
+                                                <div 
+                                                    className="w-1/2 bg-[#964C2E] rounded-t-sm transition-all duration-300 hover:brightness-95 relative group/bar" 
+                                                    style={{ height: height2024 }}
+                                                >
+                                                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover/bar:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 shadow-md">
+                                                        2024: ₹{t.revenue2024?.toLocaleString()}
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                             {/* X Axis */}
                             <div className="flex justify-between px-4 mt-6 text-[11px] font-bold text-gray-400 tracking-widest uppercase">

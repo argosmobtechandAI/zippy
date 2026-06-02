@@ -12,6 +12,7 @@ import {
 } from '../api/apis';
 import toast from 'react-hot-toast';
 import { useState, useEffect } from 'react';
+import axios from 'axios';
 
 const DEFAULT_HORSE_IMAGE = "https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?auto=format&fit=crop&q=80&w=800";
 
@@ -333,6 +334,34 @@ const HorseModal = ({ horseToEdit, setShowModal, onSuccess, trainers }) => {
     const progress = calculateProgress();
     const [submitting, setSubmitting] = useState(false);
 
+    const handleImageUpload = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const uploadData = new FormData();
+        uploadData.append('file', file);
+
+        try {
+            toast.loading("Uploading image...", { id: "upload" });
+            const res = await axios.post("http://localhost:3000/api/stable/uploadFile", uploadData, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                    "Authorization": `Bearer ${localStorage.getItem("token")}`
+                }
+            });
+
+            if (res.data?.success) {
+                setFormData({ ...formData, imageUrl: res.data.url });
+                toast.success("Image uploaded successfully", { id: "upload" });
+            } else {
+                toast.error(res.data?.message || "Failed to upload image", { id: "upload" });
+            }
+        } catch (error) {
+            console.error("Upload error:", error);
+            toast.error("Error uploading image", { id: "upload" });
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setSubmitting(true);
@@ -456,8 +485,14 @@ const HorseModal = ({ horseToEdit, setShowModal, onSuccess, trainers }) => {
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Profile Image URL</label>
-                                <input value={formData.imageUrl} onChange={e => setFormData({ ...formData, imageUrl: e.target.value })} className="w-full bg-white border border-gray-100 rounded-2xl px-6 py-5 text-sm font-bold text-[#1e2330] focus:outline-none focus:border-[#964C2E]/30 transition-all shadow-sm" placeholder="Paste high-res link..." />
+                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Profile Image</label>
+                                <div className="flex gap-4">
+                                    <input value={formData.imageUrl} onChange={e => setFormData({ ...formData, imageUrl: e.target.value })} className="flex-1 bg-white border border-gray-100 rounded-2xl px-6 py-5 text-sm font-bold text-[#1e2330] focus:outline-none focus:border-[#964C2E]/30 transition-all shadow-sm" placeholder="Paste high-res link..." />
+                                    <label className="bg-[#964C2E]/10 text-[#964C2E] border border-[#964C2E]/20 rounded-2xl px-6 py-5 text-sm font-bold flex items-center justify-center cursor-pointer hover:bg-[#964C2E]/20 transition-all whitespace-nowrap">
+                                        Upload File
+                                        <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
+                                    </label>
+                                </div>
                             </div>
 
                             <div className="grid grid-cols-3 gap-6">

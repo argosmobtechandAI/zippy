@@ -118,7 +118,7 @@ const Centers = () => {
                     <div className="flex justify-between items-start">
                         <div>
                             <h3 className="text-[11px] font-bold text-gray-400 tracking-widest uppercase mb-2">Daily Revenue</h3>
-                            <p className="text-[36px] font-black text-[#1e2330] leading-none tracking-tight">${Number(stats?.totalRevenue || 0).toLocaleString()}</p>
+                            <p className="text-[36px] font-black text-[#1e2330] leading-none tracking-tight">₹{Number(stats?.totalRevenue || 0).toLocaleString()}</p>
                         </div>
                         <div className="w-10 h-10 rounded-full bg-[#F0FDF4] flex items-center justify-center text-[#22C55E]">
                             <Banknote className="w-5 h-5" />
@@ -184,7 +184,7 @@ const Centers = () => {
                                 </div>
                                 <div className="text-center text-[14px] font-bold text-[#1e2330]">{center.horseCount || 0}</div>
                                 <div className="text-center text-[14px] font-bold text-[#1e2330]">{center.trainerCount || 0}</div>
-                                <div className="text-center text-[14px] font-black text-[#1e2330] tracking-wide">${center.totalRevenue || 0}</div>
+                                <div className="text-center text-[14px] font-black text-[#1e2330] tracking-wide">₹{center.totalRevenue || 0}</div>
                                 <div className="flex justify-end gap-3">
                                     <button
                                         onClick={() => {
@@ -248,7 +248,10 @@ const CreateCenterModal = ({ setShowModal, editing, formDataa, onSuccess, stable
         if (editing && formDataa) {
             console.log(formDataa, "formDataa");
 
-            setFormData(formDataa);
+            setFormData({
+                ...formDataa,
+                horses: formDataa.horses || []
+            });
         }
     }, [editing, formDataa]);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -434,10 +437,10 @@ const CreateCenterModal = ({ setShowModal, editing, formDataa, onSuccess, stable
                         <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Horses</label>
 
                         <div className="flex flex-row gap-2">
-                            {formData.horses.map((horse) => (
+                            {(formData.horses || []).map((horse) => (
                                 <div key={horse} className="flex items-center gap-2">
                                     <span className="text-[14px] font-bold">{horses.find((h) => h.id === horse)?.name}</span>
-                                    <button onClick={() => setFormData({ ...formData, horses: formData.horses.filter((h) => h !== horse) })}>
+                                    <button onClick={() => setFormData({ ...formData, horses: (formData.horses || []).filter((h) => h !== horse) })}>
                                         <X className="w-4 h-4" />
                                     </button>
                                 </div>
@@ -446,7 +449,7 @@ const CreateCenterModal = ({ setShowModal, editing, formDataa, onSuccess, stable
                         <select
                             name="horse"
                             value={formData.horse}
-                            onChange={(e) => setFormData({ ...formData, horses: [...formData.horses, formData.horses.includes(e.target.value) ? "" : e.target.value] })}
+                            onChange={(e) => setFormData({ ...formData, horses: [...(formData.horses || []), (formData.horses || []).includes(e.target.value) ? "" : e.target.value] })}
                             className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E] focus:bg-white transition-all"
                         >
                             <option value="">Select Horse</option>
@@ -466,7 +469,7 @@ const CreateCenterModal = ({ setShowModal, editing, formDataa, onSuccess, stable
                         </select>
                     </div>
                     <div>
-                        <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Initial Revenue ($)</label>
+                        <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Initial Revenue (₹)</label>
                         <input
                             type="number"
                             name="totalRevenue"

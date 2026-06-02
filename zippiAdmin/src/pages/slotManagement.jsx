@@ -1,5 +1,5 @@
 import {
-    Clock, Calendar, ChevronRight, Ban, Edit,
+    Clock, Calendar, ChevronRight, Ban, Edit, Copy,
     CheckCircle2, Circle, MoreVertical, Download,
     ChevronDown, Info, ShieldAlert, CheckSquare, List, LayoutGrid, ArrowLeft, Plus, Trash2
 } from 'lucide-react';
@@ -106,6 +106,32 @@ const SlotManagement = () => {
         }
     };
 
+    const handleDuplicateSlot = async (slot) => {
+        try {
+            const finalData = {
+                ...slot,
+                title: `${slot.title} (Copy)`,
+                joining_amount: slot.joining_amount !== undefined ? slot.joining_amount : (slot.joiningAmount !== undefined ? slot.joiningAmount : 0),
+                joiningAmount: slot.joiningAmount !== undefined ? slot.joiningAmount : (slot.joining_amount !== undefined ? slot.joining_amount : 0)
+            };
+            
+            // Delete properties that should not be duplicated
+            delete finalData.id;
+            delete finalData.participants;
+
+            const res = await apiFunction(createSessionApi, [], finalData, "POST", true);
+            if (res?.success) {
+                toast.success("Session duplicated successfully");
+                fetchData();
+            } else {
+                toast.error(res?.message || "Failed to duplicate session");
+            }
+        } catch (error) {
+            console.error("Error duplicating session:", error);
+            toast.error("Network error");
+        }
+    };
+
     if (loading) {
         return <div className="p-10 text-center font-bold text-gray-400">Loading data...</div>;
     }
@@ -160,9 +186,10 @@ const SlotManagement = () => {
                                         <span className={`inline-block text-[10px] font-black text-white px-3 py-1 tracking-wider uppercase rounded-full shadow-sm ${slot.status === 'BLOCKED' ? 'bg-[#EF4444]' : 'bg-[#22C55E]'}`}>
                                             {slot.status || 'ACTIVE'}
                                         </span>
-                                        <div className="flex gap-2">
-                                            <button onClick={() => { setSessionToEdit(slot); setShowSessionModal(true); }} className="text-gray-400 hover:text-[#964C2E]"><Edit className="w-4 h-4" /></button>
-                                            <button onClick={() => handleDeleteSlot(slot.id)} className="text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+                                        <div className="flex gap-2.5">
+                                            <button onClick={() => handleDuplicateSlot(slot)} title="Duplicate Slot" className="text-gray-400 hover:text-blue-500 transition-colors"><Copy className="w-4 h-4" /></button>
+                                            <button onClick={() => { setSessionToEdit(slot); setShowSessionModal(true); }} title="Edit Slot" className="text-gray-400 hover:text-[#964C2E] transition-colors"><Edit className="w-4 h-4" /></button>
+                                            <button onClick={() => handleDeleteSlot(slot.id)} title="Delete Slot" className="text-gray-400 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
                                         </div>
                                     </div>
                                     <h3 className="text-[18px] font-black text-[#1e2330] tracking-tight mb-1">{slot.title}</h3>

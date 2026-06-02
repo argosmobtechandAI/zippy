@@ -1,4 +1,4 @@
-// const baseUrl = "https://zippy-wg71.onrender.com/api"
+// const baseUrl = "https://api.zippyapp.online/api";
 const baseUrl = "http://localhost:3000/api";
 
 export const getAllUsersApi = `${baseUrl}/users/all`;
@@ -12,7 +12,7 @@ export const notifyAllUsersApi = `${baseUrl}/users/notify-all`;
 export const updateUserLeaveApi = `${baseUrl}/users/userLeave`
 export const markNotificationsAsReadApi = (userId) => `${baseUrl}/users/mark-as-read/${userId}`;
 
-export const getAllStablesApi = `${baseUrl}/stable`;
+export const getAllStablesApi = `${baseUrl}/stable/all`;
 export const createStableApi = `${baseUrl}/stable`;
 export const updateStableApi = `${baseUrl}/stable`;
 export const deleteStableApi = `${baseUrl}/stable`;
