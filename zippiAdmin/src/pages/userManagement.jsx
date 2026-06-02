@@ -978,6 +978,20 @@ const UserActionModal = ({ userType, setCreateModal, onSuccess, initialData, sta
                                     <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Special Safety Instructions</label>
                                     <textarea name="instructions" value={formData.instructions} onChange={handleChange} rows={2} className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold transition-all focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E] focus:bg-white" placeholder="Instructions for trainer/center staff" />
                                 </div>
+                                <div className="col-span-2 border-t border-gray-100 pt-4 mt-2">
+                                    <h4 className="text-[12px] font-black text-[#1e2330] uppercase mb-4">Award Trophy</h4>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="col-span-1">
+                                            <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Trophy Title</label>
+                                            <input name="newTrophyTitle" value={formData.newTrophy?.title || ''} onChange={(e) => setFormData(prev => ({ ...prev, newTrophy: { ...prev.newTrophy, title: e.target.value } }))} type="text" className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]" placeholder="e.g. Spring Derby 2023" />
+                                        </div>
+                                        <div className="col-span-1">
+                                            <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Trophy Subtitle</label>
+                                            <input name="newTrophySubtitle" value={formData.newTrophy?.subtitle || ''} onChange={(e) => setFormData(prev => ({ ...prev, newTrophy: { ...prev.newTrophy, subtitle: e.target.value } }))} type="text" className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]" placeholder="e.g. 1st Place Gold" />
+                                        </div>
+                                    </div>
+                                    <p className="text-[10px] font-bold text-gray-400 mt-2 italic px-1">* Entering a title will award a new trophy to this rider upon saving.</p>
+                                </div>
                             </>
                         )}
                     </div>

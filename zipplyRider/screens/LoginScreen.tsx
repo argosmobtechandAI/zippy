@@ -12,10 +12,12 @@ export default function LoginScreen() {
   const navigation = useNavigation();
   const [step, setStep] = useState(1);
   const [mobileNumber, setMobileNumber] = useState('1231231234');
+  const [emailAddress, setEmailAddress] = useState('');
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [gotOtp, setGotOtp] = useState(false);
   const [loginMode, setLoginMode] = useState('password'); // 'password' or 'otp'
+  const [identifierType, setIdentifierType] = useState('mobile'); // 'mobile' or 'email'
   const [password, setPassword] = useState('');
   const otpRef = useRef([])
 
@@ -37,11 +39,19 @@ export default function LoginScreen() {
 
 
   const handlePasswordLogin = async () => {
-    if (!mobileNumber) {
+    if (identifierType === 'mobile' && !mobileNumber) {
       Toast.show({
         type: "error",
         text1: "Error",
         text2: "Please enter your mobile number"
+      });
+      return;
+    }
+    if (identifierType === 'email' && !emailAddress) {
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Please enter your email address"
       });
       return;
     }
@@ -55,10 +65,14 @@ export default function LoginScreen() {
     }
     setLoading(true);
     try {
+      const payload = identifierType === 'mobile' 
+        ? { mobile: mobileNumber, password, type: 'rider' }
+        : { email: emailAddress, password, type: 'rider' };
+      
       const res = await apiFunction(
         loginApi,
         [],
-        { mobile: mobileNumber, password, type: 'rider' },
+        payload,
         "POST",
         false
       );
@@ -177,40 +191,53 @@ export default function LoginScreen() {
                   : 'Enter your mobile number to sign in or create an account.'}
               </Text>
 
-              <Text className="text-[#1a202c] font-semibold text-xs mb-2">Mobile Number</Text>
+              <Text className="text-[#1a202c] font-semibold text-xs mb-2">
+                 {identifierType === 'mobile' ? 'Mobile Number' : 'Email Address'}
+              </Text>
               <View className="flex-row items-center border border-[#e2e8f0] rounded-xl px-4 py-3 mb-6 bg-[#f8fafc]">
                 <View className="mr-2 opacity-50">
-                  <Smartphone color="#94a3b8" size={20} />
+                  {identifierType === 'mobile' ? <Smartphone color="#94a3b8" size={20} /> : <Mail color="#94a3b8" size={20} />}
                 </View>
-                <TextInput
-                  className="flex-1 text-[#1e293b]"
-                  placeholder="+1 (555) 000-0000"
-                  placeholderTextColor="#94a3b8"
-                  keyboardType="phone-pad"
-                  value={mobileNumber}
-                  onChangeText={(Text) => {
-                    if(Text.length > 1){
-
-                      if (Text.length > 10) {
-                        Toast.show({
-                          type: "error",
-                          text1: "Error",
-                          text2: "Mobile number should be 10 digits"
-                        })
-                        return
+                {identifierType === 'mobile' ? (
+                  <TextInput
+                    className="flex-1 text-[#1e293b]"
+                    placeholder="+1 (555) 000-0000"
+                    placeholderTextColor="#94a3b8"
+                    keyboardType="phone-pad"
+                    value={mobileNumber}
+                    onChangeText={(Text) => {
+                      if(Text.length > 1){
+                        if (Text.length > 10) {
+                          Toast.show({
+                            type: "error",
+                            text1: "Error",
+                            text2: "Mobile number should be 10 digits"
+                          })
+                          return
+                        }
+                        if (!/^[0-9]+$/.test(Text)) {
+                          Toast.show({
+                            type: "error",
+                            text1: "Error",
+                            text2: "Mobile number should be only digits"
+                          })
+                          return
+                        }
                       }
-                      if (!/^[0-9]+$/.test(Text)) {
-                        Toast.show({
-                          type: "error",
-                          text1: "Error",
-                          text2: "Mobile number should be only digits"
-                        })
-                        return
-                      }
-                    }
-                    setMobileNumber(Text)
-                  }}
-                />
+                      setMobileNumber(Text)
+                    }}
+                  />
+                ) : (
+                  <TextInput
+                    className="flex-1 text-[#1e293b]"
+                    placeholder="email@example.com"
+                    placeholderTextColor="#94a3b8"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    value={emailAddress}
+                    onChangeText={(Text) => setEmailAddress(Text)}
+                  />
+                )}
               </View>
 
               {loginMode === 'password' && (
@@ -284,17 +311,17 @@ export default function LoginScreen() {
               </View>
 
               <View className="flex-row justify-between mb-8">
-                <TouchableOpacity className="flex-1 flex-row items-center justify-center border border-[#e2e8f0] py-3 rounded-xl mr-2">
+                <TouchableOpacity onPress={() => setIdentifierType('mobile')} className={`flex-1 flex-row items-center justify-center border ${identifierType === 'mobile' ? 'border-[#8C4A28] bg-[#faeadd]' : 'border-[#e2e8f0] bg-white'} py-3 rounded-xl mr-2`}>
                   <View className="mr-2 opacity-60">
-                    <Mail color="#64748b" size={18} />
+                    <Smartphone color={identifierType === 'mobile' ? "#8C4A28" : "#64748b"} size={18} />
                   </View>
-                  <Text className="text-[#1a202c] font-semibold text-sm">Email</Text>
+                  <Text className={`font-semibold text-sm ${identifierType === 'mobile' ? 'text-[#8C4A28]' : 'text-[#1a202c]'}`}>Mobile Login</Text>
                 </TouchableOpacity>
-                <TouchableOpacity className="flex-1 flex-row items-center justify-center border border-[#e2e8f0] py-3 rounded-xl ml-2">
+                <TouchableOpacity onPress={() => setIdentifierType('email')} className={`flex-1 flex-row items-center justify-center border ${identifierType === 'email' ? 'border-[#8C4A28] bg-[#faeadd]' : 'border-[#e2e8f0] bg-white'} py-3 rounded-xl ml-2`}>
                   <View className="mr-2 opacity-60">
-                    <ScanLine color="#64748b" size={18} />
+                    <Mail color={identifierType === 'email' ? "#8C4A28" : "#64748b"} size={18} />
                   </View>
-                  <Text className="text-[#1a202c] font-semibold text-sm">Scan</Text>
+                  <Text className={`font-semibold text-sm ${identifierType === 'email' ? 'text-[#8C4A28]' : 'text-[#1a202c]'}`}>Email Login</Text>
                 </TouchableOpacity>
               </View>
             </View>

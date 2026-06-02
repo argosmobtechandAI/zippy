@@ -241,7 +241,7 @@ export const updateUser = async (req, res) => {
     const { data } = req.body;
 
     // Separate core user data from role-specific data
-    const { title, experience, level, medical, instructions, allergies, riderType, addHorseId, ...coreData } = data;
+    const { title, experience, level, medical, instructions, allergies, riderType, addHorseId, newTrophy, ...coreData } = data;
 
     try {
         // 1. Update Core User Data
@@ -263,6 +263,18 @@ export const updateUser = async (req, res) => {
 
             if (Object.keys(riderUpdateData).length > 0) {
                 await db.update(riderTable).set(riderUpdateData).where(eq(riderTable.userId, id));
+            }
+            
+            if (newTrophy) {
+                const trophyItem = {
+                    id: Date.now().toString(),
+                    title: newTrophy.title,
+                    subtitle: newTrophy.subtitle || 'Admin Award',
+                    icon: newTrophy.icon || 'Trophy',
+                    color: newTrophy.color || '#85431E',
+                    date: new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+                };
+                await db.execute(sql`UPDATE rider SET "trophies" = COALESCE("trophies", '[]'::jsonb) || ${JSON.stringify([trophyItem])}::jsonb WHERE user_id = ${id}`);
             }
         } else if (user.type === "trainer") {
             const trainerUpdateData = {};

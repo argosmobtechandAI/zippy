@@ -6,12 +6,14 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchRider, fetchUser } from '../redux/getDataSlice';
 import { Config } from '../api/config';
 
-const trophies = [
-  { title: 'Spring Derby 2023', subtitle: '1st Place Gold', icon: Trophy, color: '#85431E' },
-  { title: 'Mountain Trail', subtitle: 'Completed Achievement', icon: Medal, color: '#DA7347' },
-  { title: 'Horse Whisperer', subtitle: '10 Successful Tames', icon: Star, color: '#85431E' },
-  { title: 'Winter Gala', subtitle: 'Silver Runner-up', icon: Award, color: '#94a3b8' },
-];
+const getIconComp = (iconName: string) => {
+  switch (iconName) {
+    case 'Medal': return Medal;
+    case 'Star': return Star;
+    case 'Award': return Award;
+    default: return Trophy;
+  }
+};
 
 export default function DashboardProfileScreen() {
   const navigation = useNavigation<any>();
@@ -84,15 +86,15 @@ export default function DashboardProfileScreen() {
         {/* High-Fidelity Stats Row */}
         <View className="flex-row justify-between px-6 mb-10">
           <View className="bg-[#FDF8F2] border border-brand-brown/5 rounded-[24px] p-4 flex-1 items-center mr-2 shadow-sm">
-            <Text className="text-2xl font-display text-brand-brown mb-0.5">{rider?.sessionCount || 42}</Text>
+            <Text className="text-2xl font-display text-brand-brown mb-0.5">{rider?.sessionCount || 0}</Text>
             <Text className="text-brand-brown/40 text-[9px] uppercase font-bold tracking-[2px] text-center">Total Rides</Text>
           </View>
           <View className="bg-[#FDF8F2] border border-brand-brown/5 rounded-[24px] p-4 flex-1 items-center mx-1 shadow-sm">
-            <Text className="text-2xl font-display text-brand-brown mb-0.5">{rider?.trophies?.length || 12}</Text>
+            <Text className="text-2xl font-display text-brand-brown mb-0.5">{rider?.trophies?.length || 0}</Text>
             <Text className="text-brand-brown/40 text-[9px] uppercase font-bold tracking-[2px] text-center">Trophies</Text>
           </View>
           <View className="bg-[#FDF8F2] border border-brand-brown/5 rounded-[24px] p-4 flex-1 items-center ml-2 shadow-sm">
-            <Text className="text-2xl font-display text-brand-brown mb-0.5">{rider?.safetyBriefing?.length || 85}%</Text>
+            <Text className="text-2xl font-display text-brand-brown mb-0.5">{rider?.safetyBriefing?.length || 100}%</Text>
             <Text className="text-brand-brown/40 text-[9px] uppercase font-bold tracking-[2px] text-center">Safety Score</Text>
           </View>
         </View>
@@ -135,19 +137,27 @@ export default function DashboardProfileScreen() {
           </View>
 
           <View className="flex-row flex-wrap justify-between">
-            {trophies.map((trophy, idx) => {
-              const IconComp = trophy.icon;
-              return (
-                <View key={idx} className="bg-white border border-brand-brown/5 rounded-[28px] p-5 w-[48%] mb-4 shadow-md relative overflow-hidden">
-                  <View className="absolute -top-6 -right-6 w-20 h-20 bg-brand-beige/50 rounded-full" />
-                  <View className="mb-4 bg-brand-beige/30 self-start p-3 rounded-2xl">
-                    <IconComp color={trophy.color} size={28} strokeWidth={2.5} />
+            {(!rider?.trophies || rider.trophies.length === 0) ? (
+              <View className="w-full py-6 items-center justify-center bg-white border border-brand-brown/5 rounded-[28px] shadow-sm">
+                <Trophy color="#cbd5e1" size={32} className="mb-3" />
+                <Text className="text-brand-brown/60 font-body text-sm text-center">No trophies earned yet.</Text>
+                <Text className="text-brand-brown/40 font-body text-xs text-center mt-1">Keep riding to unlock achievements!</Text>
+              </View>
+            ) : (
+              rider.trophies.map((trophy: any, idx: number) => {
+                const IconComp = getIconComp(trophy.icon);
+                return (
+                  <View key={idx} className="bg-white border border-brand-brown/5 rounded-[28px] p-5 w-[48%] mb-4 shadow-md relative overflow-hidden">
+                    <View className="absolute -top-6 -right-6 w-20 h-20 bg-brand-beige/50 rounded-full" />
+                    <View className="mb-4 bg-brand-beige/30 self-start p-3 rounded-2xl">
+                      <IconComp color={trophy.color || '#85431E'} size={28} strokeWidth={2.5} />
+                    </View>
+                    <Text className="text-brand-brown font-display-reg font-bold text-[13px] mb-1">{trophy.title}</Text>
+                    <Text className="text-brand-brown/40 font-body text-[10px] uppercase tracking-wider">{trophy.subtitle || trophy.date}</Text>
                   </View>
-                  <Text className="text-brand-brown font-display-reg font-bold text-[13px] mb-1">{trophy.title}</Text>
-                  <Text className="text-brand-brown/40 font-body text-[10px] uppercase tracking-wider">{trophy.subtitle}</Text>
-                </View>
-              )
-            })}
+                )
+              })
+            )}
           </View>
         </View>
 
