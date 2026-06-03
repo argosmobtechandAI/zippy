@@ -11,6 +11,9 @@ export const notifyUserApi = (userId) => `${baseUrl}/users/notify/${userId}`;
 export const notifyAllUsersApi = `${baseUrl}/users/notify-all`;
 export const updateUserLeaveApi = `${baseUrl}/users/userLeave`
 export const markNotificationsAsReadApi = (userId) => `${baseUrl}/users/mark-as-read/${userId}`;
+export const getAdminNotificationsApi = `${baseUrl}/admin-notifications`;
+export const markAllAdminNotificationsAsReadApi = `${baseUrl}/admin-notifications`;
+export const markAdminNotificationAsReadApi = (id) => `${baseUrl}/admin-notifications/${id}`;
 
 export const getAllStablesApi = `${baseUrl}/stable/all`;
 export const createStableApi = `${baseUrl}/stable`;
@@ -19,7 +22,7 @@ export const deleteStableApi = `${baseUrl}/stable`;
 export const getAllSessionsApi = `${baseUrl}/session`;
 export const createSessionApi = `${baseUrl}/session`;
 export const updateSessionApi = `${baseUrl}/session`;
-export const approveSessionApi = `${baseUrl}/session/status`
+export const approveSessionApi = `${baseUrl}/session/updateStatus`
 export const deleteSessionApi = `${baseUrl}/session`;
 
 export const getAllHorsesApi = `${baseUrl}/horse`;
@@ -44,3 +47,6 @@ export const revenueStatsApi = `${baseUrl}/revenue/stats`;
 export const updateTrainerApi = `${baseUrl}/trainer`;
 export const uploadFileApi = `${baseUrl}/stable/uploadFile`;
 export const deleteStableLogoApi = `${baseUrl}/stable/deleteLogo`;
+export const getHelpCenterApi = `${baseUrl}/help-center`;
+export const updateHelpCenterApi = `${baseUrl}/help-center`;
+export const deleteHelpCenterApi = `${baseUrl}/help-center`;

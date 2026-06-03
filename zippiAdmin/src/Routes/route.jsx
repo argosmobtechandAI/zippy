@@ -9,6 +9,10 @@ import SlotManagement from "../pages/slotManagement"
 import Horses from "../pages/horses"
 import Inventory from "../pages/inventory"
 import Login from "../pages/login"
+import HelpCenter from "../Pages/HelpCenter"
+import BookingRequests from "../pages/bookingRequests"
+import LeaveRequests from "../pages/leaveRequests"
+import AttendanceReport from "../pages/attendanceReport"
 
 const ProtectedRoute = ({ children }) => {
     const token = localStorage.getItem('token');
@@ -41,10 +45,14 @@ const AppRoutes = () => {
                 <Route index element={<Dashboard />} />
                 <Route path="revenue" element={<Revenue />} />
                 <Route path="slotManagement" element={<SlotManagement />} />
+                <Route path="bookingRequests" element={<BookingRequests />} />
                 <Route path="centers" element={<Centers />} />
                 <Route path="horses" element={<Horses />} />
                 <Route path="inventory" element={<Inventory />} />
                 <Route path="userManagement" element={<UserManagement />} />
+                <Route path="leaveRequests" element={<LeaveRequests />} />
+                <Route path="attendanceReport" element={<AttendanceReport />} />
+                <Route path="help-center" element={<HelpCenter />} />
             </Route>
 
             {/* Catch all redirect */}

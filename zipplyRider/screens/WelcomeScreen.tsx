@@ -52,12 +52,6 @@ export default function WelcomeScreen() {
             <Text className="text-white font-bold text-lg">{token ? "Go to App" : "Get Started"}</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            className="w-full py-4 rounded-xl items-center border border-[#8C4A28] mt-3"
-            onPress={() => { }}
-          >
-            <Text className="text-[#8C4A28] font-bold text-lg">Take a Virtual Tour</Text>
-          </TouchableOpacity>
         </View>
 
         {/* Footer Features */}

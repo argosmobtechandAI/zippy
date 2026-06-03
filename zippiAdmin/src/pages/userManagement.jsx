@@ -17,7 +17,7 @@ const TrainerCard = ({ user, trainers, stables, onNotify, onEdit, onStatusUpdate
 
     console.log(user, "userr")
     console.log(trainers, "trainerr")
-    const trainer = trainers.find((trainer) => trainer.userId === user.id);
+    const trainer = trainers.find((trainer) => (trainer.userId || trainer.user_id) === user.id);
 
     return (
         <div className="flex flex-col h-full group">
@@ -418,7 +418,7 @@ const UserManagement = () => {
                                     onEdit={() => { setEditingUser(user); setCreateModal(true); }}
                                     onStatusUpdate={(status) => handleStatusUpdate(user.id, status)}
                                     onDelete={() => handleDeleteUser(user.id)}
-                                    onUpdateCenterClick={() => setUpdateCenterModal({ user, trainer: trainers.find(t => t.userId === user.id) })}
+                                    onUpdateCenterClick={() => setUpdateCenterModal({ user, trainer: trainers.find(t => (t.userId || t.user_id) === user.id) })}
                                     navigate={navigate}
                                 />
                             ) : (
@@ -639,13 +639,66 @@ const UserManagement = () => {
                 />
             )}
 
-            {viewUser && <ProfileQuickView user={viewUser} onClose={() => setViewUser(null)} navigate={navigate} onApproveLeave={handleApproveRequest} />}
+            {viewUser && (
+                <ProfileQuickView 
+                    user={viewUser} 
+                    onClose={() => setViewUser(null)} 
+                    navigate={navigate} 
+                    onApproveLeave={handleApproveRequest}
+                    onUpdateSuccess={(updatedUser) => {
+                        fetchUsers();
+                        setViewUser(updatedUser);
+                    }}
+                />
+            )}
         </div>
     );
 };
 
 
-const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave }) => {
+const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave, onUpdateSuccess }) => {
+    const [isEditingWallet, setIsEditingWallet] = useState(false);
+    const [isAddingWallet, setIsAddingWallet] = useState(false);
+    const [walletInput, setWalletInput] = useState('');
+    const [isSavingWallet, setIsSavingWallet] = useState(false);
+
+    const handleWalletUpdate = async (type) => {
+        const amount = parseFloat(walletInput);
+        if (isNaN(amount) || (amount < 0 && type === 'set')) {
+            toast.error("Please enter a valid amount");
+            return;
+        }
+        if (isNaN(amount) || (amount <= 0 && type === 'add')) {
+            toast.error("Please enter a valid amount to add");
+            return;
+        }
+
+        setIsSavingWallet(true);
+        try {
+            const newBalance = type === 'add' ? (user.riderWallet || 0) + amount : amount;
+            
+            const res = await apiFunction(`${updateUserApi}/${user.id}`, [], { 
+                riderWallet: newBalance 
+            }, "PUT", true);
+
+            if (res && res.success) {
+                toast.success(`Wallet balance updated to ₹${newBalance.toLocaleString()}`);
+                setIsEditingWallet(false);
+                setIsAddingWallet(false);
+                setWalletInput('');
+                if (onUpdateSuccess) {
+                    onUpdateSuccess({ ...user, riderWallet: newBalance });
+                }
+            } else {
+                toast.error(res?.message || "Failed to update wallet balance");
+            }
+        } catch (err) {
+            toast.error("Network error. Please try again.");
+        } finally {
+            setIsSavingWallet(false);
+        }
+    };
+
     return (
         <div className="fixed inset-0 bg-black/20 flex justify-end z-[60] animate-in fade-in duration-300">
             <div className="w-[450px] bg-white h-full shadow-2xl p-8 overflow-y-auto animate-in slide-in-from-right duration-300">
@@ -670,14 +723,116 @@ const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave }) => {
                 </div>
 
                 <div className="space-y-6">
-                    {user.type === 'rider' && (
-                        <div className="p-5 bg-[#FAF3EC] rounded-2xl border border-[#964C2E]/20 flex justify-between items-center shadow-sm">
-                            <div>
-                                <h4 className="text-[10px] font-black text-[#964C2E] tracking-widest uppercase mb-1">Rider Wallet Balance</h4>
-                                <p className="text-[24px] font-black text-[#1e2330]">₹{(user.riderWallet || 0).toLocaleString()}</p>
+                    {user.type === 'rider' && !isEditingWallet && !isAddingWallet && (
+                        <div className="p-5 bg-[#FAF3EC] rounded-2xl border border-[#964C2E]/20 flex flex-col gap-4 shadow-sm">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <h4 className="text-[10px] font-black text-[#964C2E] tracking-widest uppercase mb-1">Rider Wallet Balance</h4>
+                                    <p className="text-[24px] font-black text-[#1e2330]">₹{(user.riderWallet || 0).toLocaleString()}</p>
+                                </div>
+                                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-[#964C2E] border border-[#964C2E]/10 shadow-sm">
+                                    <Wallet className="w-6 h-6" />
+                                </div>
                             </div>
-                            <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-[#964C2E] border border-[#964C2E]/10 shadow-sm">
-                                <Wallet className="w-6 h-6" />
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => {
+                                        setWalletInput((user.riderWallet || 0).toString());
+                                        setIsEditingWallet(true);
+                                        setIsAddingWallet(false);
+                                    }}
+                                    className="flex-1 bg-[#964C2E] hover:bg-[#804026] text-white text-[11px] font-black uppercase py-2.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 font-bold"
+                                >
+                                    <Edit className="w-3.5 h-3.5" /> Update Balance
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setWalletInput('');
+                                        setIsAddingWallet(true);
+                                        setIsEditingWallet(false);
+                                    }}
+                                    className="flex-1 bg-white hover:bg-gray-50 text-[#964C2E] border border-[#964C2E]/20 text-[11px] font-black uppercase py-2.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 font-bold"
+                                >
+                                    <Plus className="w-3.5 h-3.5" /> Add Money
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {user.type === 'rider' && isEditingWallet && (
+                        <div className="p-5 bg-[#FAF3EC] rounded-2xl border border-[#964C2E]/20 flex flex-col gap-4 shadow-sm animate-in fade-in duration-200">
+                            <div>
+                                <h4 className="text-[10px] font-black text-[#964C2E] tracking-widest uppercase mb-2">Update Wallet Balance</h4>
+                                <div className="relative">
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-[14px]">₹</span>
+                                    <input
+                                        type="number"
+                                        value={walletInput}
+                                        onChange={(e) => setWalletInput(e.target.value)}
+                                        className="w-full bg-white border border-[#964C2E]/20 rounded-xl pl-8 pr-4 py-3 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]"
+                                        placeholder="Enter new balance"
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setIsEditingWallet(false)}
+                                    className="flex-1 bg-white text-gray-500 border border-gray-200 hover:bg-gray-50 text-[11px] font-black uppercase py-2.5 rounded-xl transition-all font-bold"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={() => handleWalletUpdate('set')}
+                                    disabled={isSavingWallet}
+                                    className="flex-1 bg-[#964C2E] hover:bg-[#804026] text-white text-[11px] font-black uppercase py-2.5 rounded-xl transition-all disabled:opacity-55 font-bold"
+                                >
+                                    {isSavingWallet ? 'Saving...' : 'Save'}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {user.type === 'rider' && isAddingWallet && (
+                        <div className="p-5 bg-[#FAF3EC] rounded-2xl border border-[#964C2E]/20 flex flex-col gap-4 shadow-sm animate-in fade-in duration-200">
+                            <div>
+                                <h4 className="text-[10px] font-black text-[#964C2E] tracking-widest uppercase mb-2">Add Money to Wallet</h4>
+                                <div className="relative mb-3">
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-[14px]">₹</span>
+                                    <input
+                                        type="number"
+                                        value={walletInput}
+                                        onChange={(e) => setWalletInput(e.target.value)}
+                                        className="w-full bg-white border border-[#964C2E]/20 rounded-xl pl-8 pr-4 py-3 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]"
+                                        placeholder="Enter amount to add"
+                                    />
+                                </div>
+                                <div className="flex gap-2">
+                                    {['100', '500', '1000', '2000'].map((amt) => (
+                                        <button
+                                            key={amt}
+                                            type="button"
+                                            onClick={() => setWalletInput(amt)}
+                                            className="flex-1 py-1.5 text-[11px] font-black rounded-lg bg-white border border-gray-200 hover:border-[#964C2E] text-gray-700 hover:text-[#964C2E] transition-all font-bold"
+                                        >
+                                            +{amt}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setIsAddingWallet(false)}
+                                    className="flex-1 bg-white text-gray-500 border border-gray-200 hover:bg-gray-50 text-[11px] font-black uppercase py-2.5 rounded-xl transition-all font-bold"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={() => handleWalletUpdate('add')}
+                                    disabled={isSavingWallet}
+                                    className="flex-1 bg-[#964C2E] hover:bg-[#804026] text-white text-[11px] font-black uppercase py-2.5 rounded-xl transition-all disabled:opacity-55 font-bold"
+                                >
+                                    {isSavingWallet ? 'Adding...' : 'Add'}
+                                </button>
                             </div>
                         </div>
                     )}

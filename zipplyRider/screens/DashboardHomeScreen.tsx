@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo } from 'react';
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Leaf, Bell, AlertTriangle, Calendar, Clock, Activity, Plus, User } from 'lucide-react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -10,6 +10,24 @@ export default function DashboardHomeScreen() {
   const { user, rider, sessions, loading } = useSelector((state: any) => state.getData)
   const navigation = useNavigation()
   const dispatch = useDispatch<any>()
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        dispatch(fetchUser()),
+        dispatch(fetchRider())
+      ]);
+      if (user?.riderId) {
+        await dispatch(fetchRiderSessions(user.riderId));
+      }
+    } catch (e) {
+      console.error("Refresh dashboard error:", e);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [dispatch, user?.riderId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -28,6 +46,20 @@ export default function DashboardHomeScreen() {
   }, [dispatch, user?.riderId]);
 
   console.log(user, rider, sessions, "dashboard data")
+
+  const sessionCount = rider?.session_count ?? rider?.sessionCount ?? 0;
+  const planEndDateRaw = rider?.plan_end_date || rider?.planEndDate;
+  const planEndDate = planEndDateRaw ? planEndDateRaw.split("T")[0] : "NA";
+
+  const activePlanObj = rider?.plan || user?.plan;
+  let activePlanName = 'No Active Plan';
+  if (Array.isArray(activePlanObj) && activePlanObj.length > 0) {
+      activePlanName = activePlanObj[activePlanObj.length - 1].name;
+  } else if (activePlanObj && typeof activePlanObj === 'object') {
+      activePlanName = activePlanObj.name;
+  } else if (typeof activePlanObj === 'string') {
+      activePlanName = activePlanObj;
+  }
 
   const isSessionPassed = (date: string, timing: string) => {
     if (!date || !timing) return false;
@@ -55,49 +87,65 @@ export default function DashboardHomeScreen() {
   };
 
   const confirmedRides = useMemo(() => {
-    if (!sessions || sessions.length === 0 || !rider?.joinedSessions) return [];
+    const joinedArray = rider?.joined_sessions || rider?.joinedSessions || [];
+    if (!sessions || sessions.length === 0 || joinedArray.length === 0) return [];
     return sessions
       .filter((s: any) => {
-        const isJoined = rider.joinedSessions.includes(s.id);
+        const isJoined = joinedArray.includes(s.id);
         if (!isJoined) return false;
-
         const me = s.participants?.find((p: any) =>
-          p.riderId && rider.id && String(p.riderId).toLowerCase() === String(rider.id).toLowerCase()
+          p.riderId && rider?.id && String(p.riderId).toLowerCase() === String(rider.id).toLowerCase()
         );
         const bookedDate = me?.date || s.date;
         return !isSessionPassed(bookedDate, s.timing);
       })
       .sort((a: any, b: any) => {
-        const dateA = a.participants?.find((p: any) => p.riderId && rider.id && String(p.riderId).toLowerCase() === String(rider.id).toLowerCase())?.date || a.date;
-        const dateB = b.participants?.find((p: any) => p.riderId && rider.id && String(p.riderId).toLowerCase() === String(rider.id).toLowerCase())?.date || b.date;
+        const dateA = a.participants?.find((p: any) => p.riderId && rider?.id && String(p.riderId).toLowerCase() === String(rider.id).toLowerCase())?.date || a.date;
+        const dateB = b.participants?.find((p: any) => p.riderId && rider?.id && String(p.riderId).toLowerCase() === String(rider.id).toLowerCase())?.date || b.date;
         return new Date(dateA).getTime() - new Date(dateB).getTime();
       });
-  }, [sessions, rider?.joinedSessions, rider?.id]);
+  }, [sessions, rider?.joined_sessions, rider?.joinedSessions, rider?.id]);
 
   const pendingRides = useMemo(() => {
-    if (!sessions || sessions.length === 0 || !rider?.pendingSessions) return [];
+    const pendingArray = rider?.pending_sessions || rider?.pendingSessions || [];
+    if (!sessions || sessions.length === 0 || pendingArray.length === 0) return [];
     return sessions
       .filter((s: any) => {
-        const isPending = rider.pendingSessions.includes(s.id);
+        const isPending = pendingArray.includes(s.id);
         if (!isPending) return false;
-
         const me = s.participants?.find((p: any) =>
-          p.riderId && rider.id && String(p.riderId).toLowerCase() === String(rider.id).toLowerCase()
+          p.riderId && rider?.id && String(p.riderId).toLowerCase() === String(rider.id).toLowerCase()
         );
         const bookedDate = me?.date || s.date;
         return !isSessionPassed(bookedDate, s.timing);
       })
       .sort((a: any, b: any) => {
-        const dateA = a.participants?.find((p: any) => p.riderId && rider.id && String(p.riderId).toLowerCase() === String(rider.id).toLowerCase())?.date || a.date;
-        const dateB = b.participants?.find((p: any) => p.riderId && rider.id && String(p.riderId).toLowerCase() === String(rider.id).toLowerCase())?.date || b.date;
+        const dateA = a.participants?.find((p: any) => p.riderId && rider?.id && String(p.riderId).toLowerCase() === String(rider.id).toLowerCase())?.date || a.date;
+        const dateB = b.participants?.find((p: any) => p.riderId && rider?.id && String(p.riderId).toLowerCase() === String(rider.id).toLowerCase())?.date || b.date;
         return new Date(dateA).getTime() - new Date(dateB).getTime();
       });
-  }, [sessions, rider?.pendingSessions, rider?.id]);
+  }, [sessions, rider?.pending_sessions, rider?.pendingSessions, rider?.id]);
 
+  const unreadCount = useMemo(() => {
+    const notifs = user?.notifications || [];
+    return notifs.filter((n: any) => n.unread).length;
+  }, [user?.notifications]);
 
   return (
     <SafeAreaView className="flex-1 bg-[#F5EDDF]">
-      <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        contentContainerStyle={{ padding: 24, paddingBottom: 40 }} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#8C4A28"]}
+            tintColor="#8C4A28"
+          />
+        }
+      >
+
 
         {/* Header */}
         <View className="flex-row justify-between items-start mb-8">
@@ -106,7 +154,13 @@ export default function DashboardHomeScreen() {
           </View>
           <TouchableOpacity onPress={() => navigation.navigate("Notification")} className="p-2 relative pt-2">
             <Bell color="#8C4A28" size={28} />
-            <View className="absolute top-2 right-2 w-3 h-3 bg-red-500 rounded-full border-2 border-[#F5EDDF]" />
+            {unreadCount > 0 && (
+              <View className="absolute top-1 right-1 bg-red-500 min-w-[18px] h-[18px] rounded-full items-center justify-center px-1 border border-[#F5EDDF]">
+                <Text className="text-white text-[9px] font-bold text-center leading-none">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
 
@@ -116,12 +170,12 @@ export default function DashboardHomeScreen() {
         </View>
 
         {/* Alert Banner */}
-        {rider?.sessionCount <= 2 && <TouchableOpacity onPress={() => navigation.navigate("Enrollment")} className="bg-[#fceddf] border border-[#eabba4] rounded-2xl p-4 flex-row items-center mb-6">
+        {sessionCount <= 2 && <TouchableOpacity onPress={() => navigation.navigate("Enrollment")} className="bg-[#fceddf] border border-[#eabba4] rounded-2xl p-4 flex-row items-center mb-6">
           <View className="w-10 h-10 bg-[#eabba4] rounded-full items-center justify-center mr-4 opacity-80">
             <AlertTriangle color="#8C4A28" size={20} />
           </View>
           <View className="flex-1">
-            <Text className="text-[#8C4A28] font-bold text-sm mb-1">Low balance! {rider?.sessionCount} sessions left</Text>
+            <Text className="text-[#8C4A28] font-bold text-sm mb-1">Low balance! {sessionCount} sessions left</Text>
             <Text className="text-[#8C4A28] opacity-80 text-xs">Consider topping up your plan soon.</Text>
           </View>
         </TouchableOpacity>}
@@ -132,14 +186,14 @@ export default function DashboardHomeScreen() {
             <Text className="text-[#fceddf] opacity-80 text-[10px] font-bold tracking-wider mb-1">
               REMAINING SESSIONS
             </Text>
-            <Text className="text-white text-4xl font-bold">{rider?.sessionCount || 0}</Text>
+            <Text className="text-white text-4xl font-bold">{sessionCount}</Text>
           </View>
           <View className="items-end">
             <Text className="text-[#fceddf] opacity-80 text-[10px] font-bold tracking-wider mb-1">
-              PLAN EXPIRY: {rider?.planEndDate?.split("T")[0] || "NA"}
+              PLAN EXPIRY: {planEndDate}
             </Text>
             <Text className="text-white text-lg font-bold">
-              {rider?.plan && rider?.plan.length > 0 ? "Active Plan" : "No Active Plan"}
+              {activePlanName}
             </Text>
           </View>
         </TouchableOpacity>
@@ -148,21 +202,21 @@ export default function DashboardHomeScreen() {
         <View className="flex-row justify-between items-end mb-4">
           <Text className="text-[#8C4A28] text-xl font-bold">Confirmed Rides</Text>
           <TouchableOpacity onPress={() => navigation.navigate('Booking')}>
-            <Text className="text-[#8C4A28] underline font-bold text-sm">See all</Text>
+            <Text className="text-[#8C4A28] underline font-bold text-sm">View all</Text>
           </TouchableOpacity>
         </View>
 
         {confirmedRides.length > 0 ? (
-          (() => {
-            const ride = confirmedRides[0];
+          confirmedRides.slice(0, 2).map((ride: any, idx: number) => {
             const me = ride.participants?.find((p: any) =>
               p.riderId && rider?.id && String(p.riderId).toLowerCase() === String(rider.id).toLowerCase()
             );
             const bookedDate = me?.date || ride.date;
             return (
               <TouchableOpacity
+                key={ride.id + idx}
                 onPress={() => navigation.navigate("SessionDetail", { session: ride, date: bookedDate })}
-                className="bg-white rounded-3xl p-5 mb-6 shadow-sm active:opacity-95"
+                className="bg-white rounded-3xl p-5 mb-4 shadow-sm active:opacity-95"
               >
                 <View className="flex-row justify-between items-center mb-4">
                   <View className="flex-row items-center">
@@ -177,9 +231,7 @@ export default function DashboardHomeScreen() {
                   <Clock color="#64748b" size={16} />
                   <Text className="text-[#1a202c] font-bold text-sm ml-2">{ride.timing}</Text>
                 </View>
-
                 <View className="h-[1px] bg-[#f1f5f9] mb-4" />
-
                 <View className="flex-row justify-between items-center">
                   <View className="flex-row items-center flex-1">
                     <View className="w-10 h-10 bg-[#FAEDDD] rounded-full mr-3 items-center justify-center">
@@ -197,7 +249,7 @@ export default function DashboardHomeScreen() {
                 </View>
               </TouchableOpacity>
             );
-          })()
+          })
         ) : (
           <View className="bg-white/50 rounded-3xl p-6 mb-6 border border-[#e2d5c3] border-dashed items-center justify-center">
             <Calendar color="#94a3b8" size={24} />
@@ -211,19 +263,22 @@ export default function DashboardHomeScreen() {
         {/* Pending Approval */}
         <View className="flex-row justify-between items-end mb-4">
           <Text className="text-[#8C4A28] text-xl font-bold">Pending Approval</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('Booking')}>
+            <Text className="text-[#8C4A28] underline font-bold text-sm">View all</Text>
+          </TouchableOpacity>
         </View>
 
         {pendingRides.length > 0 ? (
-          (() => {
-            const ride = pendingRides[0];
+          pendingRides.slice(0, 2).map((ride: any, idx: number) => {
             const me = ride.participants?.find((p: any) =>
               p.riderId && rider?.id && String(p.riderId).toLowerCase() === String(rider.id).toLowerCase()
             );
             const bookedDate = me?.date || ride.date;
             return (
               <TouchableOpacity
+                key={ride.id + idx}
                 onPress={() => navigation.navigate("SessionDetail", { session: ride, date: bookedDate })}
-                className="bg-white rounded-3xl p-5 mb-8 shadow-sm active:opacity-95"
+                className="bg-white rounded-3xl p-5 mb-4 shadow-sm active:opacity-95"
               >
                 <View className="flex-row justify-between items-center mb-4">
                   <View className="flex-row items-center">
@@ -238,9 +293,7 @@ export default function DashboardHomeScreen() {
                   <Clock color="#64748b" size={16} />
                   <Text className="text-[#1a202c] font-bold text-sm ml-2">{ride.timing}</Text>
                 </View>
-
                 <View className="h-[1px] bg-[#f1f5f9] mb-4" />
-
                 <View className="flex-row justify-between items-center">
                   <View className="flex-row items-center flex-1">
                     <View className="w-10 h-10 bg-[#FAEDDD] rounded-full mr-3 items-center justify-center">
@@ -258,7 +311,7 @@ export default function DashboardHomeScreen() {
                 </View>
               </TouchableOpacity>
             );
-          })()
+          })
         ) : (
           <View className="bg-white/50 rounded-3xl p-6 mb-8 border border-[#e2d5c3] border-dashed items-center justify-center">
             <Calendar color="#94a3b8" size={24} />

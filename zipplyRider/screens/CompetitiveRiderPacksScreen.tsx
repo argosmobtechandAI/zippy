@@ -1,19 +1,44 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, ImageBackground, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft, Bell, CheckCircle2, Gavel, Calendar, CalendarClock, Ban, Clock } from 'lucide-react-native';
+import { ChevronLeft, Bell, CheckCircle2, Gavel, Calendar, CalendarClock, Ban, Clock, Wallet } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useSelector, useDispatch } from 'react-redux';
+import { fetchRider } from '../redux/getDataSlice';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiFunction } from '../api/apifunction';
-import { getAllPlansApi, enrollPackApi, createOrderApi, verifyRazorPayOrderApi } from '../api/api';
+import { getAllPlansApi, enrollPackApi } from '../api/api';
 import Toast from 'react-native-toast-message';
-import RazorpayCheckout from 'react-native-razorpay';
 
 export default function CompetitiveRiderPacksScreen() {
     const navigation = useNavigation();
     const [loading, setLoading] = useState(true);
     const [plans, setPlans] = useState([]);
     const [enrolling, setEnrolling] = useState(null);
+    const dispatch = useDispatch();
+    const { user, rider } = useSelector((state: any) => state.getData);
+    const walletBalance = (rider?.wallet || user?.riderWallet || 0).toLocaleString();
+    const activePlanObj = rider?.plan || user?.plan;
+    let activePlanName = '';
+    if (Array.isArray(activePlanObj) && activePlanObj.length > 0) {
+        activePlanName = activePlanObj[activePlanObj.length - 1].name;
+    } else if (activePlanObj && typeof activePlanObj === 'object') {
+        activePlanName = activePlanObj.name;
+    } else if (typeof activePlanObj === 'string') {
+        activePlanName = activePlanObj;
+    }
+
+    const isPackActive = (packName) => {
+        if (!activePlanObj) return false;
+        if (Array.isArray(activePlanObj)) {
+            return activePlanObj.some(p => p.name === packName);
+        } else if (typeof activePlanObj === 'object') {
+            return activePlanObj.name === packName;
+        } else if (typeof activePlanObj === 'string') {
+            return activePlanObj === packName;
+        }
+        return false;
+    };
 
     useEffect(() => {
         fetchPlans();
@@ -36,81 +61,36 @@ export default function CompetitiveRiderPacksScreen() {
     const handleEnrollment = async (packId) => {
         setEnrolling(packId);
         try {
-            const res = await apiFunction(createOrderApi, [], { planId: packId }, "POST", true);
-            console.log("Res", res);
+            const res = await apiFunction(enrollPackApi, [], { planId: packId }, "POST", true);
             if (res && res.success) {
-                console.log(res);
-                const options = {
-                    description: 'Payment for competitive rider pack',
-                    image: 'https://your-cdn.com/logo.png',
-                    currency: 'INR',
-                    key: res?.order?.razorpayKeyId,
-                    amount: res?.order?.amount * 100,
-                    name: 'Zippy Equestrian',
-                    prefill: {
-                        email: res?.order?.userEmail,
-                        contact: res?.order?.userPhone,
-                        name: res?.order?.userName
-                    },
-                    theme: { color: '#8C4A28' }
+                // Update local storage and redux
+                const userData = await AsyncStorage.getItem('user');
+                if (userData) {
+                    const user = JSON.parse(userData);
+                    user.sessionCount = res.rider?.session_count;
+                    user.plan = res.rider?.plan;
+                    await AsyncStorage.setItem('user', JSON.stringify(user));
                 }
-
-                const data = await RazorpayCheckout.open(options);
-                console.log(data); // paymentId, signature etc
-                if (data) {
-                    const verifyRes = await apiFunction(verifyRazorPayOrderApi, [], { orderId: res.order.id, planId: packId, paymentId: data.razorpay_payment_id }, "POST", true);
-                    console.log("Verify Res", verifyRes);
-                    if (verifyRes && verifyRes.success) {
-                        Toast.show({
-                            type: 'success',
-                            text1: verifyRes.message || "Payment verified successfully",
-                        })
-
-
-                        const res = await apiFunction(enrollPackApi, [], { planId: packId, paymentEndDate: verifyRes?.subscription?.endDate }, "POST", true);
-                        if (res && res.success) {
-                            Toast.show({
-                                type: 'success',
-                                text1: res.message || "Enrollment successful",
-                            })
-                            navigation.navigate('Home');
-                        } else {
-                            Toast.show({
-                                type: 'error',
-                                text1: res.message || "Enrollment failed",
-                            })
-                        }
-                    }
-                }
-
+                
+                dispatch(fetchRider());
+                
+                Toast.show({
+                    type: 'success',
+                    text1: res.message || "Enrollment successful",
+                });
+                navigation.navigate('Home');
+            } else {
+                Toast.show({
+                    type: 'error',
+                    text1: res.message || "Enrollment failed",
+                });
             }
-            // const res = await apiFunction(enrollPackApi, [], { planId: packId }, "POST", true);
-            // if (res && res.success) {
-            //     // Update local storage with new session count/plan info
-            //     const userData = await AsyncStorage.getItem('user');
-            //     if (userData) {
-            //         const user = JSON.parse(userData);
-            //         user.sessionCount = res.rider?.sessionCount;
-            //         user.plan = res.rider?.plan;
-            //         await AsyncStorage.setItem('user', JSON.stringify(user));
-            //     }
-            //     Toast.show({
-            //         type: 'success',
-            //         text1: res.message || "Enrollment successful",
-            //     })
-            //     navigation.navigate('Home');
-            // } else {
-            //     Toast.show({
-            //         type: 'error',
-            //         text1: res.message || "Enrollment failed",
-            //     })
-            // }
         } catch (error) {
             console.error("Enrollment error:", error);
             Toast.show({
                 type: 'error',
                 text1: "An error occurred during enrollment.",
-            })
+            });
         } finally {
             setEnrolling(null);
         }
@@ -142,18 +122,33 @@ export default function CompetitiveRiderPacksScreen() {
             ) : (
                 <ScrollView className="flex-1 px-5" showsVerticalScrollIndicator={false}>
                     {/* Hero Banner */}
-                    <View className="relative w-full h-[140px] rounded-2xl overflow-hidden mt-3 shadow-sm">
-                        <ImageBackground
-                            source={{ uri: 'https://images.unsplash.com/photo-1598532213005-592bb21532f6?w=600&auto=format&fit=crop' }}
-                            className="w-full h-full justify-end"
-                            resizeMode="cover"
-                        >
-                            <View className="absolute inset-0 bg-black/40" />
-                            <View className="p-4 z-10 pb-5">
-                                <Text className="text-white text-2xl font-black mb-1 tracking-wide">Zippy Equestrian</Text>
-                                <Text className="text-white/90 text-xs font-semibold">Master the art of competitive riding</Text>
+                    <View className="w-full h-[150px] rounded-[24px] overflow-hidden mt-3 shadow-md bg-[#8C4A28]">
+                        {/* Decorative background elements */}
+                        <View className="absolute -top-12 -right-12 w-48 h-48 bg-white/10 rounded-full" />
+                        <View className="absolute -bottom-8 -left-8 w-32 h-32 bg-black/10 rounded-full" />
+                        
+                        <View className="p-5 z-10 w-full h-full flex-col justify-between">
+                            {/* Top Info */}
+                            <View className="flex-row justify-between items-start">
+                                {activePlanName ? (
+                                    <View className="bg-[#4ade80] px-3 py-1.5 rounded-full shadow-sm">
+                                        <Text className="text-[#064e3b] text-[10px] font-black uppercase tracking-widest">{activePlanName} Active</Text>
+                                    </View>
+                                ) : (
+                                    <View />
+                                )}
+                                <View className="bg-white/20 px-4 py-1.5 rounded-full flex-row items-center border border-white/20">
+                                    <Wallet color="#fff" size={14} />
+                                    <Text className="text-white text-xs font-black ml-2 tracking-wide">₹{walletBalance}</Text>
+                                </View>
                             </View>
-                        </ImageBackground>
+                            
+                            {/* Bottom Text */}
+                            <View>
+                                <Text className="text-white text-[26px] font-black mb-1 tracking-wider">Zippy Equestrian</Text>
+                                <Text className="text-white/80 text-[12px] font-bold tracking-wide">Master the art of competitive riding</Text>
+                            </View>
+                        </View>
                     </View>
 
                     {/* Section Title */}
@@ -168,11 +163,12 @@ export default function CompetitiveRiderPacksScreen() {
                             <View className="py-10 items-center">
                                 <Text className="text-[#64748b] font-bold">No active packs available.</Text>
                             </View>
-                        ) : plans.map((pack) => (
+                        ) : plans.map((pack) => {
+                            const isActive = isPackActive(pack.name);
+                            return (
                             <View
                                 key={pack.id}
-                                className={`bg-white rounded-[20px] p-5 mb-4 shadow-sm border border-[#e2d5c3] ${pack.level === 'Intermediate' ? 'border border-[#8C4A28] pb-6 pt-6' : ''
-                                    }`}
+                                className={`bg-white rounded-[20px] p-5 mb-4 shadow-sm border ${isActive ? 'border-[#4ade80] border-2 bg-[#f0fdf4]' : pack.level === 'Intermediate' ? 'border-[#8C4A28] pb-6 pt-6' : 'border-[#e2d5c3]'}`}
                             >
                                 <View className="flex-row justify-between items-center mb-4">
                                     <Text className="text-[#1a202c] text-[16px] font-black">{pack.name}</Text>
@@ -182,21 +178,27 @@ export default function CompetitiveRiderPacksScreen() {
                                 </View>
 
                                 <View className="flex-row items-baseline mb-5">
-                                    <Text className="text-[#1a202c] text-[38px] font-black leading-10">{pack.sessionsCount}</Text>
+                                    <Text className="text-[#1a202c] text-[38px] font-black leading-10">{pack.sessionsCount || pack.sessions_count || 0}</Text>
                                     <Text className="text-[#64748b] text-[12px] font-bold ml-1">sessions / {pack.validity}</Text>
                                 </View>
 
-                                <TouchableOpacity
-                                    className={`w-full py-4 rounded-xl items-center justify-center mb-6 shadow-sm ${enrolling === pack.id ? 'bg-[#8C4A28]/70' : 'bg-[#8C4A28]'}`}
-                                    onPress={() => handleEnrollment(pack.id)}
-                                    disabled={enrolling !== null}
-                                >
-                                    {enrolling === pack.id ? (
-                                        <ActivityIndicator size="small" color="white" />
-                                    ) : (
-                                        <Text className={`font-black text-[13px] text-white`}>Enroll for ₹{pack.amount}</Text>
-                                    )}
-                                </TouchableOpacity>
+                                {isActive ? (
+                                    <View className="w-full py-4 rounded-xl items-center justify-center mb-6 bg-[#4ade80]/20 border border-[#4ade80]">
+                                        <Text className="font-black text-[13px] text-[#064e3b] uppercase tracking-widest">Currently Active</Text>
+                                    </View>
+                                ) : (
+                                    <TouchableOpacity
+                                        className={`w-full py-4 rounded-xl items-center justify-center mb-6 shadow-sm ${enrolling === pack.id ? 'bg-[#8C4A28]/70' : 'bg-[#8C4A28]'}`}
+                                        onPress={() => handleEnrollment(pack.id)}
+                                        disabled={enrolling !== null}
+                                    >
+                                        {enrolling === pack.id ? (
+                                            <ActivityIndicator size="small" color="white" />
+                                        ) : (
+                                            <Text className={`font-black text-[13px] text-white`}>Enroll for ₹{pack.amount}</Text>
+                                        )}
+                                    </TouchableOpacity>
+                                )}
 
                                 <View>
                                     {(pack.rules || ['Professional training', 'Stable access', 'Competition prep']).map((feature: string, idx: number) => (
@@ -207,7 +209,7 @@ export default function CompetitiveRiderPacksScreen() {
                                     ))}
                                 </View>
                             </View>
-                        ))}
+                        )})}
                     </View>
 
                     {/* Rules & Terms */}

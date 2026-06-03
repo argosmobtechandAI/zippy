@@ -1,5 +1,5 @@
 import { View, Text, TouchableOpacity, ScrollView, Image, SafeAreaView } from "react-native";
-import { CheckCircle2, XCircle, ArrowLeft, User } from "lucide-react-native";
+import { CheckCircle2, XCircle, ArrowLeft, User, Clock, MapPin } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useEffect, useState } from "react";
 import { apiFunction } from "../api/apiFunction";
@@ -17,14 +17,19 @@ const PendingRequest = ({ route }) => {
             let participants = []
             sessions.forEach(session => {
                 session.participants?.forEach(participant => {
-                    // Include all participants with a status
                     if (participant?.status) {
-                        participants.push({ ...participant, sessionId: session.id })
+                        participants.push({ 
+                            ...participant, 
+                            sessionId: session.id,
+                            sessionTitle: session.title,
+                            sessionTiming: session.timing,
+                            sessionDate: session.date,
+                            sessionLocation: session.location
+                        })
                     }
                 })
             })
             
-            // Sort so pending requests are always at the top
             participants.sort((a, b) => {
                 if (a.status?.toLowerCase() === 'pending' && b.status?.toLowerCase() !== 'pending') return -1;
                 if (a.status?.toLowerCase() !== 'pending' && b.status?.toLowerCase() === 'pending') return 1;
@@ -40,7 +45,6 @@ const PendingRequest = ({ route }) => {
             const res = await apiFunction(updateStatusApi, [userId, sessionId], { status }, "PUT", true)
             console.log(res, "res")
             
-            // Update the local state to instantly reflect the new status
             setAllRequests(prev => prev.map(req => {
                 if (req.riderId === userId && req.sessionId === sessionId) {
                     return { ...req, status: status };
@@ -52,26 +56,19 @@ const PendingRequest = ({ route }) => {
         }
     }
 
-    // Filter pending requests to show actionable count correctly based on local state updates
     const pendingCount = allRequests.filter(req => req.status?.toLowerCase() === "pending").length;
 
     return (
-        <SafeAreaView className="flex-1 bg-[#F8FAFC]">
+        <SafeAreaView className="flex-1 bg-[#F5EDDF]">
             {/* Header */}
-            <View className="flex-row justify-between items-center px-6 pt-6 pb-2">
-                <TouchableOpacity
-                    onPress={() => navigation.goBack()}
-                    className="w-11 h-11 bg-white rounded-full items-center justify-center shadow-sm border border-gray-100"
-                >
-                    <ArrowLeft color="#1a202c" size={20} strokeWidth={2.5} />
+            <View className="flex-row items-center justify-start px-4 py-4 mb-2">
+                <TouchableOpacity onPress={() => navigation.goBack()} className="p-2 mr-2">
+                    <ArrowLeft color="#8C4A28" size={24} />
                 </TouchableOpacity>
-                <View className="items-center flex-1">
-                    <Text className="text-lg font-bold text-[#1a202c]">Booking Requests</Text>
-                </View>
-                <View className="w-11 h-11"></View>
+                <Text className="text-lg font-bold text-[#1a202c]">Booking Requests</Text>
             </View>
 
-            <ScrollView className="flex-1 px-6 pt-4" showsVerticalScrollIndicator={false}>
+            <ScrollView className="flex-1 px-4 pt-2" showsVerticalScrollIndicator={false}>
                 <View className="mb-6 flex-row justify-between items-end">
                     <View>
                         <Text className="text-3xl font-extrabold text-[#1a202c] mb-1">Requests</Text>
@@ -85,9 +82,9 @@ const PendingRequest = ({ route }) => {
                 </View>
 
                 {allRequests?.map((request, index) => (
-                    <View key={`${request?.riderId}-${request?.sessionId}-${index}`} className="bg-white rounded-3xl p-5 shadow-sm shadow-gray-200 border border-gray-100 mb-5">
-                        <View className="flex-row items-center mb-5">
-                            <View className="w-16 h-16 rounded-2xl bg-gray-50 shadow-sm overflow-hidden mr-4 border border-gray-100">
+                    <View key={`${request?.riderId}-${request?.sessionId}-${index}`} className="bg-white rounded-3xl p-5 shadow-sm border border-[#e2e8f0] mb-5">
+                        <View className="flex-row items-center mb-4">
+                            <View className="w-16 h-16 rounded-2xl bg-gray-50 shadow-sm overflow-hidden mr-4 border border-[#e2e8f0]">
                                 {request?.image ? (
                                     <Image source={{ uri: request?.image }} className="w-full h-full" resizeMode="cover" />
                                 ) : (
@@ -106,38 +103,57 @@ const PendingRequest = ({ route }) => {
                             </View>
                         </View>
 
+                        {/* Session details */}
+                        <View className="bg-[#F5EDDF]/40 rounded-2xl p-4 border border-[#e2e8f0] mb-4">
+                            <Text className="text-[10px] font-black text-[#8C4A28] uppercase tracking-widest mb-1.5">SESSION BOOKING FOR</Text>
+                            <Text className="text-[#1a202c] font-bold text-base mb-2">{request?.sessionTitle || "Training Slot"}</Text>
+                            
+                            <View className="flex-row items-center mb-1.5">
+                                <Clock color="#64748b" size={13} className="mr-1.5" />
+                                <Text className="text-[#64748b] text-xs font-semibold">
+                                    {request?.sessionTiming} • {request?.sessionDate}
+                                </Text>
+                            </View>
+                            <View className="flex-row items-center">
+                                <MapPin color="#64748b" size={13} className="mr-1.5" />
+                                <Text className="text-[#64748b] text-xs font-semibold">
+                                    {request?.sessionLocation}
+                                </Text>
+                            </View>
+                        </View>
+
                         {/* Actions */}
-                        {request?.status?.toLowerCase() == "pending" && (
-                            <View className="flex-row justify-between pt-4 border-t border-gray-100">
+                        {request?.status?.toLowerCase() === "pending" && (
+                            <View className="flex-row justify-between pt-2">
                                 <TouchableOpacity
                                     onPress={() => handleStatus("rejected", request?.riderId, request?.sessionId)}
-                                    className="flex-1 bg-white border-2 border-red-50 py-3.5 rounded-2xl flex-row justify-center items-center mr-2 shadow-sm shadow-red-100"
+                                    className="flex-1 bg-white border border-red-500 py-3.5 rounded-2xl flex-row justify-center items-center mr-2 shadow-sm"
                                 >
-                                    <XCircle color="#ef4444" size={20} className="mr-2" />
-                                    <Text className="text-red-500 font-bold text-base">Reject</Text>
+                                    <XCircle color="#ef4444" size={18} className="mr-1.5" />
+                                    <Text className="text-[#ef4444] font-bold text-sm">Reject</Text>
                                 </TouchableOpacity>
 
                                 <TouchableOpacity
-                                    onPress={() => handleStatus("approved", request?.riderId, request?.sessionId)}
-                                    className="flex-1 bg-[#8C4A28] shadow-md shadow-gray-300 py-3.5 rounded-2xl flex-row justify-center items-center ml-2 border border-[#8C4A28]"
+                                    onPress={() => handleStatus("confirmed", request?.riderId, request?.sessionId)}
+                                    className="flex-1 bg-[#8C4A28] py-3.5 rounded-2xl flex-row justify-center items-center ml-2 border border-[#8C4A28]"
                                 >
-                                    <CheckCircle2 color="white" size={20} className="mr-2" />
-                                    <Text className="text-white font-bold text-base">Approve</Text>
+                                    <CheckCircle2 color="white" size={18} className="mr-1.5" />
+                                    <Text className="text-white font-bold text-sm">Approve</Text>
                                 </TouchableOpacity>
                             </View>
                         )}
 
-                        {request?.status?.toLowerCase() == "approved" && (
-                            <View className="flex-row justify-center items-center pt-4 border-t border-gray-100 bg-green-50 rounded-b-3xl -mx-5 -mb-5 pb-5 mt-2">
-                                <CheckCircle2 color="#10b981" size={20} className="mr-2" />
-                                <Text className="text-[#10b981] font-bold text-base">Request Approved</Text>
+                        {(request?.status?.toLowerCase() === "approved" || request?.status?.toLowerCase() === "confirmed") && (
+                            <View className="flex-row justify-center items-center py-3.5 bg-green-50 rounded-2xl border border-green-200">
+                                <CheckCircle2 color="#16a34a" size={18} className="mr-1.5" />
+                                <Text className="text-[#16a34a] font-bold text-sm">Request Approved</Text>
                             </View>
                         )}
 
-                        {request?.status?.toLowerCase() == "rejected" && (
-                            <View className="flex-row justify-center items-center pt-4 border-t border-gray-100 bg-red-50 rounded-b-3xl -mx-5 -mb-5 pb-5 mt-2">
-                                <XCircle color="#ef4444" size={20} className="mr-2" />
-                                <Text className="text-[#ef4444] font-bold text-base">Request Rejected</Text>
+                        {request?.status?.toLowerCase() === "rejected" && (
+                            <View className="flex-row justify-center items-center py-3.5 bg-red-50 rounded-2xl border border-red-200">
+                                <XCircle color="#dc2626" size={18} className="mr-1.5" />
+                                <Text className="text-[#dc2626] font-bold text-sm">Request Rejected</Text>
                             </View>
                         )}
                     </View>
@@ -159,4 +175,4 @@ const PendingRequest = ({ route }) => {
     )
 }
 
-export default PendingRequest
+export default PendingRequest;

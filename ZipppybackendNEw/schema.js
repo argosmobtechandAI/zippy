@@ -172,3 +172,12 @@ export const stableTable = pgTable("stable", {
   code: varchar("code", { length: 255 }).notNull().unique().default("ZE"),
   logo: varchar("logo", { length: 255 }),
 });
+
+export const helpCenterTable = pgTable("help_center", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").references(() => userTable.id),
+  subject: varchar("subject", { length: 255 }).notNull(),
+  message: varchar("message", { length: 2000 }).notNull(),
+  status: varchar("status", { length: 50 }).default("Open"),
+  createdAt: varchar("created_at", { length: 50 }).default(new Date().toISOString()),
+});

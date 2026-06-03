@@ -1,25 +1,21 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, ArrowRight, Smartphone, Mail, ScanLine, Lock } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, Smartphone, Mail, ScanLine, Lock, Eye, EyeOff } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { apiFunction } from '../api/apifunction';
 import Toast from 'react-native-toast-message';
-import { getOTPApi, verifyOTPApi, loginApi } from '../api/api';
+import { loginApi } from '../api/api';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function LoginScreen() {
   const navigation = useNavigation();
-  const [step, setStep] = useState(1);
-  const [mobileNumber, setMobileNumber] = useState('1231231234');
+  const [mobileNumber, setMobileNumber] = useState('');
   const [emailAddress, setEmailAddress] = useState('');
-  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
-  const [gotOtp, setGotOtp] = useState(false);
-  const [loginMode, setLoginMode] = useState('password'); // 'password' or 'otp'
   const [identifierType, setIdentifierType] = useState('mobile'); // 'mobile' or 'email'
   const [password, setPassword] = useState('');
-  const otpRef = useRef([])
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     const checkToken = async () => {
@@ -105,68 +101,7 @@ export default function LoginScreen() {
     }
   };
 
-  const getOtp = async () => {
-    setLoading(true)
-    const res = await apiFunction(getOTPApi, [], { mobile: mobileNumber }, "POST", false)
-    console.log(res)
-    if (res.success) {
-      setStep(2)
-      setGotOtp(res.otp)
-    } else {
-      Toast.show({
-        type: "error",
-        text1: "Error",
-        text2: res.message
-      })
-    }
-    setLoading(false)
-  }
 
-  const verifyOtp = async () => {
-    if (!otp || otp.join("").length !== 6) {
-      Toast.show({
-        type: "error",
-        text1: "Error",
-        text2: "Please enter 6 digit OTP"
-      });
-      return;
-    }
-
-    try {
-      const res = await apiFunction(
-        verifyOTPApi,
-        [],
-        { mobile: mobileNumber, otp: otp.join("") },
-        "POST",
-        false
-      );
-
-      console.log(res);
-
-      if (res.success) {
-        await AsyncStorage.setItem("token", res.token);
-        if (res.user) {
-          await AsyncStorage.setItem("user", JSON.stringify(res.user));
-        }
-        console.log("Token saved:", res.token);
-
-        navigation.navigate("Tabs");
-      } else {
-        Toast.show({
-          type: "error",
-          text1: "Error",
-          text2: res.message
-        });
-      }
-    } catch (error) {
-      console.log("AsyncStorage error:", error);
-      Toast.show({
-        type: "error",
-        text1: "Error",
-        text2: "Something went wrong"
-      });
-    }
-  };
 
   return (
     <SafeAreaView className="flex-1 bg-[#F5EDDF]">
@@ -182,13 +117,10 @@ export default function LoginScreen() {
             </Text>
           </View>
 
-          {step === 1 ? (
             <View>
               <Text className="text-2xl font-bold text-[#1a202c] mb-2">Welcome Back</Text>
               <Text className="text-[#64748b] mb-8 text-sm">
-                {loginMode === 'password'
-                  ? 'Enter your mobile number and password to sign in.'
-                  : 'Enter your mobile number to sign in or create an account.'}
+                Enter your mobile number and password to sign in.
               </Text>
 
               <Text className="text-[#1a202c] font-semibold text-xs mb-2">
@@ -240,68 +172,40 @@ export default function LoginScreen() {
                 )}
               </View>
 
-              {loginMode === 'password' && (
-                <>
-                  <Text className="text-[#1a202c] font-semibold text-xs mb-2">Password</Text>
-                  <View className="flex-row items-center border border-[#e2e8f0] rounded-xl px-4 py-3 mb-6 bg-[#f8fafc]">
-                    <View className="mr-2 opacity-50">
-                      <Lock color="#94a3b8" size={20} />
-                    </View>
-                    <TextInput
-                      className="flex-1 text-[#1e293b]"
-                      placeholder="••••••••"
-                      placeholderTextColor="#94a3b8"
-                      secureTextEntry={true}
-                      value={password}
-                      onChangeText={(Text) => setPassword(Text)}
-                    />
-                  </View>
-                </>
-              )}
-
-              {loginMode === 'password' ? (
-                <TouchableOpacity
-                  className="w-full bg-[#8C4A28] py-4 rounded-xl items-center flex-row justify-center mb-4"
-                  onPress={handlePasswordLogin}
-                >
-                  {loading ? (
-                    <ActivityIndicator color="white" />
-                  ) : (
-                    <>
-                      <Text className="text-white font-bold text-lg mr-2">Log In</Text>
-                      <ArrowRight color="white" size={20} />
-                    </>
-                  )}
+              <Text className="text-[#1a202c] font-semibold text-xs mb-2">Password</Text>
+              <View className="flex-row items-center border border-[#e2e8f0] rounded-xl px-4 py-3 mb-6 bg-[#f8fafc]">
+                <View className="mr-2 opacity-50">
+                  <Lock color="#94a3b8" size={20} />
+                </View>
+                <TextInput
+                  className="flex-1 text-[#1e293b]"
+                  placeholder="••••••••"
+                  placeholderTextColor="#94a3b8"
+                  secureTextEntry={!showPassword}
+                  value={password}
+                  onChangeText={(Text) => setPassword(Text)}
+                />
+                <TouchableOpacity onPress={() => setShowPassword(!showPassword)} className="p-1">
+                  {showPassword ? <EyeOff color="#94a3b8" size={20} /> : <Eye color="#94a3b8" size={20} />}
                 </TouchableOpacity>
-              ) : (
-                <TouchableOpacity
-                  className="w-full bg-[#8C4A28] py-4 rounded-xl items-center flex-row justify-center mb-4"
-                  onPress={getOtp}
-                >
-                  {loading ? (
-                    <ActivityIndicator color="white" />
-                  ) : (
-                    <>
-                      <Text className="text-white font-bold text-lg mr-2">Get OTP</Text>
-                      <ArrowRight color="white" size={20} />
-                    </>
-                  )}
-                </TouchableOpacity>
-              )}
+              </View>
 
               <TouchableOpacity
-                onPress={() => setLoginMode(loginMode === 'password' ? 'otp' : 'password')}
-                className="w-full py-2 mb-6 items-center"
+                className="w-full bg-[#8C4A28] py-4 rounded-xl items-center flex-row justify-center mb-4"
+                onPress={handlePasswordLogin}
               >
-                <Text className="text-[#8C4A28] font-bold text-sm">
-                  {loginMode === 'password' ? 'Login with OTP' : 'Login with Password'}
-                </Text>
+                {loading ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <>
+                    <Text className="text-white font-bold text-lg mr-2">Log In</Text>
+                    <ArrowRight color="white" size={20} />
+                  </>
+                )}
               </TouchableOpacity>
 
               <TouchableOpacity onPress={() => navigation.navigate("Profile")} className="flex-row w-full justify-center items-center mb-6">
-
                 <Text className="px-4 text-lg font-semibold text-[#8C4A28] border border-[#8C4A28] rounded-xl py-2">Create Profile</Text>
-
               </TouchableOpacity>
 
               <View className="flex-row items-center mb-6">
@@ -325,61 +229,6 @@ export default function LoginScreen() {
                 </TouchableOpacity>
               </View>
             </View>
-          ) : (
-            <View>
-              <TouchableOpacity className="flex-row items-center mb-6" onPress={() => setStep(1)}>
-                <View className="mr-2">
-                  <ArrowLeft color="#8C4A28" size={16} />
-                </View>
-                <Text className="text-[#8C4A28] text-xs font-bold mt-0.5">VERIFICATION PHASE</Text>
-              </TouchableOpacity>
-
-              {gotOtp && (
-                <>
-                  <View className="bg-green-500 absolute top-0 p-4 rounded-xl"><Text className="text-white font-bold text-lg">Your otp is {gotOtp}</Text></View>
-                </>
-              )}
-
-              <View className="flex-row justify-between mb-8">
-                {[0, 1, 2, 3, 4, 5].map((i) => (
-                  <TextInput
-                    key={i}
-                    ref={(ref) => (otpRef.current[i] = ref)}
-                    className="w-12 h-14 border border-[#e2e8f0] rounded-lg bg-[#f8fafc] text-center text-lg text-[#1e293b]"
-                    keyboardType="number-pad"
-                    maxLength={1}
-                    value={otp[i]}
-                    onChangeText={(text) => {
-                      const newOtp = [...otp];
-                      newOtp[i] = text;
-                      setOtp(newOtp);
-
-                      // move forward
-                      if (text && i < 5) {
-                        otpRef.current[i + 1]?.focus();
-                      }
-
-                      // move backward
-                      if (!text && i > 0) {
-                        otpRef.current[i - 1]?.focus();
-                      }
-                    }}
-                  />
-                ))}
-              </View>
-
-              <TouchableOpacity
-                className="w-full bg-[#8C4A28] py-4 rounded-xl items-center justify-center mb-6"
-                onPress={verifyOtp}
-              >
-                <Text className="text-white font-bold text-lg">Verify and Continue</Text>
-              </TouchableOpacity>
-
-              <Text className="text-center text-[#64748b] text-sm mb-6">
-                Didn't receive code? <Text className="text-[#8C4A28] font-bold">Resend in 0:45</Text>
-              </Text>
-            </View>
-          )}
 
           <View className="mt-auto pt-4 border-t border-dotted border-[#cbd5e1]">
             <Text className="text-center text-[#94a3b8] text-[10px] mt-4">

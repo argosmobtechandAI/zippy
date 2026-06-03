@@ -7,15 +7,12 @@ import { getOTPApi, verifyOTPApi, loginApi } from '../api/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function LoginScreen() {
-  const [step, setStep] = useState(1);
   const navigation = useNavigation()
+  const [loginMode, setLoginMode] = useState('mobile'); // 'mobile' or 'email'
   const [mobileNumber, setMobileNumber] = useState("")
-  const [getOtp, setGetOtp] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [otp, setOtp] = useState(["", "", "", "", "", "", ""])
-  const [loginMode, setLoginMode] = useState('password'); // 'password' or 'otp'
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const otpRef = useRef([])
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     const checkToken = async () => {
@@ -24,19 +21,21 @@ export default function LoginScreen() {
         navigation.navigate("Tabs");
       }
     }
-
-    const deleteToken = async () => {
-      await AsyncStorage.removeItem("token");
-    }
     checkToken();
-    // deleteToken();
   }, [])
 
 
-  const handlePasswordLogin = async () => {
-    if (!mobileNumber) {
-      Alert.alert("Error", "Please enter your mobile number");
-      return;
+  const handleLogin = async () => {
+    if (loginMode === 'mobile') {
+      if (!mobileNumber) {
+        Alert.alert("Error", "Please enter your mobile number");
+        return;
+      }
+    } else {
+      if (!email) {
+        Alert.alert("Error", "Please enter your email address");
+        return;
+      }
     }
     if (!password) {
       Alert.alert("Error", "Please enter your password");
@@ -44,10 +43,14 @@ export default function LoginScreen() {
     }
     setLoading(true);
     try {
+      const payload = loginMode === 'mobile' 
+        ? { mobile: mobileNumber, password, type: 'trainer' } 
+        : { email, password, type: 'trainer' };
+
       const res = await apiFunction(
         loginApi,
         [],
-        { mobile: mobileNumber, password, type: 'trainer' },
+        payload,
         "POST",
         false
       );
@@ -63,55 +66,10 @@ export default function LoginScreen() {
         Alert.alert("Error", res.message);
       }
     } catch (error) {
-      console.log("Trainer password login error:", error);
+      console.log("Trainer login error:", error);
       Alert.alert("Error", "Something went wrong");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleSubmitNumber = async () => {
-    setLoading(true)
-    const res = await apiFunction(getOTPApi, [], { mobile: mobileNumber }, "POST", false)
-    if (res.success) {
-      setGetOtp(res.otp)
-
-      setStep(2)
-    } else {
-      Alert.alert("Error", res.message)
-    }
-    setLoading(false)
-  }
-
-  const verifyOtp = async () => {
-    if (!otp || otp.join("").length !== 6) {
-      Alert.alert("Error", "Please enter 6 digit OTP")
-      return;
-    }
-
-    try {
-      const res = await apiFunction(
-        verifyOTPApi,
-        [],
-        { mobile: mobileNumber, otp: otp.join("") },
-        "POST",
-        false
-      );
-
-      console.log(res);
-
-      if (res.success) {
-        await AsyncStorage.setItem("token", res.token);
-        await AsyncStorage.setItem("user", JSON.stringify(res.user));
-        console.log("Token saved:", res.token);
-
-        navigation.navigate("Tabs");
-      } else {
-        Alert.alert("Error", res.message)
-      }
-    } catch (error) {
-      console.log("AsyncStorage error:", error);
-      Alert.alert("Error", "Something went wrong")
     }
   };
 
@@ -135,182 +93,108 @@ export default function LoginScreen() {
 
           <View className="mb-8" />
 
-          {step === 1 ? (
-            <View>
-              <Text className="text-2xl font-bold text-[#1a202c] mb-2">Trainer Login</Text>
-              <Text className="text-[#64748b] mb-8 text-sm">
-                {loginMode === 'password'
-                  ? 'Enter your registered mobile number and password to access your dashboard.'
-                  : 'Enter your registered mobile number to access your dashboard.'}
-              </Text>
+          <View>
+            <Text className="text-2xl font-bold text-[#1a202c] mb-2">Trainer Login</Text>
+            <Text className="text-[#64748b] mb-8 text-sm">
+              Enter your registered credentials to access your dashboard.
+            </Text>
 
-              <Text className="text-[#1a202c] font-semibold text-xs mb-2">Mobile Number</Text>
-              <View className="flex-row items-center border border-[#e2e8f0] rounded-xl px-4 py-3 mb-6 bg-[#f8fafc]">
-                <View className="mr-2 opacity-50">
-                  <Smartphone color="#94a3b8" size={20} />
-                </View>
-                <TextInput
-                  className="flex-1 text-[#1e293b]"
-                  placeholder="+1 (555) 000-0000"
-                  placeholderTextColor="#94a3b8"
-                  keyboardType="phone-pad"
-                  value={mobileNumber}
-                  onChangeText={(Text) => {
-                    if(Text.length > 1){
-
-                      if (Text.length > 10) {
-                        Alert.alert("Error", "Mobile number should be 10 digits")
-                        return
-                      }
-                      if (!/^[0-9]+$/.test(Text)) {
-                        Alert.alert("Error", "Mobile number should be only digits")
-                        return
-                      }
-                    }
-                    setMobileNumber(Text)
-                  }}
-                />
-              </View>
-
-              {loginMode === 'password' && (
-                <>
-                  <Text className="text-[#1a202c] font-semibold text-xs mb-2">Password</Text>
-                  <View className="flex-row items-center border border-[#e2e8f0] rounded-xl px-4 py-3 mb-6 bg-[#f8fafc]">
-                    <View className="mr-2 opacity-50">
-                      <Lock color="#94a3b8" size={20} />
-                    </View>
-                    <TextInput
-                      className="flex-1 text-[#1e293b]"
-                      placeholder="••••••••"
-                      placeholderTextColor="#94a3b8"
-                      secureTextEntry={true}
-                      value={password}
-                      onChangeText={(Text) => setPassword(Text)}
-                    />
-                  </View>
-                </>
-              )}
-
-              {loginMode === 'password' ? (
-                <TouchableOpacity
-                  className="w-full bg-[#8C4A28] py-4 rounded-xl items-center flex-row justify-center mb-4"
-                  onPress={handlePasswordLogin}
-                >
-                  {loading ? (
-                    <ActivityIndicator color="white" />
-                  ) : (
-                    <>
-                      <Text className="text-white font-bold text-lg mr-2">Log In</Text>
-                      <ArrowRight color="white" size={20} />
-                    </>
-                  )}
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity
-                  className="w-full bg-[#8C4A28] py-4 rounded-xl items-center flex-row justify-center mb-4"
-                  onPress={handleSubmitNumber}
-                >
-                  {loading ? (
-                    <ActivityIndicator color="white" />
-                  ) : (
-                    <>
-                      <Text className="text-white font-bold text-lg mr-2">Get OTP</Text>
-                      <ArrowRight color="white" size={20} />
-                    </>
-                  )}
-                </TouchableOpacity>
-              )}
-
-              <TouchableOpacity
-                onPress={() => setLoginMode(loginMode === 'password' ? 'otp' : 'password')}
-                className="w-full py-2 mb-6 items-center"
+            {/* Tab Selector */}
+            <View className="flex-row bg-[#FDF8F2] border border-brand-brown/5 rounded-2xl p-1 mb-6">
+              <TouchableOpacity 
+                onPress={() => setLoginMode('mobile')}
+                className={`flex-1 py-3 rounded-xl items-center ${loginMode === 'mobile' ? 'bg-[#8C4A28]' : ''}`}
               >
-                <Text className="text-[#8C4A28] font-bold text-sm">
-                  {loginMode === 'password' ? 'Login with OTP' : 'Login with Password'}
-                </Text>
+                <Text className={`font-bold text-sm ${loginMode === 'mobile' ? 'text-white' : 'text-[#64748b]'}`}>Mobile Login</Text>
               </TouchableOpacity>
-
-              <View className="flex-row items-center mb-6">
-                <View className="flex-1 h-[1px] bg-[#e2e8f0]" />
-                <Text className="px-4 text-xs font-semibold text-[#94a3b8]">ALTERNATIVE LOGIN</Text>
-                <View className="flex-1 h-[1px] bg-[#e2e8f0]" />
-              </View>
-
-              <View className="flex-row justify-between mb-8">
-                <TouchableOpacity className="flex-1 flex-row items-center justify-center border border-[#e2e8f0] py-3 rounded-xl mr-2">
-                  <View className="mr-2 opacity-60">
-                    <Mail color="#64748b" size={18} />
-                  </View>
-                  <Text className="text-[#1a202c] font-semibold text-sm">Email</Text>
-                </TouchableOpacity>
-                <TouchableOpacity className="flex-1 flex-row items-center justify-center border border-[#e2e8f0] py-3 rounded-xl ml-2">
-                  <View className="mr-2 opacity-60">
-                    <ScanLine color="#64748b" size={18} />
-                  </View>
-                  <Text className="text-[#1a202c] font-semibold text-sm">Scan Badge</Text>
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity 
+                onPress={() => setLoginMode('email')}
+                className={`flex-1 py-3 rounded-xl items-center ${loginMode === 'email' ? 'bg-[#8C4A28]' : ''}`}
+              >
+                <Text className={`font-bold text-sm ${loginMode === 'email' ? 'text-white' : 'text-[#64748b]'}`}>Email Login</Text>
+              </TouchableOpacity>
             </View>
-          ) : (
-            <View>
-              <TouchableOpacity className="flex-row items-center mb-6" onPress={() => setStep(1)}>
-                <View className="mr-2">
-                  <ArrowLeft color="#8C4A28" size={16} />
-                </View>
-                <Text className="text-[#8C4A28] text-xs font-bold mt-0.5">BACK TO LOGIN</Text>
-              </TouchableOpacity>
 
-              <Text className="text-2xl font-bold text-[#1a202c] mb-2">Verify Code</Text>
-              <Text className="text-[#64748b] mb-6 text-sm">
-                Sent a 6-digit code to <Text className="font-bold text-[#1a202c]">{mobileNumber}</Text>
-              </Text>
-
-              {getOtp && (
-                <>
-                  <View className="bg-green-500 absolute top-0 p-4 rounded-xl"><Text className="text-white font-bold text-lg">Your otp is {getOtp}</Text></View>
-                </>
-              )}
-
-              <View className="flex-row justify-between mb-8">
-                {[0, 1, 2, 3, 4, 5].map((i) => (
+            {loginMode === 'mobile' ? (
+              <>
+                <Text className="text-[#1a202c] font-semibold text-xs mb-2">Mobile Number</Text>
+                <View className="flex-row items-center border border-[#e2e8f0] rounded-xl px-4 py-3 mb-6 bg-[#f8fafc]">
+                  <View className="mr-2 opacity-50">
+                    <Smartphone color="#94a3b8" size={20} />
+                  </View>
                   <TextInput
-                    key={i}
-                    ref={(ref) => (otpRef.current[i] = ref)}
-                    className="w-12 h-14 border border-[#e2e8f0] rounded-lg bg-[#f8fafc] text-center text-lg text-[#1e293b]"
-                    keyboardType="number-pad"
-                    maxLength={1}
-                    value={otp[i]}
-                    onChangeText={(text) => {
-                      const newOtp = [...otp];
-                      newOtp[i] = text;
-                      setOtp(newOtp);
-
-                      // move forward
-                      if (text && i < 5) {
-                        otpRef.current[i + 1]?.focus();
+                    className="flex-1 text-[#1e293b]"
+                    placeholder="9540441958"
+                    placeholderTextColor="#94a3b8"
+                    keyboardType="phone-pad"
+                    value={mobileNumber}
+                    onChangeText={(Text) => {
+                      if(Text.length > 1){
+                        if (Text.length > 10) {
+                          Alert.alert("Error", "Mobile number should be 10 digits")
+                          return
+                        }
+                        if (!/^[0-9]+$/.test(Text)) {
+                          Alert.alert("Error", "Mobile number should be only digits")
+                          return
+                        }
                       }
-
-                      // move backward
-                      if (!text && i > 0) {
-                        otpRef.current[i - 1]?.focus();
-                      }
+                      setMobileNumber(Text)
                     }}
                   />
-                ))}
+                </View>
+              </>
+            ) : (
+              <>
+                <Text className="text-[#1a202c] font-semibold text-xs mb-2">Email Address</Text>
+                <View className="flex-row items-center border border-[#e2e8f0] rounded-xl px-4 py-3 mb-6 bg-[#f8fafc]">
+                  <View className="mr-2 opacity-50">
+                    <Mail color="#94a3b8" size={20} />
+                  </View>
+                  <TextInput
+                    className="flex-1 text-[#1e293b]"
+                    placeholder="trainer@zippy.com"
+                    placeholderTextColor="#94a3b8"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    value={email}
+                    onChangeText={(Text) => setEmail(Text)}
+                  />
+                </View>
+              </>
+            )}
+
+            <Text className="text-[#1a202c] font-semibold text-xs mb-2">Password</Text>
+            <View className="flex-row items-center border border-[#e2e8f0] rounded-xl px-4 py-3 mb-6 bg-[#f8fafc]">
+              <View className="mr-2 opacity-50">
+                <Lock color="#94a3b8" size={20} />
               </View>
-
-              <TouchableOpacity
-                className="w-full bg-[#8C4A28] py-4 rounded-xl items-center justify-center mb-6"
-                onPress={verifyOtp}
-              >
-                <Text className="text-white font-bold text-lg">Verify and Access Dashboard</Text>
-              </TouchableOpacity>
-
-              <Text className="text-center text-[#64748b] text-sm mb-6">
-                Didn't receive code? <Text className="text-[#8C4A28] font-bold">Resend in 0:45</Text>
-              </Text>
+              <TextInput
+                className="flex-1 text-[#1e293b]"
+                placeholder="••••••••"
+                placeholderTextColor="#94a3b8"
+                secureTextEntry={true}
+                value={password}
+                onChangeText={(Text) => setPassword(Text)}
+              />
             </View>
-          )}
+
+            <TouchableOpacity
+              className="w-full bg-[#8C4A28] py-4 rounded-xl items-center flex-row justify-center mb-6 mt-2"
+              onPress={handleLogin}
+            >
+              {loading ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <>
+                  <Text className="text-white font-bold text-lg mr-2">Log In</Text>
+                  <ArrowRight color="white" size={20} />
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          <View className="flex-row items-center mb-6" />
 
           <View className="mt-auto pt-4 border-t border-dotted border-[#cbd5e1]">
             <Text className="text-center text-[#94a3b8] text-[10px] mt-4">

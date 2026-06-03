@@ -3,9 +3,16 @@ import axios from 'axios';
 
 export const apiFunction = async (api, params = [], data = {}, method, withAuth) => {
 
-  console.log(api)
+  const url = params.length > 0 ? `${api}/${params.join('/')}` : api;
 
-  let headers = {}
+  // ====== REQUEST LOG ======
+  console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log(`🚀 [${method}] ${url}`);
+  if (params.length > 0) console.log('📦 Params:', JSON.stringify(params));
+  if (data && Object.keys(data).length > 0) console.log('📝 Body Data:', JSON.stringify(data));
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+  let headers = {};
   if (withAuth) {
     const token = await AsyncStorage.getItem('token');
     headers = {
@@ -16,8 +23,6 @@ export const apiFunction = async (api, params = [], data = {}, method, withAuth)
   let response;
 
   try {
-    const url = params.length > 0 ? `${api}/${params.join('/')}` : api;
-
     switch (method) {
       case 'GET':
         response = await axios.get(url, { headers });
@@ -36,14 +41,23 @@ export const apiFunction = async (api, params = [], data = {}, method, withAuth)
     }
 
     if (response) {
-      console.log('API Response:', response.data);
+      // ====== RESPONSE LOG ======
+      console.log(`✅ [${method}] ${url}`);
+      console.log('📬 Response:', JSON.stringify(response.data));
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
       return response.data;
     } else {
-      console.log('API Error:', response);
+      console.log(`⚠️ Empty response for [${method}] ${url}`);
       return { success: false, message: 'Empty response' };
     }
   } catch (error) {
-    console.error('API Request Failed:', error?.response?.data || error.message);
-    return error?.response?.data || { success: false, message: 'Network error or unable to reach API' };
+    // ====== ERROR LOG ======
+    const errData = error?.response?.data;
+    const errStatus = error?.response?.status;
+    console.error(`❌ [${method}] ${url}`);
+    console.error(`   Status: ${errStatus || 'N/A'}`);
+    console.error(`   Error:`, JSON.stringify(errData || error.message));
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+    return errData || { success: false, message: 'Network error or unable to reach API' };
   }
 }

@@ -55,8 +55,16 @@ export const getAllUsers = async (req, res) => {
             vetId: user.vet && user.vet.length > 0 ? user.vet[0].id : null,
             profilePicture: user.profile_picture,
             leaves: user.leaves,
+            notifications: user.notifications || [],
             riderType: user.rider && user.rider.length > 0 ? user.rider[0].rider_type : null,
-            riderWallet: user.rider && user.rider.length > 0 ? (user.rider[0].wallet || 0) : 0
+            riderWallet: user.rider && user.rider.length > 0 ? (user.rider[0].wallet || 0) : 0,
+            code: user.rider && user.rider.length > 0 ? user.rider[0].code : "",
+            level: user.rider && user.rider.length > 0 ? user.rider[0].level : "",
+            allergies: user.rider && user.rider.length > 0 ? user.rider[0].allergies : "",
+            medical: user.rider && user.rider.length > 0 ? user.rider[0].medical : "",
+            instructions: user.rider && user.rider.length > 0 ? user.rider[0].instructions : "",
+            title: user.trainers && user.trainers.length > 0 ? user.trainers[0].title : "",
+            experience: user.trainers && user.trainers.length > 0 ? user.trainers[0].experience : ""
         }));
 
         let healed = false;
@@ -142,8 +150,16 @@ export const getUser = async (req, res) => {
             vetId: rawUser.vet && rawUser.vet.length > 0 ? rawUser.vet[0].id : null,
             profilePicture: rawUser.profile_picture,
             leaves: rawUser.leaves,
+            notifications: rawUser.notifications || [],
             riderType: rawUser.rider && rawUser.rider.length > 0 ? rawUser.rider[0].rider_type : null,
-            riderWallet: rawUser.rider && rawUser.rider.length > 0 ? (rawUser.rider[0].wallet || 0) : 0
+            riderWallet: rawUser.rider && rawUser.rider.length > 0 ? (rawUser.rider[0].wallet || 0) : 0,
+            code: rawUser.rider && rawUser.rider.length > 0 ? rawUser.rider[0].code : "",
+            level: rawUser.rider && rawUser.rider.length > 0 ? rawUser.rider[0].level : "",
+            allergies: rawUser.rider && rawUser.rider.length > 0 ? rawUser.rider[0].allergies : "",
+            medical: rawUser.rider && rawUser.rider.length > 0 ? rawUser.rider[0].medical : "",
+            instructions: rawUser.rider && rawUser.rider.length > 0 ? rawUser.rider[0].instructions : "",
+            title: rawUser.trainers && rawUser.trainers.length > 0 ? rawUser.trainers[0].title : "",
+            experience: rawUser.trainers && rawUser.trainers.length > 0 ? rawUser.trainers[0].experience : ""
         };
 
         let healed = false;
@@ -165,10 +181,15 @@ export const getUser = async (req, res) => {
 };
 
 export const createUser = async (req, res) => {
+    console.log("CREATE USER PAYLOAD RECEIVED:", JSON.stringify(req.body));
     const { data } = req.body;
 
     try {
         const { name, mobile, email, dob, type, age, code, weight, password, parentName, title, riderType, experience, emergencyContact, allergies, medical, level, instructions, status } = data;
+        console.log("DESTRUCTURED REGISTRATION DATA:", { name, mobile, email, type, code, parentName, emergencyContact, riderType });
+
+        const finalParentName = parentName !== undefined ? parentName : data.parent_name;
+        const finalEmergencyContact = emergencyContact !== undefined ? emergencyContact : data.emergency_contact;
 
         let hashedPassword = null;
         if (password) {
@@ -177,11 +198,12 @@ export const createUser = async (req, res) => {
 
         const { data: newUser, error: userError } = await supabase.from('users').insert({
             name, mobile, type, email, dob, age, weight, 
-            parent_name: parentName, emergency_contact: emergencyContact, status,
+            parent_name: finalParentName, emergency_contact: finalEmergencyContact, status,
             password: hashedPassword
         }).select();
 
         if (userError || !newUser || newUser.length === 0) {
+            console.error("SUPABASE USER INSERT FAILURE:", userError);
             let errorMsg = 'Error creating user';
             if (userError && userError.message) {
                 if (userError.message.includes('unique constraint') || userError.message.includes('duplicate key')) {
@@ -193,6 +215,17 @@ export const createUser = async (req, res) => {
                 }
             }
             return res.status(400).json({ message: errorMsg, success: false, detail: userError });
+        }
+
+        // Send admin notification
+        try {
+            await supabase.from('admin_notifications').insert({
+                title: "👤 New Member",
+                desc: `A new rider "${name}" has registered on the platform.`,
+                type: "system"
+            });
+        } catch (adminNotifErr) {
+            console.error("Admin notification failed on user registration:", adminNotifErr);
         }
 
         if (type === "rider") {
@@ -247,6 +280,28 @@ export const markNotificationsAsRead = async (req, res) => {
     }
 };
 
+export const clearNotifications = async (req, res) => {
+    const id = (req.params.id || '').trim().replace(/\/$/, '');
+    if (!id) {
+        return res.status(400).json({ success: false, message: 'User ID is required' });
+    }
+    try {
+        // Try clearing with empty array first
+        const { error } = await supabase.from('users').update({ notifications: [] }).eq('id', id);
+        if (error) {
+            console.error('clearNotifications error:', error);
+            // Fallback: set to null
+            const { error: err2 } = await supabase.from('users').update({ notifications: null }).eq('id', id);
+            if (err2) throw err2;
+        }
+        res.status(200).json({ success: true, message: 'Notifications cleared successfully' });
+    } catch (error) {
+        console.error('clearNotifications caught error:', error);
+        res.status(500).json({ success: false, message: `Error: ${error.message}` });
+    }
+};
+
+
 // Columns that actually exist in the `users` table
 const USERS_TABLE_COLUMNS = new Set([
     'name', 'email', 'mobile', 'type', 'status', 'image', 'age',
@@ -292,23 +347,31 @@ export const updateUser = async (req, res) => {
             delete coreData.password;
         }
 
-        const { data: updatedUser, error: updateError } = await supabase.from('users').update(coreData).eq('id', id).select();
-        
-        if (updateError || !updatedUser || updatedUser.length === 0) {
-            let errorMsg = 'User not found or error updating user';
-            if (updateError && updateError.message) {
-                if (updateError.message.includes('unique constraint') || updateError.message.includes('duplicate key')) {
-                    if (updateError.message.includes('email')) errorMsg = 'Email address is already in use.';
-                    else if (updateError.message.includes('mobile')) errorMsg = 'Mobile number is already in use.';
-                    else errorMsg = 'A user with this information already exists.';
-                } else {
-                    errorMsg = updateError.message;
+        let user;
+        if (Object.keys(coreData).length > 0) {
+            const { data: updatedUser, error: updateError } = await supabase.from('users').update(coreData).eq('id', id).select();
+            
+            if (updateError || !updatedUser || updatedUser.length === 0) {
+                let errorMsg = 'User not found or error updating user';
+                if (updateError && updateError.message) {
+                    if (updateError.message.includes('unique constraint') || updateError.message.includes('duplicate key')) {
+                        if (updateError.message.includes('email')) errorMsg = 'Email address is already in use.';
+                        else if (updateError.message.includes('mobile')) errorMsg = 'Mobile number is already in use.';
+                        else errorMsg = 'A user with this information already exists.';
+                    } else {
+                        errorMsg = updateError.message;
+                    }
                 }
+                return res.status(400).json({ message: errorMsg, success: false, detail: updateError });
             }
-            return res.status(400).json({ message: errorMsg, success: false, detail: updateError });
+            user = updatedUser[0];
+        } else {
+            const { data: fetchedUser, error: fetchError } = await supabase.from('users').select('*').eq('id', id);
+            if (fetchError || !fetchedUser || fetchedUser.length === 0) {
+                return res.status(400).json({ message: fetchError ? fetchError.message : 'User not found', success: false, detail: fetchError });
+            }
+            user = fetchedUser[0];
         }
-
-        const user = updatedUser[0];
 
         if (user.type === "rider") {
             const riderUpdateData = {};
@@ -397,7 +460,7 @@ export const updateUser = async (req, res) => {
             }
         }
 
-        return res.status(200).json({ user: updatedUser[0], message: 'User updated successfully', success: true });
+        return res.status(200).json({ user: user, message: 'User updated successfully', success: true });
     } catch (error) {
         console.error('CRITICAL ERROR IN UPDATE_USER:', error);
         return res.status(500).json({ success: false, message: error.message });
@@ -414,12 +477,33 @@ export const updateLeave = async (req, res) => {
             return res.status(404).json({ message: 'User not found', success: false });
         }
 
+        const leaveRequest = {
+            id: leaves.id || Math.random().toString(36).substr(2, 9),
+            reason: leaves.reason || '',
+            startDate: leaves.startDate || '',
+            endDate: leaves.endDate || '',
+            status: leaves.status || 'pending',
+            submittedAt: leaves.submittedAt || new Date().toISOString()
+        };
+
         const userLeaves = user[0].leaves || [];
-        const updatedLeaves = [...userLeaves, leaves];
+        const updatedLeaves = [...userLeaves, leaveRequest];
         const { data: updatedUser } = await supabase.from('users').update({ leaves: updatedLeaves }).eq('id', id).select();
         
         if (!updatedUser || updatedUser.length === 0) {
             return res.status(404).json({ message: 'User not found', success: false });
+        }
+
+        // Notify admin about leave request
+        try {
+            const { error: notifErr } = await supabase.from('admin_notifications').insert({
+                title: "📅 Leave Request",
+                desc: `${user[0].name} submitted a leave request from ${leaveRequest.startDate || 'N/A'} to ${leaveRequest.endDate || 'N/A'}.`,
+                type: "system"
+            });
+            if (notifErr) throw notifErr;
+        } catch (notifErr) {
+            console.error("Admin notification failed for leave request:", notifErr);
         }
 
         if (leaves.sessionId) {
@@ -661,6 +745,28 @@ export const updateLeaveRequest = async (req, res) => {
 
         await supabase.from('trainers').update({ pendingRequests: updatedPendingRequests }).eq('id', trainerId);
 
+        // Notify rider
+        try {
+            const { data: rider } = await supabase.from('rider').select('user_id').eq('id', riderId).limit(1);
+            if (rider && rider.length > 0) {
+                const rUserId = rider[0].user_id;
+                const { data: userData } = await supabase.from('users').select('notifications').eq('id', rUserId).limit(1);
+                const notifs = userData && userData.length > 0 ? (userData[0].notifications || []) : [];
+                const newNotif = {
+                    id: Math.random().toString(36).substr(2, 9),
+                    title: "📅 Leave Request Update",
+                    desc: `Your leave request status has been updated to ${status}.`,
+                    type: 'system',
+                    time: "Just Now",
+                    unread: true,
+                    date: new Date().toISOString()
+                };
+                await supabase.from('users').update({ notifications: [...notifs, newNotif] }).eq('id', rUserId);
+            }
+        } catch (notifErr) {
+            console.error("Rider notification failed for leave request update:", notifErr);
+        }
+
         res.status(200).json({ success: true, message: 'Leave request updated successfully' });
     } catch (error) {
         res.status(500).json({ success: false, message: `Error: ${error.message}` });
@@ -686,6 +792,26 @@ export const updateTrainerLeaveRequest = async (req, res) => {
         });
 
         await supabase.from('users').update({ leaves: updatedPendingRequests }).eq('id', userId);
+
+        // Notify user about leave request update
+        try {
+            const { data: userData, error: fetchErr } = await supabase.from('users').select('notifications').eq('id', userId).limit(1);
+            if (fetchErr) throw fetchErr;
+            const notifs = userData && userData.length > 0 ? (userData[0].notifications || []) : [];
+            const newNotif = {
+                id: Math.random().toString(36).substr(2, 9),
+                title: "📅 Leave Request Update",
+                desc: `Your leave request from ${startDate} to ${endDate} has been ${status}.`,
+                type: 'system',
+                time: "Just Now",
+                unread: true,
+                date: new Date().toISOString()
+            };
+            const { error: notifErr } = await supabase.from('users').update({ notifications: [...notifs, newNotif] }).eq('id', userId);
+            if (notifErr) throw notifErr;
+        } catch (notifErr) {
+            console.error("User notification failed for leave request update:", notifErr);
+        }
 
         res.status(200).json({ success: true, message: 'Leave request updated successfully' });
     } catch (error) {

@@ -1,1 +1,0 @@
-ALTER TABLE "users" ADD COLUMN "created_at" varchar(50) DEFAULT '2026-04-08T10:11:26.342Z';

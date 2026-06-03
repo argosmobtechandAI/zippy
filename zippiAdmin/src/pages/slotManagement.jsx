@@ -83,7 +83,7 @@ const SlotManagement = () => {
     const handleBookingStatus = async (sessionId, riderId, newStatus) => {
 
         try {
-            const res = await apiFunction(approveSessionApi, [riderId, sessionId], { status: newStatus }, "PUT", true);
+            const res = await apiFunction(approveSessionApi, [sessionId, riderId], { status: newStatus }, "PUT", true);
             if (res?.success) {
                 toast.success(newStatus === 'REJECTED' ? "Booking rejected" : `Booking ${newStatus.toLowerCase()}`);
                 fetchData();
@@ -136,8 +136,6 @@ const SlotManagement = () => {
         return <div className="p-10 text-center font-bold text-gray-400">Loading data...</div>;
     }
 
-    const pendingParticipants = sessions.flatMap(s => (s.participants || []).filter(p => p.status?.toLowerCase() === 'pending').map(p => ({ ...p, session: s })));
-
     return (
         <div className="p-10 max-w-[1400px] mx-auto min-h-full bg-[#F6EDE2] w-full font-sans">
             <div className="mb-8">
@@ -175,7 +173,7 @@ const SlotManagement = () => {
                 <div className="grid grid-cols-3 gap-6 mb-12">
                     {sessions.map(slot => {
                         const trainer = trainers?.find(item => item.id === slot.trainerId);
-                        const user = users?.find(item => item.id === trainer?.userId);
+                        const user = users?.find(item => item.id === (trainer?.userId || trainer?.user_id));
                         const trainerName = user?.name || trainer?.name || "Unassigned";
                         const slotHorses = horses.filter(h => slot.horseId?.includes(h.id));
 
@@ -238,62 +236,7 @@ const SlotManagement = () => {
                 </div>
             )}
 
-            {/* Booking Requests across all sessions */}
-            <div>
-                <h2 className="text-[20px] font-bold text-[#1e2330] mb-6">Booking Requests</h2>
-                <div className="grid grid-cols-[200px_1fr_1fr_120px_120px_80px_150px] gap-4 mb-4 border-b border-[#E6D9CC] pb-4 px-2">
-                    <div className="text-[11px] font-bold text-[#A59588] tracking-widest uppercase">RIDER NAME</div>
-                    <div className="text-[11px] font-bold text-[#A59588] tracking-widest uppercase">SLOT</div>
-                    <div className="text-[11px] font-bold text-[#A59588] tracking-widest uppercase">TIMING</div>
-                    <div className="text-[11px] font-bold text-[#A59588] tracking-widest uppercase text-center">DATE</div>
-                    <div className="text-[11px] font-bold text-[#A59588] tracking-widest uppercase text-center">STATUS</div>
-                    <div className="text-[11px] font-bold text-[#A59588] tracking-widest uppercase text-center">PAID</div>
-                    <div className="text-[11px] font-bold text-[#A59588] tracking-widest uppercase text-right pr-2">ACTIONS</div>
-                </div>
-                <div className="flex flex-col gap-6">
-                    {pendingParticipants.length === 0 ? (
-                        <div className="text-center py-10 font-bold text-gray-400">No pending bookings.</div>
-                    ) : (
-                        pendingParticipants.map((p, idx) => (
-                            <div key={idx} className="grid grid-cols-[200px_1fr_1fr_120px_120px_80px_150px] gap-4 items-center bg-white border border-[#E6D9CC] rounded-2xl p-4 shadow-sm">
-                                <div className="flex items-center gap-4 pl-2">
-                                    <div className="w-[40px] h-[40px] rounded-full bg-gray-200 overflow-hidden border-2 border-white shadow-sm flex items-center justify-center font-black text-gray-400">
-                                        {p.name?.charAt(0) || 'U'}
-                                    </div>
-                                    <div>
-                                        <h4 className="text-[14px] font-black text-[#1e2330] mb-0.5">{p.name}</h4>
-                                    </div>
-                                </div>
-                                <div className="text-[13px] font-bold text-[#1e2330]">{p.session?.title}</div>
-                                <div className="text-[13px] font-bold text-gray-500">{p.session?.timing}</div>
-                                <div className="text-[13px] font-bold text-gray-500 text-center">{formatWithDay(p.date || p.session?.date || 'N/A')}</div>
-                                <div className="flex justify-center">
-                                    <span className="inline-flex max-w-[80px] text-center justify-center px-2.5 py-1.5 rounded-full text-[8px] font-black tracking-widest uppercase shadow-sm bg-[#FEF3C7] text-[#92400E]">
-                                        {p.status || 'PENDING'}
-                                    </span>
-                                </div>
-                                <div className="flex justify-center">
-                                    <CheckCircle2 className={`w-6 h-6 ${p.paid ? 'text-[#22C55E]' : 'text-gray-300'}`} strokeWidth={2} />
-                                </div>
-                                <div className="flex items-center justify-end gap-2">
-                                    <button
-                                        onClick={() => handleBookingStatus(p.session.id, p.riderId, 'CONFIRMED')}
-                                        className="bg-green-50 border border-green-200 text-green-600 px-4 py-2 rounded-xl text-[11px] font-bold shadow-sm hover:bg-green-100 transition-colors"
-                                    >
-                                        Approve
-                                    </button>
-                                    <button
-                                        onClick={() => handleBookingStatus(p.session.id, p.riderId, 'REJECTED')}
-                                        className="bg-gray-50 border border-gray-200 text-gray-500 px-4 py-2 rounded-xl text-[11px] font-bold shadow-sm hover:bg-gray-100 transition-colors"
-                                    >
-                                        Reject
-                                    </button>
-                                </div>
-                            </div>
-                        ))
-                    )}
-                </div>
-            </div>
+
 
             {showSessionModal && (
                 <SessionModal
@@ -448,7 +391,7 @@ const SessionModal = ({ sessionToEdit, setShowModal, onSuccess, stables, users, 
                         <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Assigned Trainer</label>
                         <select value={formData.trainerId} onChange={(e) => setFormData({ ...formData, trainerId: e.target.value })} className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]">
                             <option value="">No Trainer Assigned</option>
-                            {trainers.map(t => <option key={t.id} value={t.id}>{getTrainerName(t.userId)}</option>)}
+                            {trainers.map(t => <option key={t.id} value={t.id}>{getTrainerName(t.userId || t.user_id)}</option>)}
                         </select>
                     </div>
                     <div>

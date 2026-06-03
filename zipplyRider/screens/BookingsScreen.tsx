@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl, TextInput, Alert, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl, TextInput, Alert, Platform, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Info, ArrowUpRight, Calendar, User as UserIcon, Clock, Star, CalendarRange, XCircle } from 'lucide-react-native';
+import { ArrowLeft, Info, ArrowUpRight, Calendar, User as UserIcon, Clock, Star, CalendarRange, XCircle, X, ChevronRight } from 'lucide-react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -14,6 +14,7 @@ export default function BookingsScreen() {
   const [tab, setTab] = useState('CONFIRMED');
   const [loading, setLoading] = useState(true);
   const [sessions, setSessions] = useState([]);
+  const [policyVisible, setPolicyVisible] = useState(false);
   const navigation = useNavigation();
   const dispatch = useDispatch<any>();
   const { user, rider } = useSelector((state: any) => state.getData);
@@ -133,7 +134,8 @@ export default function BookingsScreen() {
   };
 
   const confirmedSessions = sessions.filter(s => {
-    const isJoined = rider?.joinedSessions?.includes(s.id);
+    const joinedArray = rider?.joined_sessions || rider?.joinedSessions || [];
+    const isJoined = joinedArray.includes(s.id);
     if (!isJoined) return false;
 
     const me = s.participants?.find((p: any) =>
@@ -144,7 +146,8 @@ export default function BookingsScreen() {
   });
 
   const pendingSessions = sessions.filter(s => {
-    const isPending = rider?.pendingSessions?.includes(s.id);
+    const pendingArray = rider?.pending_sessions || rider?.pendingSessions || [];
+    const isPending = pendingArray.includes(s.id);
     if (!isPending) return false;
 
     const me = s.participants?.find((p: any) =>
@@ -154,8 +157,18 @@ export default function BookingsScreen() {
     return !isSessionPassed(bookedDate, s.timing);
   });
 
+  // Rejected: participant exists in ANY session with REJECTED status
+  const rejectedSessions = sessions.filter(s => {
+    const me = s.participants?.find((p: any) =>
+      p.riderId && currentRiderId && String(p.riderId).toLowerCase() === String(currentRiderId).toLowerCase()
+    );
+    return me?.status?.toUpperCase() === 'REJECTED';
+  });
+
   const pastSessions = sessions.filter(s => {
-    const isAssociated = rider?.joinedSessions?.includes(s.id) || rider?.pendingSessions?.includes(s.id);
+    const joinedArray = rider?.joined_sessions || rider?.joinedSessions || [];
+    const pendingArray = rider?.pending_sessions || rider?.pendingSessions || [];
+    const isAssociated = joinedArray.includes(s.id) || pendingArray.includes(s.id);
     if (!isAssociated) return false;
 
     const me = s.participants?.find((p: any) =>
@@ -169,6 +182,72 @@ export default function BookingsScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-[#F5EDDF]">
+      {/* Full Policy Bottom Sheet */}
+      <Modal
+        visible={policyVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setPolicyVisible(false)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => setPolicyVisible(false)}
+          className="flex-1 bg-black/40 justify-end"
+        >
+          <TouchableOpacity activeOpacity={1}>
+            <View className="bg-white rounded-t-3xl px-6 pt-5 pb-10">
+              {/* Handle */}
+              <View className="w-12 h-1.5 bg-[#e2e8f0] rounded-full self-center mb-5" />
+              <View className="flex-row justify-between items-center mb-5">
+                <Text className="text-[#8C4A28] font-bold text-xl">Cancellation {"&"} Rejection Policy</Text>
+                <TouchableOpacity onPress={() => setPolicyVisible(false)} className="p-1">
+                  <X color="#64748b" size={20} />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView showsVerticalScrollIndicator={false}>
+                {[
+                  {
+                    title: '⏰ Cancellation Window',
+                    body: 'You may cancel a confirmed session up to 8:00 PM of the day before the session without any penalty. Cancellations made after this deadline will count as a used session.'
+                  },
+                  {
+                    title: '💳 Refund Policy',
+                    body: 'Sessions cancelled within the allowed window will have the session credit restored to your plan balance. No monetary refunds are issued — credits are returned to your account only.'
+                  },
+                  {
+                    title: '❌ Rejection by Admin',
+                    body: 'If your booking request is rejected by an admin, the session credit is automatically restored to your plan balance within 24 hours. You may rebook any available slot.'
+                  },
+                  {
+                    title: '🚨 No-Show Policy',
+                    body: 'If you do not attend a confirmed session without prior cancellation, it will be marked as a No-Show and the session credit will not be refunded.'
+                  },
+                  {
+                    title: '🏥 Emergency Exceptions',
+                    body: 'In case of medical or personal emergencies, please contact our support team directly. Exceptions to the cancellation policy may be granted at management discretion with valid documentation.'
+                  },
+                  {
+                    title: '📅 Booking Deadline',
+                    body: 'New bookings must be made before 8:00 PM of the day prior to the session. Bookings cannot be made for sessions that have already started.'
+                  },
+                ].map((section, i) => (
+                  <View key={i} className={`mb-5 ${i > 0 ? 'pt-5 border-t border-[#f1f5f9]' : ''}`}>
+                    <Text className="text-[#1a202c] font-bold text-sm mb-1.5">{section.title}</Text>
+                    <Text className="text-[#64748b] text-xs leading-relaxed">{section.body}</Text>
+                  </View>
+                ))}
+
+                <View className="bg-[#fceddf] rounded-2xl p-4 mt-2">
+                  <Text className="text-[#8C4A28] font-bold text-xs mb-1">Need help?</Text>
+                  <Text className="text-[#64748b] text-xs leading-relaxed">Contact our support team via the Help section in the app or email us at support@zippyequestrian.com</Text>
+                </View>
+              </ScrollView>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
       {/* Header */}
       <View className="flex-row items-center px-4 py-4 bg-white">
         <TouchableOpacity onPress={() => navigation.goBack()} className="mr-4 p-2">
@@ -179,24 +258,15 @@ export default function BookingsScreen() {
 
       {/* Top Tabs */}
       <View className="flex-row bg-white border-b border-[#e2e8f0]">
-        <TouchableOpacity
-          className={`flex-1 items-center justify-center py-4 border-b-2 ${tab === 'CONFIRMED' ? 'border-[#8C4A28]' : 'border-transparent'}`}
-          onPress={() => setTab('CONFIRMED')}
-        >
-          <Text className={`font-bold text-xs ${tab === 'CONFIRMED' ? 'text-[#8C4A28]' : 'text-[#64748b]'}`}>CONFIRMED</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          className={`flex-1 items-center justify-center py-4 border-b-2 ${tab === 'PENDING' ? 'border-[#8C4A28]' : 'border-transparent'}`}
-          onPress={() => setTab('PENDING')}
-        >
-          <Text className={`font-bold text-xs ${tab === 'PENDING' ? 'text-[#8C4A28]' : 'text-[#64748b]'}`}>PENDING</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          className={`flex-1 items-center justify-center py-4 border-b-2 ${tab === 'PAST' ? 'border-[#8C4A28]' : 'border-transparent'}`}
-          onPress={() => setTab('PAST')}
-        >
-          <Text className={`font-bold text-xs ${tab === 'PAST' ? 'text-[#8C4A28]' : 'text-[#64748b]'}`}>PAST</Text>
-        </TouchableOpacity>
+        {[{ key: 'CONFIRMED', label: 'CONFIRMED' }, { key: 'PENDING', label: 'PENDING' }, { key: 'REJECTED', label: 'REJECTED' }, { key: 'PAST', label: 'PAST' }].map(t => (
+          <TouchableOpacity
+            key={t.key}
+            className={`flex-1 items-center justify-center py-4 border-b-2 ${tab === t.key ? 'border-[#8C4A28]' : 'border-transparent'}`}
+            onPress={() => setTab(t.key)}
+          >
+            <Text className={`font-bold text-[10px] ${tab === t.key ? 'text-[#8C4A28]' : 'text-[#64748b]'}`}>{t.label}</Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       {loading ? (
@@ -224,7 +294,7 @@ export default function BookingsScreen() {
                 <Text className="text-[#64748b] text-xs leading-relaxed mb-2">
                   Cancellations made within 24 hours of the session start time are non-refundable. Please contact support for emergencies or specific inquiries.
                 </Text>
-                <TouchableOpacity className="flex-row items-center text-[#8C4A28]">
+                <TouchableOpacity className="flex-row items-center" onPress={() => setPolicyVisible(true)}>
                   <Text className="text-[#8C4A28] font-bold text-xs mr-1">Full Policy</Text>
                   <ArrowUpRight color="#8C4A28" size={12} />
                 </TouchableOpacity>
@@ -238,9 +308,13 @@ export default function BookingsScreen() {
                   onChange={(event: any, selectedDate?: Date) => {
                     if (Platform.OS === 'android') setShowDatePicker(null);
                     if (selectedDate) {
+                      const year = selectedDate.getFullYear();
+                      const monthStr = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                      const dayStr = String(selectedDate.getDate()).padStart(2, '0');
+                      
                       setLeaveForm({
                         ...leaveForm,
-                        [showDatePicker]: selectedDate.toISOString().split('T')[0],
+                        [showDatePicker]: `${year}-${monthStr}-${dayStr}`,
                       });
                     }
                   }}
@@ -385,6 +459,77 @@ export default function BookingsScreen() {
             </>
           )}
 
+          {tab === 'REJECTED' && (
+            <>
+              {/* Rejection Policy Alert */}
+              <View className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-6">
+                <View className="flex-row items-center mb-2">
+                  <XCircle color="#dc2626" size={16} />
+                  <Text className="text-red-700 font-bold text-sm ml-2">Rejection Policy</Text>
+                </View>
+                <Text className="text-[#64748b] text-xs leading-relaxed mb-2">
+                  When your booking is rejected by an admin, your session credit is automatically restored. You may rebook any available slot.
+                </Text>
+                <TouchableOpacity className="flex-row items-center" onPress={() => setPolicyVisible(true)}>
+                  <Text className="text-[#8C4A28] font-bold text-xs mr-1">Full Policy</Text>
+                  <ArrowUpRight color="#8C4A28" size={12} />
+                </TouchableOpacity>
+              </View>
+
+              <View className="flex-row items-center mb-4">
+                <View className="w-1 h-5 bg-red-400 rounded mr-2" />
+                <Text className="text-[#1a202c] font-bold text-lg">Rejected Sessions</Text>
+              </View>
+
+              {rejectedSessions.length === 0 ? (
+                <View className="p-8 items-center justify-center bg-white rounded-2xl border border-[#e2e8f0] mb-4">
+                  <XCircle color="#94a3b8" size={28} />
+                  <Text className="text-[#64748b] font-bold mt-3">No rejected sessions.</Text>
+                  <Text className="text-[#94a3b8] text-xs text-center mt-1">All your bookings are in good standing!</Text>
+                </View>
+              ) : rejectedSessions.map((session: any, idx: number) => {
+                const me = session.participants?.find((p: any) =>
+                  p.riderId && currentRiderId && String(p.riderId).toLowerCase() === String(currentRiderId).toLowerCase()
+                );
+                const bookedDate = me?.date || session.date;
+                return (
+                  <View key={idx} className="bg-white rounded-2xl p-4 border border-red-100 shadow-sm mb-4">
+                    <View className="flex-row justify-between items-start mb-3">
+                      <View className="px-2 py-1 rounded bg-red-100">
+                        <Text className="font-bold text-[8px] tracking-widest uppercase text-red-600">REJECTED</Text>
+                      </View>
+                      <View className="bg-red-50 p-1.5 rounded-lg">
+                        <XCircle color="#dc2626" size={16} />
+                      </View>
+                    </View>
+
+                    <Text className="text-[#1a202c] font-bold text-lg mb-3">{session.title}</Text>
+
+                    <View className="space-y-2 mb-4 mt-2">
+                      <View className="flex-row items-center">
+                        <View className="w-6 items-center mr-1">
+                          <Calendar color="#8C4A28" size={14} />
+                        </View>
+                        <Text className="text-[#64748b] text-xs">{session.timing} • {bookedDate}</Text>
+                      </View>
+                      <View className="flex-row items-center mt-1">
+                        <View className="w-6 items-center mr-1">
+                          <UserIcon color="#8C4A28" size={14} />
+                        </View>
+                        <Text className="text-[#64748b] text-xs">Location: {session.location}</Text>
+                      </View>
+                    </View>
+
+                    <View className="h-[1px] bg-[#f1f5f9] mb-4" />
+
+                    <View className="bg-red-50 rounded-xl p-3">
+                      <Text className="text-red-600 text-xs font-bold">Your session credit has been restored to your plan balance.</Text>
+                    </View>
+                  </View>
+                );
+              })}
+            </>
+          )}
           {tab === 'PENDING' && (
             <>
               <View className="flex-row items-center mb-4">

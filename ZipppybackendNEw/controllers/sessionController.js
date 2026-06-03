@@ -23,10 +23,24 @@ const mapToDb = (data) => {
     return dbData;
 };
 
+// Allowed columns in the sessions table (DB snake_case)
+const SESSION_ALLOWED_COLS = [
+    'title', 'timing', 'date', 'trainers', 'horse_id', 'participants',
+    'duration', 'location', 'total_seats', 'note', 'status'
+];
+
+const sanitizeSessionData = (data) => {
+    const result = {};
+    for (const key of SESSION_ALLOWED_COLS) {
+        if (data[key] !== undefined) result[key] = data[key];
+    }
+    return result;
+};
+
 export const createSession = async (req, res) => {
     const { data } = req.body;
     try {
-        const dbData = mapToDb(data);
+        const dbData = sanitizeSessionData(mapToDb(data));
         const { data: newSession, error } = await supabase.from('sessions').insert(dbData).select();
         
         if (error || !newSession || newSession.length === 0) {
@@ -77,11 +91,16 @@ export const createSession = async (req, res) => {
 
 export const getSessions = async (req, res) => {
     try {
-        let { trainerId, riderId, location, horseId } = req.query;
+        let { trainerId, riderId, location, horseId, includeArchived } = req.query;
         if (riderId) riderId = riderId.replace(/\/$/, "").trim();
         if (horseId) horseId = horseId.replace(/\/$/, "").trim();
 
         let query = supabase.from('sessions').select('*');
+
+        // By default exclude archived (soft-deleted) sessions
+        if (!includeArchived || includeArchived === 'false') {
+            query = query.neq('status', 'ARCHIVED');
+        }
 
         if (trainerId) {
             const { data: trainer } = await supabase.from('trainers').select('*').eq('id', trainerId).limit(1);
@@ -127,6 +146,7 @@ export const getSessions = async (req, res) => {
     }
 };
 
+
 export const getSessionById = async (req, res) => {
     const { id } = req.params;
     try {
@@ -156,7 +176,7 @@ export const cancelBooking = async (req, res) => {
 
         const participants = session[0].participants || [];
         const updatedParticipants = participants.filter(p =>
-            !(String(p.riderId).toLowerCase() === String(riderId).toLowerCase() && p.date === date)
+            !(String(p.riderId).toLowerCase() === String(riderId).toLowerCase() && (!p.date || p.date === date))
         );
 
         const { data: updatedSession, error: updateError } = await supabase.from('sessions').update({ participants: updatedParticipants }).eq('id', id).select();
@@ -184,6 +204,57 @@ export const cancelBooking = async (req, res) => {
 
         if (riderUpdateError || !updatedRider || !updatedRider.length) {
             return res.status(404).json({ success: false, message: 'Failed to update rider info' });
+        }
+
+        // Notify admin + rider + trainer
+        try {
+            const userId = rider[0].user_id;
+            const { data: userData } = await supabase.from('users').select('name, notifications').eq('id', userId).limit(1);
+            const userName = userData && userData.length > 0 ? userData[0].name : "A rider";
+            const sessionTitle = session[0].title || "a session";
+
+            // Admin notification
+            await supabase.from('admin_notifications').insert({
+                title: "🔄 Booking Cancelled",
+                desc: `${userName} cancelled their booking for "${sessionTitle}" on ${date}.`,
+                type: "booking"
+            });
+
+            // Rider notification
+            const riderNotif = {
+                id: Math.random().toString(36).substr(2, 9),
+                title: "🔄 Booking Cancelled",
+                desc: `Your booking for "${sessionTitle}" on ${date} has been cancelled. Your session credit has been restored.`,
+                type: "booking",
+                time: "Just Now",
+                unread: true,
+                date: new Date().toISOString()
+            };
+            const notifs = userData && userData.length > 0 ? (userData[0].notifications || []) : [];
+            await supabase.from('users').update({ notifications: [...notifs, riderNotif] }).eq('id', userId);
+
+            // Trainer notification
+            const trainerRowId = session[0].trainers;
+            if (trainerRowId) {
+                const { data: trainerRow } = await supabase.from('trainers').select('user_id').eq('id', trainerRowId).limit(1);
+                if (trainerRow && trainerRow.length > 0) {
+                    const trainerUserId = trainerRow[0].user_id;
+                    const { data: trainerUser } = await supabase.from('users').select('notifications').eq('id', trainerUserId).limit(1);
+                    const tNotifs = trainerUser && trainerUser.length > 0 ? (trainerUser[0].notifications || []) : [];
+                    const trainerNotif = {
+                        id: Math.random().toString(36).substr(2, 9),
+                        title: "🔄 Booking Cancelled",
+                        desc: `${userName} cancelled their booking for "${sessionTitle}" on ${date}.`,
+                        time: "Just Now",
+                        type: "booking",
+                        unread: true,
+                        date: new Date().toISOString()
+                    };
+                    await supabase.from('users').update({ notifications: [...tNotifs, trainerNotif] }).eq('id', trainerUserId);
+                }
+            }
+        } catch (notifErr) {
+            console.error("Failed to send cancellation notifications:", notifErr);
         }
 
         return res.status(200).json({ success: true, session: mapToClient(updatedSession[0]), rider: updatedRider[0] });
@@ -234,8 +305,9 @@ export const updateSession = async (req, res) => {
                 )
             );
 
+            let bookingDateStr = "";
             for (const booking of addedBookings) {
-                const bookingDateStr = booking.date;
+                bookingDateStr = booking.date;
                 if (!bookingDateStr) continue;
 
                 const [year, month, day] = bookingDateStr.split('-').map(Number);
@@ -268,6 +340,20 @@ export const updateSession = async (req, res) => {
                 return res.status(404).json({ success: false, message: 'Rider not found' });
             }
 
+            // Notify admin
+            try {
+                const { data: userData } = await supabase.from('users').select('name').eq('id', userId).limit(1);
+                const userName = userData && userData.length > 0 ? userData[0].name : "A rider";
+                const sessionTitle = session[0].title || "a session";
+                await supabase.from('admin_notifications').insert({
+                    title: "🆕 New Booking Request",
+                    desc: `${userName} has requested to book "${sessionTitle}"${bookingDateStr ? ' for ' + bookingDateStr : ''}.`,
+                    type: "booking"
+                });
+            } catch (notifErr) {
+                console.error("Failed to insert admin notification for booking request:", notifErr);
+            }
+
             return res.status(200).json({
                 success: true,
                 message: "Rider Updated successfully",
@@ -276,11 +362,49 @@ export const updateSession = async (req, res) => {
             });
         }
 
+        const { data: oldSession } = await supabase.from('sessions').select('*').eq('id', id).limit(1);
         const dbData = mapToDb(data);
+
+        // === BACKEND DEBUG ===
+        console.log('=== updateSession BACKEND DEBUG ===');
+        console.log('Session id:', id);
+        console.log('Input data keys:', Object.keys(data || {}));
+        console.log('dbData being written:', JSON.stringify(dbData));
+        // ====================
+
         const { data: updatedSession, error } = await supabase.from('sessions').update(dbData).eq('id', id).select();
+        console.log('updateSession DB result - count:', updatedSession?.length, '| error:', error?.message || 'none');
         if (error || !updatedSession || !updatedSession.length) {
-            return res.status(404).json({ success: false, message: 'Session not found' });
+            return res.status(404).json({ success: false, message: `Session not found. id="${id}" dbError="${error ? error.message : 'no rows returned'}"` });
         }
+
+
+        // Notify trainer if assigned or changed
+        try {
+            const oldTrainerId = oldSession && oldSession.length > 0 ? oldSession[0].trainers : null;
+            const newTrainerId = updatedSession[0].trainers;
+            if (newTrainerId && newTrainerId !== oldTrainerId) {
+                const { data: trainerRow } = await supabase.from('trainers').select('user_id').eq('id', newTrainerId).limit(1);
+                if (trainerRow && trainerRow.length > 0) {
+                    const trainerUserId = trainerRow[0].user_id;
+                    const { data: trainerUser } = await supabase.from('users').select('notifications').eq('id', trainerUserId).limit(1);
+                    const tNotifs = trainerUser && trainerUser.length > 0 ? (trainerUser[0].notifications || []) : [];
+                    const trainerNotif = {
+                        id: Math.random().toString(36).substr(2, 9),
+                        title: "🆕 Assigned to Session",
+                        desc: `You have been assigned to session "${updatedSession[0].title || 'Training'}" scheduled on ${updatedSession[0].date}.`,
+                        time: "Just Now",
+                        type: "booking",
+                        unread: true,
+                        date: new Date().toISOString()
+                    };
+                    await supabase.from('users').update({ notifications: [...tNotifs, trainerNotif] }).eq('id', trainerUserId);
+                }
+            }
+        } catch (notifErr) {
+            console.error("Failed to notify trainer of session assignment change:", notifErr);
+        }
+
         return res.status(200).json({ success: true, session: mapToClient(updatedSession[0]) });
 
     } catch (error) {
@@ -291,15 +415,62 @@ export const updateSession = async (req, res) => {
 export const deleteSession = async (req, res) => {
     const { id } = req.params;
     try {
-        const { data: deletedSession, error } = await supabase.from('sessions').delete().eq('id', id).select();
-        if (error || !deletedSession || !deletedSession.length) {
+        // SOFT DELETE: archive the session instead of destroying it
+        // This preserves full history (participants, attendance, remarks)
+        const { data: session, error: fetchError } = await supabase
+            .from('sessions')
+            .select('*')
+            .eq('id', id)
+            .limit(1);
+
+        if (fetchError || !session || !session.length) {
             return res.status(404).json({ success: false, message: 'Session not found' });
         }
-        res.status(200).json({ success: true, message: 'Session deleted successfully' });
+
+        const { data: archivedSession, error: archiveError } = await supabase
+            .from('sessions')
+            .update({
+                status: 'ARCHIVED',
+                note: `${session[0].note ? session[0].note + ' | ' : ''}[Deleted by admin on ${new Date().toISOString().split('T')[0]}]`
+            })
+            .eq('id', id)
+            .select();
+
+        if (archiveError || !archivedSession || !archivedSession.length) {
+            return res.status(500).json({ success: false, message: 'Failed to archive session' });
+        }
+
+        // Notify trainer (same as before)
+        try {
+            const trainerRowId = session[0].trainers;
+            if (trainerRowId) {
+                const { data: trainerRow } = await supabase.from('trainers').select('user_id').eq('id', trainerRowId).limit(1);
+                if (trainerRow && trainerRow.length > 0) {
+                    const trainerUserId = trainerRow[0].user_id;
+                    const { data: trainerUser } = await supabase.from('users').select('notifications').eq('id', trainerUserId).limit(1);
+                    const tNotifs = trainerUser && trainerUser.length > 0 ? (trainerUser[0].notifications || []) : [];
+                    const trainerNotif = {
+                        id: Math.random().toString(36).substr(2, 9),
+                        title: "🚫 Session Cancelled",
+                        desc: `Session "${session[0].title || 'Training'}" scheduled on ${session[0].date} has been deleted/cancelled by admin.`,
+                        time: "Just Now",
+                        type: "alert",
+                        unread: true,
+                        date: new Date().toISOString()
+                    };
+                    await supabase.from('users').update({ notifications: [...tNotifs, trainerNotif] }).eq('id', trainerUserId);
+                }
+            }
+        } catch (notifErr) {
+            console.error("Failed to notify trainer of deleted session:", notifErr);
+        }
+
+        res.status(200).json({ success: true, message: 'Session archived (soft-deleted) successfully', session: mapToClient(archivedSession[0]) });
     } catch (error) {
         res.status(500).json({ success: false, message: `Error: ${error.message}` });
     }
 };
+
 
 export const updateSessionStatus = async (req, res) => {
     const { userId, sessionId } = req.params;
@@ -327,6 +498,102 @@ export const updateSessionStatus = async (req, res) => {
                     joined_sessions: [...joinedSessions, sessionId],
                     pending_sessions: pendingSessions.filter(p => p !== sessionId)
                 }).eq('id', userId);
+
+                // Send confirmation notification to rider
+                try {
+                    const riderUserId = rider[0].user_id;
+                    const { data: user } = await supabase.from('users').select('name, notifications').eq('id', riderUserId).limit(1);
+                    const riderNameVal = user && user.length > 0 ? user[0].name : "A rider";
+                    const notifs = user && user.length > 0 ? (user[0].notifications || []) : [];
+                    const newNotif = {
+                        id: Math.random().toString(36).substr(2, 9),
+                        title: "✅ Booking Confirmed!",
+                        desc: `Your session "${session[0].title || 'Training'}" has been confirmed. See you at the stable!`,
+                        time: "Just Now",
+                        type: "booking",
+                        unread: true,
+                        date: new Date().toISOString()
+                    };
+                    await supabase.from('users').update({ notifications: [...notifs, newNotif] }).eq('id', riderUserId);
+
+                    // Trainer notification
+                    const trainerRowId = session[0].trainers;
+                    if (trainerRowId) {
+                        const { data: trainerRow } = await supabase.from('trainers').select('user_id').eq('id', trainerRowId).limit(1);
+                        if (trainerRow && trainerRow.length > 0) {
+                            const trainerUserId = trainerRow[0].user_id;
+                            const { data: trainerUser } = await supabase.from('users').select('notifications').eq('id', trainerUserId).limit(1);
+                            const tNotifs = trainerUser && trainerUser.length > 0 ? (trainerUser[0].notifications || []) : [];
+                            const trainerNotif = {
+                                id: Math.random().toString(36).substr(2, 9),
+                                title: "✅ Booking Confirmed",
+                                desc: `Booking request of ${riderNameVal} for session "${session[0].title || 'Training'}" has been confirmed.`,
+                                time: "Just Now",
+                                type: "booking",
+                                unread: true,
+                                date: new Date().toISOString()
+                            };
+                            await supabase.from('users').update({ notifications: [...tNotifs, trainerNotif] }).eq('id', trainerUserId);
+                        }
+                    }
+                } catch (err) {
+                    console.error("Confirmation notification failed:", err);
+                }
+            }
+        }
+
+        if (status.toLowerCase() === "rejected") {
+            const { data: rider, error: riderError } = await supabase.from('rider').select('*').eq('id', userId).limit(1);
+            if (!riderError && rider && rider.length > 0) {
+                const currentCount = rider[0].session_count || 0;
+                const joinedSessions = rider[0].joined_sessions || rider[0].joinedSessions || [];
+                const pendingSessions = rider[0].pending_sessions || rider[0].pendingSessions || [];
+                await supabase.from('rider').update({
+                    session_count: currentCount + 1,
+                    joined_sessions: joinedSessions.filter(s => s !== sessionId),
+                    pending_sessions: pendingSessions.filter(s => s !== sessionId),
+                }).eq('id', userId);
+
+                // Send rejection notification to rider
+                try {
+                    const riderUserId = rider[0].user_id;
+                    const { data: user } = await supabase.from('users').select('name, notifications').eq('id', riderUserId).limit(1);
+                    const riderNameVal = user && user.length > 0 ? user[0].name : "A rider";
+                    const notifs = user && user.length > 0 ? (user[0].notifications || []) : [];
+                    const newNotif = {
+                        id: Math.random().toString(36).substr(2, 9),
+                        title: "❌ Booking Rejected",
+                        desc: `Your booking for "${session[0].title || 'Training'}" was rejected. Your session credit has been restored.`,
+                        time: "Just Now",
+                        type: "booking",
+                        unread: true,
+                        date: new Date().toISOString()
+                    };
+                    await supabase.from('users').update({ notifications: [...notifs, newNotif] }).eq('id', riderUserId);
+
+                    // Trainer notification
+                    const trainerRowId = session[0].trainers;
+                    if (trainerRowId) {
+                        const { data: trainerRow } = await supabase.from('trainers').select('user_id').eq('id', trainerRowId).limit(1);
+                        if (trainerRow && trainerRow.length > 0) {
+                            const trainerUserId = trainerRow[0].user_id;
+                            const { data: trainerUser } = await supabase.from('users').select('notifications').eq('id', trainerUserId).limit(1);
+                            const tNotifs = trainerUser && trainerUser.length > 0 ? (trainerUser[0].notifications || []) : [];
+                            const trainerNotif = {
+                                id: Math.random().toString(36).substr(2, 9),
+                                title: "❌ Booking Rejected",
+                                desc: `Booking request of ${riderNameVal} for session "${session[0].title || 'Training'}" was rejected.`,
+                                time: "Just Now",
+                                type: "alert",
+                                unread: true,
+                                date: new Date().toISOString()
+                            };
+                            await supabase.from('users').update({ notifications: [...tNotifs, trainerNotif] }).eq('id', trainerUserId);
+                        }
+                    }
+                } catch (err) {
+                    console.error("Rejection notification failed:", err);
+                }
             }
         }
         
@@ -341,26 +608,68 @@ export const updateSessionStatus = async (req, res) => {
 };
 
 export const updateAttendance = async (req, res) => {
-    const { riderId, sessionId } = req.params;
+    // Trim to avoid trailing-slash or whitespace issues from URL params
+    const sessionId = (req.params.sessionId || '').trim().replace(/\/$/, '');
+    const riderId = (req.params.riderId || '').trim().replace(/\/$/, '');
     const { data } = req.body;
-    const { status } = data;
+    const { status } = data || {};
+
+    // === BACKEND DEBUG LOGS ===
+    console.log('=== updateAttendance BACKEND DEBUG ===');
+    console.log('req.query (raw):', JSON.stringify(req.query));
+    console.log('req.params (set):', JSON.stringify(req.params));
+    console.log('Parsed sessionId:', sessionId);
+    console.log('Parsed riderId:', riderId);
+    console.log('Parsed status:', status);
+    console.log('req.body:', JSON.stringify(req.body));
+    // ==========================
+
+    if (!sessionId || !riderId || !status) {
+        return res.status(400).json({
+            success: false,
+            message: `Missing required fields. sessionId: "${sessionId}", riderId: "${riderId}", status: "${status}"`
+        });
+    }
+
     try {
+        console.log('Querying DB for session id:', sessionId);
         const { data: session, error } = await supabase.from('sessions').select('*').eq('id', sessionId).limit(1);
+        console.log('DB query result - session count:', session?.length, '| error:', error?.message || 'none');
         if (error || !session || !session.length) {
-            return res.status(404).json({ success: false, message: 'Session not found' });
+            return res.status(404).json({
+                success: false,
+                message: `Session not found. sessionId="${sessionId}" dbError="${error ? error.message : 'none'}"`
+            });
         }
 
         const allParticipants = session[0].participants || [];
+        let matched = false;
         allParticipants.forEach(participant => {
-            if (participant.riderId === riderId) {
+            // Case-insensitive match to handle any casing inconsistencies
+            if (String(participant.riderId || '').toLowerCase() === riderId.toLowerCase()) {
                 participant.attendance = status;
+                matched = true;
             }
         });
-        
-        const { data: updatedSession, error: updateError } = await supabase.from('sessions').update({ participants: allParticipants }).eq('id', sessionId).select();
-        if (updateError || !updatedSession || !updatedSession.length) {
-            return res.status(404).json({ success: false, message: 'Session not found' });
+
+        if (!matched) {
+            // Rider not found in participants — still update gracefully
+            console.warn(`updateAttendance: riderId "${riderId}" not found in session participants. Participants:`, allParticipants.map(p => p.riderId));
         }
+
+        const { data: updatedSession, error: updateError } = await supabase
+            .from('sessions')
+            .update({ participants: allParticipants })
+            .eq('id', sessionId)
+            .select();
+
+        if (updateError || !updatedSession || !updatedSession.length) {
+            return res.status(500).json({
+                success: false,
+                message: `Failed to update attendance. ${updateError ? updateError.message : 'No data returned'}`
+            });
+        }
+
         res.status(200).json({ success: true, session: mapToClient(updatedSession[0]) });
     } catch (error) {
         res.status(500).json({ success: false, message: `Error: ${error.message}` });

@@ -1,10 +1,39 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, ActivityIndicator, Alert, Platform, RefreshControl } from 'react-native';
 import { ArrowLeft, Calendar, MapPin, Clock, CheckCircle2, XCircle, AlertTriangle, CalendarOff, CalendarRange, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiFunction } from '../api/apiFunction';
-import { getSessionsByTrainerApi, getUserApi, updateAttendanceApi, updateLeaveApi, updateLeaveRequestApi, updateSessionApi } from '../api/api';
+import { getSessionsByTrainerApi, getAllTrainersApi, getUserApi, updateAttendanceApi, updateLeaveApi, updateLeaveRequestApi, updateSessionApi } from '../api/api';
 import RNDateTimePicker from '@react-native-community/datetimepicker';
+
+const formatTimeWithAMPM = (timeStr: string) => {
+  if (!timeStr) return '';
+  const parts = timeStr.trim().split(':');
+  if (parts.length >= 2) {
+    let hours = parseInt(parts[0], 10);
+    const minutes = parts[1];
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12; // the hour '0' should be '12'
+    const formattedHours = hours < 10 ? `0${hours}` : hours;
+    return `${formattedHours}:${minutes} ${ampm}`;
+  }
+  return timeStr;
+};
+
+const formatDate = (dateStr: string) => {
+  if (!dateStr) return '';
+  if (dateStr.toLowerCase() === 'daily') return 'Daily';
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthIndex = parseInt(parts[1], 10) - 1;
+    if (monthIndex >= 0 && monthIndex < 12) {
+      return `${months[monthIndex]} ${parts[2]}`;
+    }
+  }
+  return dateStr;
+};
 
 export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
   const [sessions, setSessions] = useState<any[]>([]);
@@ -18,7 +47,14 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
   const [trainerData, setTrainerData] = useState<any>(null);
   const [showLeaveForm, setShowLeaveForm] = useState(false);
   const [leaveRequests, setLeaveRequests] = useState<any[]>([]);
-  const [showDatePicker, setShowDatePicker] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([fetchSessions(), fetchTrainerData()]);
+    setRefreshing(false);
+  };
+  const [showDatePicker, setShowDatePicker] = useState<'startDate' | 'endDate' | null>(null);
   const [date, setDate] = useState(new Date());
   const [leaveForm, setLeaveForm] = useState({
     reason: '',
@@ -27,11 +63,45 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
     status: 'pending',
   });
   const [requesting, setRequesting] = useState(false);
+  const [selectedAttendanceDate, setSelectedAttendanceDate] = useState<string | null>(new Date().toISOString().split('T')[0]);
+  const [showAttendanceDatePicker, setShowAttendanceDatePicker] = useState(false);
+
+  const filteredSessions = sessions.filter(s => {
+    if (!selectedAttendanceDate) return true;
+    const sessionDate = s.date?.includes('T') ? s.date.split('T')[0] : s.date;
+    return sessionDate === selectedAttendanceDate || sessionDate === "daily";
+  });
 
   useEffect(() => {
     fetchSessions();
     fetchTrainerData();
   }, []);
+
+  useEffect(() => {
+    if (filteredSessions.length > 0) {
+      const stillValid = filteredSessions.some(s => s.id === selectedSessionId);
+      if (!stillValid) {
+        handleSessionSwitch(filteredSessions[0].id);
+      }
+    } else {
+      setSelectedSessionId(null);
+      setAttendance({});
+      setRemarks("");
+    }
+  }, [selectedAttendanceDate, sessions]);
+
+  const handleSessionSwitch = (sessionId: string) => {
+    setSelectedSessionId(sessionId);
+    const session = sessions.find(s => s.id === sessionId);
+    if (session) {
+      const initialAttendance: Record<string, any> = {};
+      session.participants?.forEach((p: any) => {
+        initialAttendance[p.riderId] = p.status;
+      });
+      setAttendance(initialAttendance);
+      setRemarks(session.note || "");
+    }
+  };
 
   const fetchTrainerData = async () => {
     try {
@@ -56,33 +126,42 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
     try {
       const userData = await AsyncStorage.getItem('user');
       if (!userData) {
-        Alert.alert("Error", "User details not found. Please log in again.");
+        Alert.alert('Error', 'User details not found. Please log in again.');
         return;
       }
-      const user = JSON.parse(userData);
-      const trainerId = user.trainerId;
+      const currentUser = JSON.parse(userData);
 
-      if (!trainerId) {
-        Alert.alert("Error", "Trainer profile not linked.");
+      // Fetch latest user from API to get correct id
+      const userRes = await apiFunction(getUserApi, [], {}, 'GET', true);
+      const userId = userRes?.success ? userRes.user?.id : currentUser.id;
+
+      if (!userId) {
+        Alert.alert('Error', 'Could not resolve user identity.');
         return;
       }
 
-      const res = await apiFunction(getSessionsByTrainerApi(trainerId), [], {}, "GET", true);
-      if (res && res.success) {
+      // Find trainer record by userId (same pattern as HomeScreen)
+      const trainerRes = await apiFunction(getAllTrainersApi, [], {}, 'GET', true);
+      if (!trainerRes?.success) {
+        Alert.alert('Error', 'Could not load trainer data.');
+        return;
+      }
+
+      const foundTrainer = trainerRes.trainers.find(
+        (t: any) => (t.userId || t.user_id) === userId
+      );
+
+      if (!foundTrainer) {
+        Alert.alert('Error', 'Trainer profile not found for this account.');
+        return;
+      }
+
+      const res = await apiFunction(getSessionsByTrainerApi(foundTrainer.id), [], {}, 'GET', true);
+      if (res?.success) {
         setSessions(res.sessions || []);
-        if (res.sessions.length > 0) {
-          setSelectedSessionId(res.sessions[0].id);
-          // Initialize attendance from session participants if they exist
-          const initialAttendance: Record<string, any> = {};
-          res.sessions[0].participants?.forEach((p: any) => {
-            initialAttendance[p.riderId] = p.status;
-          });
-          setAttendance(initialAttendance);
-          setRemarks(res.sessions[0].note || "");
-        }
       }
     } catch (error) {
-      console.error("Fetch sessions error:", error);
+      console.error('Fetch sessions error:', error);
     } finally {
       setLoading(false);
     }
@@ -91,11 +170,42 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
   const currentSession = sessions.find(s => s.id === selectedSessionId);
 
   const handleAttendance = async (riderId: string, sessionId: string, status: 'present' | 'noshow') => {
-    console.log(sessionId, riderId, status)
-    const res = await apiFunction(updateAttendanceApi, [sessionId, riderId], { status }, "PUT", true);
-    console.log(res, "ress")
-    if (res && res.success) {
-      setAttendance(prev => ({ ...prev, [riderId]: status }));
+    const resolvedSessionId = sessionId || currentSession?.id || '';
+
+    // === DEBUG LOGS ===
+    console.log('=== handleAttendance DEBUG ===');
+    console.log('Input sessionId:', sessionId);
+    console.log('Input riderId:', riderId);
+    console.log('Input status:', status);
+    console.log('currentSession:', JSON.stringify(currentSession));
+    console.log('selectedSessionId state:', selectedSessionId);
+    console.log('resolvedSessionId:', resolvedSessionId);
+    console.log('All sessions IDs:', sessions.map((s: any) => s.id));
+    console.log('Full API URL will be:', `${updateAttendanceApi}/${resolvedSessionId}/${riderId}`);
+    // ==================
+
+    if (!resolvedSessionId) {
+      Alert.alert('Error', 'No session selected.');
+      return;
+    }
+    if (!riderId) {
+      Alert.alert('Error', 'Rider ID missing.');
+      return;
+    }
+    // Optimistic UI update
+    setAttendance(prev => ({ ...prev, [riderId]: status }));
+    const res = await apiFunction(
+      updateAttendanceApi,
+      [resolvedSessionId, riderId],
+      { status },
+      'PUT',
+      true
+    );
+    console.log('updateAttendance API response:', JSON.stringify(res));
+    if (!res?.success) {
+      // Revert on failure
+      setAttendance(prev => ({ ...prev, [riderId]: null }));
+      Alert.alert('Error', res?.message || 'Failed to update attendance. Please try again.');
     }
   };
 
@@ -104,30 +214,34 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
 
     setSaving(true);
     try {
+      // Build updated participants with latest attendance marks
       const updatedParticipants = currentSession.participants.map((p: any) => ({
         ...p,
-        status: attendance[p.riderId] || p.status
+        attendance: attendance[p.riderId] || p.attendance || null
       }));
 
-      const res = await apiFunction(updateSessionApi, [selectedSessionId], {
-        data: {
-          participants: updatedParticipants,
-          note: remarks
-        }
-      }, "PUT", true);
+      // apiFunction wraps body as { data: body }, so pass the object directly
+      const res = await apiFunction(
+        updateSessionApi,
+        [selectedSessionId],
+        { participants: updatedParticipants, note: remarks, status: 'COMPLETED' },
+        'PUT',
+        true
+      );
 
       if (res && res.success) {
-        Alert.alert("Success", "Session attendance saved successfully.");
+        Alert.alert('✅ Done', 'Session attendance saved and marked as completed.');
         fetchSessions();
       } else {
-        Alert.alert("Error", res?.message || "Failed to save session.");
+        Alert.alert('Error', res?.message || 'Failed to save session.');
       }
     } catch (error) {
-      Alert.alert("Error", "An unexpected error occurred.");
+      Alert.alert('Error', 'An unexpected error occurred.');
     } finally {
       setSaving(false);
     }
   };
+
 
   const handleRequestLeave = async () => {
     if (!leaveForm.startDate || !leaveForm.endDate || !leaveForm.reason) {
@@ -143,7 +257,12 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
     setRequesting(true);
     try {
       const res = await apiFunction(updateLeaveApi, [userId], {
-        leaves: leaveForm
+        leaves: {
+          ...leaveForm,
+          id: Math.random().toString(36).substr(2, 9),
+          submittedAt: new Date().toISOString(),
+          status: 'pending'
+        }
       }, "PUT", true);
 
       if (res && res.success) {
@@ -153,6 +272,7 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
           reason: '',
           startDate: '',
           endDate: '',
+          status: 'pending',
         });
         fetchTrainerData();
       } else {
@@ -231,27 +351,74 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
         <View className="flex-1 justify-center items-center p-10">
           <CalendarOff size={64} color="#94a3b8" />
           <Text className="mt-6 text-[#1a202c] text-xl font-bold text-center">No Sessions Scheduled</Text>
-          <Text className="mt-2 text-[#64748b] text-center">You don't have any assigned riding sessions for today.</Text>
+          <Text className="mt-2 text-[#64748b] text-center">You don't have any assigned riding sessions.</Text>
         </View>
-      ) : activeTab === "Attendance" && <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+      ) : activeTab === "Attendance" && <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false} refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8C4A28" />
+      }>
+        {/* Date Filter Bar */}
+        <View className="flex-row justify-between items-center mb-6">
+           <TouchableOpacity
+              onPress={() => setShowAttendanceDatePicker(true)}
+              className="bg-white border border-[#e2e8f0] px-5 py-4 rounded-2xl flex-row items-center shadow-sm flex-1 mr-3"
+           >
+              <Calendar color="#8C4A28" size={18} className="mr-2" />
+              <Text className="text-[#1a202c] font-bold text-sm">
+                 {selectedAttendanceDate ? `Date: ${selectedAttendanceDate}` : "Show All Dates"}
+              </Text>
+           </TouchableOpacity>
+           {selectedAttendanceDate && (
+              <TouchableOpacity
+                 onPress={() => setSelectedAttendanceDate(null)}
+                 className="bg-[#e6d0b3] px-4 py-3.5 rounded-2xl"
+              >
+                 <Text className="text-[#8C4A28] font-bold text-xs">Clear Filter</Text>
+              </TouchableOpacity>
+           )}
+        </View>
+
+        {showAttendanceDatePicker && (
+           <RNDateTimePicker
+              value={selectedAttendanceDate ? new Date(selectedAttendanceDate) : new Date()}
+              mode="date"
+              display="default"
+              onChange={(event, selectedDate) => {
+                 setShowAttendanceDatePicker(false);
+                 if (selectedDate) {
+                    const formatted = selectedDate.toISOString().split('T')[0];
+                    setSelectedAttendanceDate(formatted);
+                 }
+              }}
+           />
+        )}
+
         {/* Session Selector */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-6">
-          {sessions.map(session => (
-            <TouchableOpacity
-              key={session.id}
-              onPress={() => setSelectedSessionId(session.id)}
-              className={`mr-3 px-4 py-3 rounded-2xl border ${selectedSessionId === session.id ? 'bg-[#8C4A28] border-[#8C4A28]' : 'bg-white border-[#e2e8f0]'
-                }`}
-            >
-              <Text className={`font-bold ${selectedSessionId === session.id ? 'text-white' : 'text-[#1a202c]'}`}>
-                {session.timing ? (session.timing.includes(',') ? session.timing.split(',')[1].split('-')[0].trim() : session.timing.split('-')[0].trim()) : 'N/A'}
-              </Text>
-              <Text className={`text-xs mt-1 ${selectedSessionId === session.id ? 'text-[#e6d0b3]' : 'text-[#64748b]'}`}>
-                {session.title}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        {filteredSessions.length === 0 ? (
+           <View className="bg-white/50 border border-dashed border-[#e2e8f0] rounded-3xl p-8 items-center justify-center mb-6">
+              <Text className="text-[#94a3b8] font-bold text-center">No sessions scheduled for this date</Text>
+           </View>
+        ) : (
+           <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-6">
+             {filteredSessions.map(session => (
+               <TouchableOpacity
+                 key={session.id}
+                 onPress={() => handleSessionSwitch(session.id)}
+                 className={`mr-3 px-4 py-3 rounded-2xl border ${selectedSessionId === session.id ? 'bg-[#8C4A28] border-[#8C4A28]' : 'bg-white border-[#e2e8f0]'
+                   }`}
+               >
+                  <Text className={`font-bold ${selectedSessionId === session.id ? 'text-white' : 'text-[#1a202c]'}`}>
+                    {session.timing ? formatTimeWithAMPM(session.timing.includes(',') ? session.timing.split(',')[1].split('-')[0].trim() : session.timing.split('-')[0].trim()) : 'N/A'}
+                  </Text>
+                  <Text className={`text-[10px] font-semibold mt-0.5 ${selectedSessionId === session.id ? 'text-[#e6d0b3]' : 'text-[#8C4A28]'}`}>
+                    {formatDate(session.date)}
+                  </Text>
+                  <Text className={`text-xs mt-1 ${selectedSessionId === session.id ? 'text-[#e6d0b3]' : 'text-[#64748b]'}`}>
+                    {session.title}
+                  </Text>
+               </TouchableOpacity>
+             ))}
+           </ScrollView>
+        )}
 
         {/* Session Details Card */}
         <View className="bg-white rounded-3xl p-4 shadow-sm border border-[#e2e8f0] mb-6">
@@ -353,25 +520,36 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
           </View>
         </View>
 
-        {/* Action Button */}
-        <TouchableOpacity
-          className={`w-full py-4 rounded-xl items-center flex-row justify-center mb-3 ${saving ? 'bg-[#94a3b8]' : 'bg-[#8C4A28]'}`}
-          onPress={handleSaveSession}
-          disabled={saving}
-        >
-          {saving ? <ActivityIndicator size="small" color="white" /> : <CheckCircle2 color="white" size={20} className="mr-2" />}
-          <Text className="text-white font-bold text-lg ml-2">{saving ? 'Saving...' : 'Complete & Save Session'}</Text>
-        </TouchableOpacity>
+        {/* Action Button — hidden when session already completed */}
+        {currentSession?.status === 'COMPLETED' ? (
+          <View className="w-full py-4 rounded-xl items-center flex-row justify-center mb-3 bg-green-50 border border-green-200">
+            <CheckCircle2 color="#16a34a" size={20} />
+            <Text className="text-green-700 font-bold text-lg ml-2">Session Completed</Text>
+          </View>
+        ) : (
+          <TouchableOpacity
+            className={`w-full py-4 rounded-xl items-center flex-row justify-center mb-3 ${saving ? 'bg-[#94a3b8]' : 'bg-[#8C4A28]'}`}
+            onPress={handleSaveSession}
+            disabled={saving}
+          >
+            {saving ? <ActivityIndicator size="small" color="white" /> : <CheckCircle2 color="white" size={20} className="mr-2" />}
+            <Text className="text-white font-bold text-lg ml-2">{saving ? 'Saving...' : 'Complete & Save Session'}</Text>
+          </TouchableOpacity>
+        )}
 
         <Text className="text-center text-[#94a3b8] text-xs font-semibold mb-6">
-          Saving will notify riders and update their training logs.
+          {currentSession?.status === 'COMPLETED'
+            ? 'This session has been completed and logged.'
+            : 'Saving will notify riders and update their training logs.'}
         </Text>
 
       </ScrollView>}
 
 
       {activeTab === "Apply Leave" &&
-        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false} refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8C4A28" />
+        }>
           {!showLeaveForm ? (
             <>
               <TouchableOpacity
@@ -451,47 +629,50 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
 
               <View className="flex-row gap-4 mb-6">
                 <View className="flex-1">
-
                   <Text className="text-[#94a3b8] text-[10px] font-bold tracking-widest uppercase mb-2 ml-1">Start Date</Text>
-                  {/* <TouchableOpacity onPress={() => setShowDatePicker('startDate')}> */}
-
-                    <TextInput
-                      value={leaveForm.startDate}
-                      onChangeText={t => setLeaveForm({ ...leaveForm, startDate: t })}
-                      placeholder="YYYY-MM-DD"
-                      className="bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl px-4 py-4 text-[#1a202c] font-bold"
-                    />
-                  {/* </TouchableOpacity> */}
+                  <TouchableOpacity onPress={() => setShowDatePicker('startDate')}>
+                    <View pointerEvents="none">
+                      <TextInput
+                        value={leaveForm.startDate}
+                        placeholder="YYYY-MM-DD"
+                        className="bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl px-4 py-4 text-[#1a202c] font-bold"
+                        editable={false}
+                      />
+                    </View>
+                  </TouchableOpacity>
                 </View>
                 <View className="flex-1">
                   <Text className="text-[#94a3b8] text-[10px] font-bold tracking-widest uppercase mb-2 ml-1">End Date</Text>
-                  {/* <TouchableOpacity onPress={() => setShowDatePicker('endDate')}> */}
-                    <TextInput
-                      value={leaveForm.endDate}
-                      onChangeText={t => setLeaveForm({ ...leaveForm, endDate: t })}
-                      placeholder="YYYY-MM-DD"
-                      className="bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl px-4 py-4 text-[#1a202c] font-bold"
-                    />
-                  {/* </TouchableOpacity> */}
+                  <TouchableOpacity onPress={() => setShowDatePicker('endDate')}>
+                    <View pointerEvents="none">
+                      <TextInput
+                        value={leaveForm.endDate}
+                        placeholder="YYYY-MM-DD"
+                        className="bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl px-4 py-4 text-[#1a202c] font-bold"
+                        editable={false}
+                      />
+                    </View>
+                  </TouchableOpacity>
                 </View>
               </View>
 
-              {/* {showDatePicker && (
+              {showDatePicker && (
                 <RNDateTimePicker
-                  value={date}
+                  value={leaveForm[showDatePicker] ? new Date(leaveForm[showDatePicker]) : new Date()}
+                  mode="date"
                   display="default"
-                  onValueChange={(event, date) => {
-                    setShowDatePicker(false);
-                    if (date) {
-                      setLeaveForm({
-                        ...leaveForm,
-                        [showDatePicker]: date.toISOString().split('T')[0],
-                    
-                      });
+                  onChange={(event, selectedDate) => {
+                    setShowDatePicker(null);
+                    if (selectedDate) {
+                      const formatted = selectedDate.toISOString().split('T')[0];
+                      setLeaveForm(prev => ({
+                        ...prev,
+                        [showDatePicker]: formatted
+                      }));
                     }
                   }}
                 />
-              )} */}
+              )}
 
 
 
@@ -509,7 +690,9 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
       }
 
       {activeTab === "Leave Requests" &&
-        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false} refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8C4A28" />
+        }>
           <View className="flex-row justify-between items-center mb-6">
             <Text className="text-xl font-bold text-[#1a202c]">Leave Requests</Text>
             <View className="bg-[#8C4A28] px-3 py-1.5 rounded-lg">

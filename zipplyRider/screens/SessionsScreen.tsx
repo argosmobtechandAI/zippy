@@ -32,11 +32,15 @@ export default function SessionsScreen() {
         continue;
       }
 
+      const year = d.getFullYear();
+      const monthStr = String(d.getMonth() + 1).padStart(2, '0');
+      const dayStr = String(d.getDate()).padStart(2, '0');
+
       dates.push({
         day: months[d.getMonth()],
         date: d.getDate().toString(),
         weekday: weekdaysNames[dayOfWeek],
-        fullDate: d.toISOString().split('T')[0]
+        fullDate: `${year}-${monthStr}-${dayStr}`
       });
 
       addedCount++;

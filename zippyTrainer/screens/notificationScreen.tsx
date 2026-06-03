@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator, RefreshControl } from 'react-native';
-import { ChevronLeft, MoreVertical, CheckCircle, Calendar, Clock, AlertTriangle, Bell, User } from 'lucide-react-native';
+import { View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator, RefreshControl, Alert } from 'react-native';
+import { ChevronLeft, CheckCircle, Calendar, Clock, AlertTriangle, Bell, User } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiFunction } from '../api/apiFunction';
-import { getUserApi, markNotificationsAsReadApi } from '../api/api';
+import { getUserApi, markNotificationsAsReadApi, clearNotificationsApi } from '../api/api';
 
 const getIcon = (type: string) => {
     switch (type) {
@@ -12,6 +12,7 @@ const getIcon = (type: string) => {
         case 'alert': return <AlertTriangle size={22} color="#DC143C" />;
         case 'success': return <CheckCircle size={22} color="white" />;
         case 'reminder': return <Clock size={22} color="#8C4A28" />;
+        case 'system': return <Bell size={22} color="#8C4A28" />;
         default: return <Bell size={22} color="#8C4A28" />;
     }
 };
@@ -20,6 +21,7 @@ const getIconBg = (type: string) => {
     switch (type) {
         case 'success': return 'bg-[#8C4A28]';
         case 'alert': return 'bg-[#FADCD9]';
+        case 'system': return 'bg-[#e2d5c3]';
         default: return 'bg-[#e2d5c3]';
     }
 };
@@ -30,6 +32,7 @@ export default function NotificationScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
 
   const tabs = ['All', 'Bookings', 'Alerts'];
 
@@ -45,13 +48,14 @@ export default function NotificationScreen() {
       
       const res = await apiFunction(getUserApi, [], {}, "GET", true);
       if (res && res.success) {
-        // Reverse so newest are on top
         const notifs = res.user?.notifications || [];
         setNotifications([...notifs].reverse());
+        const uId = res.user?.id;
+        setUserId(uId);
 
         // MARK ALL AS READ AUTOMATICALLY
-        if (userObj?.id && notifs.some((n: any) => n.unread)) {
-            await apiFunction(markNotificationsAsReadApi(userObj.id), [], {}, "PUT", true);
+        if (uId && notifs.some((n: any) => n.unread)) {
+            await apiFunction(markNotificationsAsReadApi(uId), [], {}, "PUT", true);
         }
       }
     } catch (error) {
@@ -62,6 +66,64 @@ export default function NotificationScreen() {
     }
   };
 
+  const handleClearNotifications = async () => {
+      // Always get userId fresh from AsyncStorage as fallback
+      let resolvedUserId = userId;
+      if (!resolvedUserId) {
+          try {
+              const cached = await AsyncStorage.getItem('user');
+              if (cached) resolvedUserId = JSON.parse(cached)?.id;
+          } catch {}
+      }
+
+      console.log('=== handleClearNotifications DEBUG ===');
+      console.log('userId from state:', userId);
+      console.log('resolvedUserId:', resolvedUserId);
+      const apiUrl = resolvedUserId ? clearNotificationsApi(resolvedUserId) : 'NO_USER_ID';
+      console.log('API URL:', apiUrl);
+
+      if (!resolvedUserId) {
+          Alert.alert('Error', 'User identification not found. Please restart the app.');
+          return;
+      }
+
+      setLoading(true);
+      try {
+          const res = await apiFunction(apiUrl, [], {}, 'PUT', true);
+          console.log('clearNotifications API response:', JSON.stringify(res));
+          if (res && res.success) {
+              setNotifications([]);
+              // Silent clear — no success alert needed
+          } else {
+              Alert.alert('Error', res?.message || 'Failed to clear notifications.');
+          }
+      } catch (error) {
+          console.error('Clear notifications error:', error);
+          Alert.alert('Error', 'Failed to clear notifications.');
+      } finally {
+          setLoading(false);
+      }
+  };
+
+
+  const handleMorePress = () => {
+      Alert.alert(
+          "Clear Notifications",
+          "Are you sure you want to clear all notifications?",
+          [
+              {
+                  text: "Clear All",
+                  onPress: handleClearNotifications,
+                  style: "destructive"
+              },
+              {
+                  text: "Cancel",
+                  style: "cancel"
+              }
+          ]
+      );
+  };
+
   const onRefresh = () => {
     setRefreshing(true);
     fetchNotifications();
@@ -70,7 +132,7 @@ export default function NotificationScreen() {
   const filteredNotifications = notifications.filter(n => {
     if (activeTab === 'All') return true;
     if (activeTab === 'Bookings') return n.type === 'booking' || n.type === 'success';
-    if (activeTab === 'Alerts') return n.type === 'alert' || n.type === 'reminder';
+    if (activeTab === 'Alerts') return n.type === 'alert' || n.type === 'reminder' || n.type === 'system';
     return true;
   });
 
@@ -87,9 +149,14 @@ export default function NotificationScreen() {
                     </TouchableOpacity>
                     <Text className="text-[#1a202c] text-2xl font-extrabold">Office Inbox</Text>
                 </View>
-                <TouchableOpacity className="w-10 h-10 items-center justify-center">
-                    <MoreVertical color="#1a202c" size={24} />
-                </TouchableOpacity>
+                {notifications.length > 0 && (
+                    <TouchableOpacity
+                        onPress={handleMorePress}
+                        className="bg-red-50 border border-red-200 px-4 py-2 rounded-full"
+                    >
+                        <Text className="text-red-500 font-bold text-xs">Clear All</Text>
+                    </TouchableOpacity>
+                )}
             </View>
 
             {/* Tabs */}

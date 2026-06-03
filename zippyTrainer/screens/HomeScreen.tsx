@@ -4,92 +4,96 @@ import { Bell, ChevronRight, Bookmark } from 'lucide-react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiFunction } from '../api/apiFunction';
-import { getSessionsByTrainerApi, getAllHorsesApi, getAllTrainersApi } from '../api/api';
+import { getSessionsByTrainerApi, getAllHorsesApi, getAllTrainersApi, getUserApi } from '../api/api';
 
 export default function HomeScreen() {
-   const navigation = useNavigation();
-   const [loading, setLoading] = useState(true);
-   const [refreshing, setRefreshing] = useState(false);
-   const [user, setUser] = useState<any>(null);
-   const [trainer, setTrainer] = useState<any>(null);
-   const [sessions, setSessions] = useState<any[]>([]);
-   const [assignedHorses, setAssignedHorses] = useState<any[]>([]);
-   const [stats, setStats] = useState({
-      todaySessions: 0,
-      pendingApprovals: 0,
-      assignedHorsesCount: 0
-   });
+    const navigation = useNavigation();
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+    const [user, setUser] = useState<any>(null);
+    const [trainer, setTrainer] = useState<any>(null);
+    const [sessions, setSessions] = useState<any[]>([]);
+    const [assignedHorses, setAssignedHorses] = useState<any[]>([]);
+    const [stats, setStats] = useState({
+       todaySessions: 0,
+       totalSessions: 0,
+       assignedHorsesCount: 0
+    });
 
-   useFocusEffect(
-      React.useCallback(() => {
-         fetchDashboardData();
-      }, [])
-   );
+    useFocusEffect(
+       React.useCallback(() => {
+          fetchDashboardData();
+       }, [])
+    );
 
+    const fetchDashboardData = async (isRefresh = false) => {
+       if (isRefresh) setRefreshing(true);
+       else setLoading(true);
 
+       try {
+          const userData = await AsyncStorage.getItem('user');
+          let parsedUser = userData ? JSON.parse(userData) : null;
+          if (parsedUser) {
+             setUser(parsedUser);
+          }
 
-   const fetchDashboardData = async (isRefresh = false) => {
-      if (isRefresh) setRefreshing(true);
-      else setLoading(true);
+          // Fetch latest user details (for live notifications count, etc.)
+          const userRes = await apiFunction(getUserApi, [], {}, "GET", true);
+          if (userRes && userRes.success && userRes.user) {
+             parsedUser = userRes.user;
+             setUser(parsedUser);
+             await AsyncStorage.setItem('user', JSON.stringify(userRes.user));
+          }
 
-      try {
-         const userData = await AsyncStorage.getItem('user');
-         if (!userData) return;
-         const parsedUser = JSON.parse(userData);
-         setUser(parsedUser);
+          const currentUserId = parsedUser?.id;
+          if (currentUserId) {
+             const trainerRes = await apiFunction(getAllTrainersApi, [], {}, "GET", true);
+             if (trainerRes && trainerRes.success) {
+                const trainerVal = trainerRes.trainers.find((t: any) => (t.userId || t.user_id) === currentUserId);
+                setTrainer(trainerVal);
 
-         const userId = parsedUser.id;
+                if (trainerVal) {
+                   // Fetch Sessions
+                   const sessionRes = await apiFunction(getSessionsByTrainerApi(trainerVal.id), [], {}, "GET", true);
+                   if (sessionRes && sessionRes.success) {
+                      const allSessions = (sessionRes.sessions || []).filter((s: any) => s.status !== 'BLOCKED');
+                      
+                      // Filter today's sessions
+                      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                      const todayDateStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+                      
+                      const todaySessions = allSessions.filter((s: any) => {
+                         if (s.date === 'daily') return true;
+                         if (s.date === todayDateStr) return true;
+                         return false;
+                      });
 
-         if (!userId) return;
+                      setSessions(todaySessions.slice(0, 3));
+                      setStats(prev => ({
+                         ...prev,
+                         todaySessions: todaySessions.length,
+                         totalSessions: allSessions.length
+                      }));
+                   }
 
-         const trainerRes = await apiFunction(getAllTrainersApi, [], {}, "GET", true);
-         if (trainerRes && trainerRes.success) {
-            const trainer = trainerRes.trainers.find((t: any) => t.userId === userId);
-
-            setTrainer(trainer);
-         }
-
-
-       
-
-      } catch (error) {
-         console.error("Home Dashboard data fetch error:", error);
-      } finally {
-         setLoading(false);
-         setRefreshing(false);
-      }
-   };
-
-   useEffect(() => {
-
-      const getSessionsAndHorses = async () => {
-        const sessionRes = await apiFunction(getSessionsByTrainerApi(trainer?.id), [], {}, "GET", true);
-         if (sessionRes && sessionRes.success) {
-            const allSessions = (sessionRes.sessions || []).filter((s: any) => s.status !== 'BLOCKED');
-            console.log("All sessions: ", allSessions);
-            setSessions(allSessions.slice(0, 3));
-            setStats(prev => ({ ...prev, todaySessions: allSessions.length }));
-         }
-
-         // Fetch Horses
-         const horseRes = await apiFunction(getAllHorsesApi, [], {}, "GET", true);
-         if (horseRes && horseRes.success) {
-            const allHorses = horseRes.horses || [];
-            const filtered = allHorses.filter((h: any) => h.trainerId === (trainer?.id || userId));
-            setAssignedHorses(filtered);
-            setStats(prev => ({ ...prev, assignedHorsesCount: filtered.length }));
-         }
-      };
-
-      if (trainer) {
-         getSessionsAndHorses();
-      }
-
-
-
-   },[trainer])
-
-   console.log("Trainer: ", trainer);
+                   // Fetch Horses
+                   const horseRes = await apiFunction(getAllHorsesApi, [], {}, "GET", true);
+                   if (horseRes && horseRes.success) {
+                      const allHorses = horseRes.horses || [];
+                      const filtered = allHorses.filter((h: any) => h.trainerId === trainerVal.id || h.trainerId === currentUserId);
+                      setAssignedHorses(filtered);
+                      setStats(prev => ({ ...prev, assignedHorsesCount: filtered.length }));
+                   }
+                }
+             }
+          }
+       } catch (error) {
+          console.error("Home Dashboard data fetch error:", error);
+       } finally {
+          setLoading(false);
+          setRefreshing(false);
+       }
+    };
 
    if (loading) {
       return (
@@ -130,9 +134,14 @@ export default function HomeScreen() {
                   className="w-11 h-11 bg-white/50 border border-brand-brown/5 rounded-full items-center justify-center shadow-sm"
                >
                   <Bell color="#85431E" size={20} strokeWidth={2.5} />
-                  {user?.notifications?.some(n => n.unread) && (
-                     <View className="absolute top-2 right-2 w-2.5 h-2.5 bg-brand-orange rounded-full border-2 border-brand-beige" />
-                  )}
+                  {(() => {
+                     const unreadCount = (user?.notifications || []).filter((n: any) => n.unread).length;
+                     return unreadCount > 0 ? (
+                        <View className="absolute -top-1 -right-1 bg-brand-orange rounded-full min-w-[18px] h-[18px] px-1 items-center justify-center border border-white">
+                           <Text className="text-white text-[9px] font-black">{unreadCount}</Text>
+                        </View>
+                     ) : null;
+                  })()}
                </TouchableOpacity>
             </View>
 
@@ -144,9 +153,9 @@ export default function HomeScreen() {
                   <Text className="text-white/40 text-[9px] font-body uppercase tracking-wider">Sessions</Text>
                </View>
                <View className="flex-1 bg-white border border-brand-brown/5 rounded-[24px] p-5 mr-2 shadow-sm">
-                  <Text className="text-brand-brown/40 text-[8px] font-display uppercase tracking-[2px] mb-2">Pending</Text>
-                  <Text className="text-brand-brown text-3xl font-display mb-1">{stats.pendingApprovals}</Text>
-                  <Text className="text-brand-brown/40 text-[9px] font-body uppercase tracking-wider">Approvals</Text>
+                  <Text className="text-brand-brown/40 text-[8px] font-display uppercase tracking-[2px] mb-2">Total</Text>
+                  <Text className="text-brand-brown text-3xl font-display mb-1">{stats.totalSessions}</Text>
+                  <Text className="text-brand-brown/40 text-[9px] font-body uppercase tracking-wider">Sessions</Text>
                </View>
                <View className="flex-1 bg-[#FDF8F2] border border-brand-brown/5 rounded-[24px] p-5 shadow-sm">
                   <Text className="text-brand-brown/40 text-[8px] font-display uppercase tracking-[2px] mb-2">Fleet</Text>

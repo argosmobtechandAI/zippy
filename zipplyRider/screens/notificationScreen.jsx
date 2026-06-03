@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, MoreVertical, CheckCircle, Calendar, Clock, AlertTriangle, RefreshCcw, Home, ClipboardList, Bell, User } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { apiFunction } from '../api/apifunction';
-import { getUserApi } from '../api/api';
+import { getUserApi, clearNotificationsApi, markNotificationsAsReadApi } from '../api/api';
 
 const getIcon = (type) => {
     switch (type) {
@@ -29,6 +29,7 @@ export default function NotificationScreen() {
     const [activeTab, setActiveTab] = useState('All');
     const [loading, setLoading] = useState(true);
     const [notifications, setNotifications] = useState([]);
+    const [userId, setUserId] = useState(null);
 
     const tabs = ['All', 'Bookings', 'Alerts'];
 
@@ -41,13 +42,63 @@ export default function NotificationScreen() {
         try {
             const res = await apiFunction(getUserApi, [], {}, "GET", true);
             if (res && res.success) {
-                setNotifications(res.user?.notifications || []);
+                const rawNotifs = res.user?.notifications || [];
+                // Latest notifications at the top
+                setNotifications([...rawNotifs].reverse());
+                const uId = res.user?.id;
+                setUserId(uId);
+
+                // Auto-mark notifications as read if there are unread ones
+                const hasUnread = rawNotifs.some(n => n.unread);
+                if (hasUnread && uId) {
+                    await apiFunction(markNotificationsAsReadApi(uId), [], {}, "PUT", true);
+                }
             }
         } catch (error) {
             console.error("Fetch notifications error:", error);
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleClearNotifications = async () => {
+        if (!userId) {
+            Alert.alert("Error", "User identification not found.");
+            return;
+        }
+        setLoading(true);
+        try {
+            const res = await apiFunction(clearNotificationsApi(userId), [], {}, "PUT", true);
+            if (res && res.success) {
+                setNotifications([]);
+                Alert.alert("Success", "Notifications cleared successfully.");
+            } else {
+                Alert.alert("Error", res?.message || "Failed to clear notifications.");
+            }
+        } catch (error) {
+            console.error("Clear notifications error:", error);
+            Alert.alert("Error", "Failed to clear notifications.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleMorePress = () => {
+        Alert.alert(
+            "Clear Notifications",
+            "Are you sure you want to clear all notifications?",
+            [
+                {
+                    text: "Clear All",
+                    onPress: handleClearNotifications,
+                    style: "destructive"
+                },
+                {
+                    text: "Cancel",
+                    style: "cancel"
+                }
+            ]
+        );
     };
 
     const filteredNotifications = notifications.filter(n => {
@@ -74,10 +125,14 @@ export default function NotificationScreen() {
                     </TouchableOpacity>
                     <Text className="text-[#1a202c] text-2xl font-extrabold">Notifications</Text>
                 </View>
-                <TouchableOpacity className="w-10 h-10 items-center justify-center">
+                <TouchableOpacity 
+                    className="w-10 h-10 items-center justify-center"
+                    onPress={handleMorePress}
+                >
                     <MoreVertical color="#1a202c" size={24} />
                 </TouchableOpacity>
             </View>
+
 
             {/* Tabs */}
             <View className="flex-row px-6 mt-4 border-b border-[#e2d5c3]">

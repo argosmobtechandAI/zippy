@@ -1,4 +1,4 @@
-import { LayoutDashboard, BarChart2, MapPin, Users, Settings, Plus, CloudLightning, LogOut, Package } from 'lucide-react';
+import { LayoutDashboard, BarChart2, MapPin, Users, Settings, Plus, CloudLightning, LogOut, Package, Calendar, ClipboardList } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
 const Sidebar = () => {
@@ -29,6 +29,10 @@ const Sidebar = () => {
                     <MapPin className="w-5 h-5" />
                     Slot Management
                 </NavLink>
+                <NavLink to="/bookingRequests" className={({ isActive }) => `flex items-center gap-4 px-4 py-3.5 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
+                    <Users className="w-5 h-5" />
+                    Booking Requests
+                </NavLink>
                 <NavLink to="/inventory" className={({ isActive }) => `flex items-center gap-4 px-4 py-3.5 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
                     <Package className="w-5 h-5" />
                     Inventory Management
@@ -45,7 +49,18 @@ const Sidebar = () => {
                     <Users className="w-5 h-5" />
                     Member Directory
                 </NavLink>
-                
+                <NavLink to="/leaveRequests" className={({ isActive }) => `flex items-center gap-4 px-4 py-3.5 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
+                    <Calendar className="w-5 h-5" />
+                    Leave Requests
+                </NavLink>
+                <NavLink to="/attendanceReport" className={({ isActive }) => `flex items-center gap-4 px-4 py-3.5 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
+                    <ClipboardList className="w-5 h-5" />
+                    Attendance Report
+                </NavLink>
+                <NavLink to="/help-center" className={({ isActive }) => `flex items-center gap-4 px-4 py-3.5 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
+                    <Settings className="w-5 h-5" />
+                    Help Center
+                </NavLink>
             </nav>
 
             {/* Bottom Section */}

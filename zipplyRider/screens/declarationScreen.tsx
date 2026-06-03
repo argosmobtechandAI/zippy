@@ -14,23 +14,20 @@ export default function DeclarationScreen({route}) {
     const [agreed, setAgreed] = useState(false);
     const {formData} = route.params;
     const [data, setData] = useState(null)
+    const [scrollEnabled, setScrollEnabled] = useState(true);
+    const isSubmittingRef = useRef(false);
 
     console.log(formData)
 
-    const handleOK = async (signature) => {
-        setData({...formData, signature: signature})
-    };
-
-    const handleSubmit = async()=>{
-        console.log(data)
-        const res = await apiFunction(createUserApi, [], data, "POST", false)
+    const registerUser = async (payload) => {
+        const res = await apiFunction(createUserApi, [], payload, "POST", false)
         if(res.success){
             Toast.show({
                 type: "success",
                 text1: "Success",
                 text2: "User created successfully"
             })
-            navigation.navigate("Success")
+            navigation.navigate("Login")
         }else{
             Toast.show({
                 type: "error",
@@ -39,7 +36,31 @@ export default function DeclarationScreen({route}) {
             })
             navigation.navigate("Profile")
         }
-    }
+    };
+
+    const handleOK = async (signature) => {
+        const fullData = { ...formData, signature: signature };
+        setData(fullData);
+        if (isSubmittingRef.current) {
+            isSubmittingRef.current = false;
+            await registerUser(fullData);
+        } else {
+            Toast.show({
+                type: "success",
+                text1: "Success",
+                text2: "Signature saved successfully"
+            });
+        }
+    };
+
+    const handleSubmit = async () => {
+        if (data) {
+            await registerUser(data);
+        } else {
+            isSubmittingRef.current = true;
+            signRef.current.readSignature();
+        }
+    };
 
 
     return (
@@ -55,7 +76,11 @@ export default function DeclarationScreen({route}) {
                 <Text className="text-[#fceddf] text-xs font-bold uppercase tracking-widest">Step 2 of 3</Text>
             </View>
 
-            <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
+            <ScrollView 
+                scrollEnabled={scrollEnabled}
+                contentContainerStyle={{ padding: 24, paddingBottom: 100 }} 
+                showsVerticalScrollIndicator={false}
+            >
 
                 <View className="items-center mb-8 mt-4">
                     <View className="w-16 h-16 bg-[#e2d5c3] rounded-full items-center justify-center mb-4">
@@ -122,6 +147,8 @@ export default function DeclarationScreen({route}) {
                         <Text className="text-[#cbd5e1] font-medium">Draw your signature here</Text>
                         <Signature
                             onOK={handleOK}
+                            onBegin={() => setScrollEnabled(false)}
+                            onEnd={() => setScrollEnabled(true)}
                             ref={signRef}
                             descriptionText=""
                             webStyle={
@@ -159,7 +186,7 @@ export default function DeclarationScreen({route}) {
             <View className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-[#e2e8f0]">
                 <TouchableOpacity
                     className={`w-full py-4 rounded-xl items-center flex-row justify-center shadow-md ${agreed ? 'bg-[#8C4A28]' : 'bg-[#cbd5e1]'}`}
-                    disabled={!agreed && !data}
+                    disabled={!agreed}
                     onPress={handleSubmit}
                 
                 >

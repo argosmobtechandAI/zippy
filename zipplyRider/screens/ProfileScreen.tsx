@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Modal, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, ArrowRight, User, Users, Clipboard, Flag, Smile, Activity, Zap, Star, ChevronDown, ChevronUp } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, User, Users, Clipboard, Flag, Smile, Activity, Zap, Star, ChevronDown, ChevronUp, Eye, EyeOff } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Toast from "react-native-toast-message"
@@ -17,6 +17,7 @@ export default function ProfileScreen() {
   const [formData, setFormData] = useState({ name: "", mobile: "", email: "", password: "", type: "rider", dob: "", age: "", code: "", weight: 0, parent_name: "", emergency_contact: "", allergies: "", medical: "", level: "Novice", instructions: "", riderType: "Regular" })
   const [dateTimePicker, setDateTimePicker] = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const dispatch = useDispatch()
 
 
@@ -34,9 +35,7 @@ export default function ProfileScreen() {
   console.log("stables", stables)
 
   useEffect(() => {
-    if (!stables) {
-      dispatch(fetchStables())
-    }
+    dispatch(fetchStables())
   }, [dispatch])
 
   const formatDate = (date) => {
@@ -89,6 +88,12 @@ export default function ProfileScreen() {
     navigation.navigate("declaration", { formData })
   }
 
+  const requiredFields = ['name', 'mobile', 'email', 'password', 'dob', 'age', 'code', 'weight', 'parent_name', 'emergency_contact', 'allergies', 'medical', 'level', 'riderType'];
+  const filledFieldsCount = requiredFields.filter(field => {
+    const value = formData[field as keyof typeof formData];
+    return value !== "" && value !== 0 && value !== undefined;
+  }).length;
+  const progressPercentage = Math.round((filledFieldsCount / requiredFields.length) * 33);
 
   return (
     <SafeAreaView className="flex-1 bg-[#F5EDDF]">
@@ -110,11 +115,11 @@ export default function ProfileScreen() {
             Step 1 of 3: Personal{'\n'}Details
           </Text>
           <Text className="text-[#8C4A28] font-bold text-[10px] text-right">
-            33%{'\n'}Complete
+            {progressPercentage}%{'\n'}Complete
           </Text>
         </View>
         <View className="w-full h-1 bg-[#e2d5c3] rounded-full mt-1">
-          <View className="w-1/3 h-1 bg-[#8C4A28] rounded-full" />
+          <View style={{ width: `${progressPercentage}%` }} className="h-1 bg-[#8C4A28] rounded-full" />
         </View>
       </View>
 
@@ -178,16 +183,25 @@ export default function ProfileScreen() {
           />
 
           <Text className="text-[#1a202c] font-semibold text-xs mb-1">Password</Text>
-          <TextInput
-            className="bg-white border border-[#e2d5c3] rounded-xl px-4 py-3 mb-4 text-[#1e293b]"
-            placeholder="Choose a secure password"
-            placeholderTextColor="#94a3b8"
-            secureTextEntry={true}
-            value={formData.password}
-            onChangeText={(Text) => {
-              setFormData((prev) => ({ ...prev, password: Text }))
-            }}
-          />
+          <View className="flex-row items-center bg-white border border-[#e2d5c3] rounded-xl px-4 mb-4">
+            <TextInput
+              className="flex-1 py-3 text-[#1e293b]"
+              placeholder="Choose a secure password"
+              placeholderTextColor="#94a3b8"
+              secureTextEntry={!showPassword}
+              value={formData.password}
+              onChangeText={(Text) => {
+                setFormData((prev) => ({ ...prev, password: Text }))
+              }}
+            />
+            <TouchableOpacity onPress={() => setShowPassword(!showPassword)} className="pl-2">
+              {showPassword ? (
+                <EyeOff color="#94a3b8" size={20} />
+              ) : (
+                <Eye color="#94a3b8" size={20} />
+              )}
+            </TouchableOpacity>
+          </View>
 
           <Text className="text-[#1a202c] font-semibold text-xs mb-1">Date of Birth</Text>
           <TouchableOpacity
@@ -310,16 +324,37 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {dateTimePicker &&
-
-          <DateTimePicker
-            value={date}
-            mode="date"
-            display="default"
-            maximumDate={new Date()}
-            onChange={onChange}
-          />
-        }
+        {/* Date Picker Modal */}
+        <Modal
+          transparent
+          animationType="fade"
+          visible={dateTimePicker}
+          onRequestClose={() => setDateTimePicker(false)}
+        >
+          <TouchableOpacity
+            style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' }}
+            activeOpacity={1}
+            onPress={() => setDateTimePicker(false)}
+          >
+            <View style={{ backgroundColor: '#fff', borderRadius: 24, padding: 20, width: '85%', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 20, elevation: 10 }}>
+              <Text style={{ color: '#8C4A28', fontWeight: '700', fontSize: 16, marginBottom: 12 }}>Select Date of Birth</Text>
+              <DateTimePicker
+                value={date}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                maximumDate={new Date()}
+                onChange={onChange}
+                style={{ width: '100%' }}
+              />
+              <TouchableOpacity
+                onPress={() => setDateTimePicker(false)}
+                style={{ marginTop: 12, backgroundColor: '#8C4A28', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 32 }}
+              >
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Done</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
 
 
 

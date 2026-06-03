@@ -95,7 +95,7 @@ const Revenue = () => {
             setEditingPlan(plan);
             setPlanForm({
                 name: plan.name,
-                sessionsCount: plan.sessionsCount,
+                sessionsCount: plan.sessions_count || plan.sessionsCount,
                 validity: plan.validity,
                 amount: plan.amount,
                 level: plan.level,
@@ -113,7 +113,7 @@ const Revenue = () => {
         const payload = {
 
             name: planForm.name,
-            sessionsCount: Number(planForm.sessionsCount),
+            sessions_count: Number(planForm.sessionsCount),
             validity: planForm.validity,
             amount: Number(planForm.amount),
             level: planForm.level,
@@ -520,7 +520,7 @@ const Revenue = () => {
                                     <div className="space-y-3 mb-6">
                                         <div className="flex items-center gap-3 text-sm text-gray-600">
                                             <div className="w-1.5 h-1.5 rounded-full bg-[#964C2E]"></div>
-                                            <span className="font-medium">{plan.sessionsCount} Sessions included</span>
+                                            <span className="font-medium">{plan.sessions_count || plan.sessionsCount} Sessions included</span>
                                         </div>
                                         {(plan.rules || []).map((rule, idx) => (
                                             <div key={idx} className="flex items-center gap-3 text-sm text-gray-600">

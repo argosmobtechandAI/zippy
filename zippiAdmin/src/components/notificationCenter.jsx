@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Bell, X, Calendar, UserPlus, ShieldAlert, CheckCircle2, MoreHorizontal } from 'lucide-react';
 import { apiFunction } from '../api/apiFunction';
-import { getUserApi, markNotificationsAsReadApi } from '../api/apis';
+import { getAdminNotificationsApi, markAllAdminNotificationsAsReadApi, markAdminNotificationAsReadApi } from '../api/apis';
 
 const NotificationCenter = ({ user }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -11,13 +11,11 @@ const NotificationCenter = ({ user }) => {
     const dropdownRef = useRef(null);
 
     const fetchNotifications = async () => {
-        if (!user?.id) return;
         setLoading(true);
         try {
-            const res = await apiFunction(`${getUserApi}?id=${user.id}`, [], {}, "GET", true);
+            const res = await apiFunction(getAdminNotificationsApi, [], {}, "GET", true);
             if (res && res.success) {
-                const notifs = res.user?.notifications || [];
-                setNotifications([...notifs].reverse());
+                setNotifications(res.notifications || []);
             }
         } catch (error) {
             console.error("Error fetching admin notifications", error);
@@ -44,35 +42,61 @@ const NotificationCenter = ({ user }) => {
             clearInterval(interval);
             document.removeEventListener('mousedown', handleClickOutside);
         };
-    }, [user?.id]);
+    }, []);
 
     const handleMarkAsRead = async () => {
-        if (!user?.id) return;
         try {
-            const res = await apiFunction(markNotificationsAsReadApi(user.id), [], {}, "PUT", true);
+            const res = await apiFunction(markAllAdminNotificationsAsReadApi, [], {}, "PUT", true);
             if (res && res.success) {
                 setNotifications(notifications.map(n => ({ ...n, unread: false })));
             }
         } catch (error) {
-            console.error("Error marking as read", error);
+            console.error("Error marking all as read", error);
+        }
+    };
+
+    const handleMarkSingleAsRead = async (id) => {
+        try {
+            const res = await apiFunction(markAdminNotificationAsReadApi(id), [], {}, "PUT", true);
+            if (res && res.success) {
+                setNotifications(notifications.map(n => n.id === id ? { ...n, unread: false } : n));
+            }
+        } catch (error) {
+            console.error("Error marking single notification as read", error);
         }
     };
 
     const toggleOpen = () => {
         setIsOpen(!isOpen);
-        if (!isOpen && notifications.some(n => n.unread)) {
-            // Optional: mark as read automatically when opening
-            // handleMarkAsRead();
-        }
     };
 
     const getIcon = (type) => {
         switch (type) {
             case 'booking': return <Calendar className="w-4 h-4 text-[#964C2E]" />;
-            case 'success': return <CheckCircle2 className="w-4 h-4 text-[#059669]" />;
+            case 'plan': return <CheckCircle2 className="w-4 h-4 text-[#059669]" />;
             case 'alert': return <ShieldAlert className="w-4 h-4 text-[#EF4444]" />;
-            case 'assignment': return <UserPlus className="w-4 h-4 text-blue-500" />;
+            case 'system': return <UserPlus className="w-4 h-4 text-blue-500" />;
             default: return <Bell className="w-4 h-4 text-gray-500" />;
+        }
+    };
+
+    const formatTime = (dateStr) => {
+        if (!dateStr) return 'Just Now';
+        try {
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMins / 6000);
+            
+            if (diffMins < 1) return 'Just Now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) {
+                return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            }
+            return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+        } catch (e) {
+            return 'Just Now';
         }
     };
 
@@ -133,7 +157,8 @@ const NotificationCenter = ({ user }) => {
                                 {notifications.map((notif, idx) => (
                                     <div 
                                         key={notif.id || idx} 
-                                        className={`p-6 flex gap-4 hover:bg-[#FDF9F4] transition-colors relative ${notif.unread ? 'bg-white' : 'bg-gray-50/10'}`}
+                                        onClick={() => notif.unread && handleMarkSingleAsRead(notif.id)}
+                                        className={`p-6 flex gap-4 hover:bg-[#FDF9F4] transition-colors relative cursor-pointer ${notif.unread ? 'bg-white' : 'bg-gray-50/10'}`}
                                     >
                                         <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${notif.unread ? 'bg-[#964C2E]/10' : 'bg-gray-100'}`}>
                                             {getIcon(notif.type)}
@@ -144,7 +169,7 @@ const NotificationCenter = ({ user }) => {
                                                     {notif.title}
                                                 </h4>
                                                 <span className="text-[9px] font-bold text-gray-400 whitespace-nowrap">
-                                                    {notif.time || 'Just now'}
+                                                    {formatTime(notif.created_at)}
                                                 </span>
                                             </div>
                                             <p className={`text-[12px] leading-relaxed ${notif.unread ? 'font-semibold text-gray-600' : 'text-gray-400'}`}>

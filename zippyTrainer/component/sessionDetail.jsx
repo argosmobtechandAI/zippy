@@ -14,7 +14,24 @@ const SessionDetail = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (session?.horseId) {
+        let hasHorse = false;
+        let horseIdVal = session?.horseId;
+        if (typeof horseIdVal === 'string' && horseIdVal.trim().startsWith('[')) {
+            try {
+                horseIdVal = JSON.parse(horseIdVal);
+            } catch (e) {}
+        }
+        if (horseIdVal) {
+            if (Array.isArray(horseIdVal)) {
+                hasHorse = horseIdVal.some((id: any) => typeof id === 'string' && id.trim().length === 36);
+            } else if (typeof horseIdVal === 'string' && horseIdVal.trim().length === 36) {
+                hasHorse = true;
+            }
+        }
+        if (!hasHorse && session?.horse) {
+            hasHorse = true;
+        }
+        if (hasHorse) {
             fetchHorseDetails();
         } else {
             setLoading(false);
@@ -25,7 +42,28 @@ const SessionDetail = () => {
         try {
             const res = await apiFunction(getAllHorsesApi, [], {}, "GET", true);
             if (res && res.success) {
-                const found = (res.horses || []).find((h: any) => h.id === session.horseId);
+                let horseIdVal = null;
+                let rawHorseId = session?.horseId;
+                if (typeof rawHorseId === 'string' && rawHorseId.trim().startsWith('[')) {
+                    try {
+                        rawHorseId = JSON.parse(rawHorseId);
+                    } catch (e) {}
+                }
+                if (rawHorseId) {
+                    if (Array.isArray(rawHorseId)) {
+                        horseIdVal = rawHorseId.find((id: any) => typeof id === 'string' && id.trim().length === 36);
+                    } else if (typeof rawHorseId === 'string' && rawHorseId.trim().length === 36) {
+                        horseIdVal = rawHorseId.trim();
+                    }
+                }
+                if (!horseIdVal && session?.horse) {
+                    if (typeof session.horse === 'object' && session.horse.id) {
+                        horseIdVal = session.horse.id;
+                    } else if (typeof session.horse === 'string' && session.horse.trim().length === 36) {
+                        horseIdVal = session.horse.trim();
+                    }
+                }
+                const found = (res.horses || []).find((h: any) => h.id === horseIdVal);
                 setHorse(found);
             }
         } catch (e) {
@@ -135,18 +173,6 @@ const SessionDetail = () => {
                     <Text className="text-[#64748b] leading-relaxed">
                         {session?.note || 'No specific notes recorded for this session yet.'}
                     </Text>
-                </View>
-
-                {/* Actions */}
-                <View className="flex-row justify-between mb-4">
-                    <TouchableOpacity onPress={()=> navigation.goBack()} className="flex-1 bg-white border border-[#e2e8f0] py-4 rounded-2xl flex-row justify-center items-center mr-2 shadow-sm">
-                        <XCircle color="#ef4444" size={20} className="mr-2" />
-                        <Text className="text-[#ef4444] font-bold text-base">Cancel</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity className="flex-1 bg-[#8C4A28] py-4 rounded-2xl flex-row justify-center items-center ml-2 shadow-sm">
-                        <CheckCircle2 color="white" size={20} className="mr-2" />
-                        <Text className="text-white font-bold text-base">Complete</Text>
-                    </TouchableOpacity>
                 </View>
             </ScrollView>
         </View>

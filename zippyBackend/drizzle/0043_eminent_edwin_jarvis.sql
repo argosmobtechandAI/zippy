@@ -1,2 +1,0 @@
-ALTER TABLE "inventory" ALTER COLUMN "last_updated" SET DEFAULT '2026-05-22T10:47:40.321Z';--> statement-breakpoint
-ALTER TABLE "users" ALTER COLUMN "created_at" SET DEFAULT '2026-05-22T10:47:40.314Z';

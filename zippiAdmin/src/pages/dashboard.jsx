@@ -207,7 +207,7 @@ const Dashboard = () => {
             {/* Bottom Section */}
             <div className="grid grid-cols-3 gap-6">
                 {/* Recent Activity */}
-                <div className="bg-white col-span-1 rounded-2xl p-6 shadow-sm border border-gray-100/80">
+                <div className="bg-white col-span-3 rounded-2xl p-6 shadow-sm border border-gray-100/80">
                     <div className="flex items-center gap-3 mb-8">
                         <History className="w-5 h-5 text-[#964C2E]" />
                         <h3 className="text-[16px] font-bold text-[#1e2330]">Recent Activity</h3>
@@ -226,39 +226,6 @@ const Dashboard = () => {
                                     <h4 className="text-[13px] font-bold text-[#1e2330] mb-0.5">{activity.title}</h4>
                                     <p className="text-[11px] font-medium text-gray-400">{activity.desc} • {activity.time}</p>
                                 </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Chart Card */}
-                <div className="bg-[#2B1B15] col-span-2 rounded-2xl p-8 shadow-md flex flex-col justify-between overflow-hidden relative">
-                    <div className="absolute inset-0 bg-gradient-to-tr from-[#964C2E]/10 to-transparent pointer-events-none"></div>
-
-                    <div className="flex justify-between items-center mb-10 relative z-10">
-                        <h3 className="text-lg font-bold text-white">Global Revenue Growth</h3>
-                        <div className="flex items-center gap-3 bg-[#1e110c] px-2 py-1.5 rounded-full border border-[#964C2E]/20">
-                            <button className="px-5 py-1.5 text-[10px] font-black tracking-widest text-[#964C2E] uppercase">MONTHLY</button>
-                            <button className="px-5 py-1.5 text-[10px] font-black tracking-widest text-[#964C2E] bg-[#3B2219] rounded-full uppercase">LIVE DATA</button>
-                        </div>
-                    </div>
-
-                    <div className="flex-1 flex items-end gap-4 px-2 relative z-10">
-                        {/* Bars corresponding to mock growth trends or real aggregations */}
-                        {[
-                            { val: "30%", lbl: "JAN", highlight: false },
-                            { val: "40%", lbl: "FEB", highlight: false },
-                            { val: "35%", lbl: "MAR", highlight: false },
-                            { val: "50%", lbl: "APR", highlight: false },
-                            { val: "45%", lbl: "MAY", highlight: false },
-                            { val: "65%", lbl: "JUN", highlight: false },
-                            { val: "75%", lbl: "JUL", highlight: true }
-                        ].map((item, idx) => (
-                            <div key={idx} className="flex-1 flex flex-col justify-end group items-center">
-                                <div className={`w-full max-w-[50px] transition-all rounded-t-lg relative ${item.highlight ? 'bg-[#964B29]' : 'bg-[#5f301a] group-hover:bg-[#72391e]'}`} style={{ height: item.val }}>
-                                    <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent rounded-t-lg"></div>
-                                </div>
-                                <span className={`text-[10px] font-black tracking-wider uppercase mt-6 ${item.highlight ? 'text-[#964B29]' : 'text-[#816B61]'}`}>{item.lbl}</span>
                             </div>
                         ))}
                     </div>

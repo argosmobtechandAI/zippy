@@ -175,7 +175,7 @@ export default function HorsesScreen() {
 
       <Modal visible={showModal} animationType="slide" transparent={true}>
         <View className="flex-1 bg-black/60 justify-end">
-          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="bg-[#F5EDDF] rounded-t-[3rem] p-6 max-h-[90%]">
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="bg-[#F5EDDF] rounded-t-[3rem] p-6 max-h-[90%]">
              <View className="flex-row justify-between items-center mb-6">
                 <View>
                   <Text className="text-2xl font-bold text-[#1a202c]">{horseToEdit ? 'Update Horse' : 'Register Horse'}</Text>

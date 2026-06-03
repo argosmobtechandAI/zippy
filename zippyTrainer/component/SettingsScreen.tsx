@@ -39,7 +39,7 @@ export default function SettingsScreen() {
           <Text className="text-[#8C4A28] font-bold text-sm tracking-widest uppercase mb-4 ml-2">Account</Text>
           <View className="bg-white rounded-3xl px-4 py-2 shadow-sm border border-[#e2e8f0]">
             {renderSettingItem(User, 'Personal Information', true, null, () => navigation.navigate('PersonalInformation'))}
-            {renderSettingItem(Lock, 'Privacy & Security')}
+            {renderSettingItem(Lock, 'Privacy & Security', true, null, () => navigation.navigate('PrivacySecurity'))}
           </View>
         </View>
 
@@ -62,7 +62,7 @@ export default function SettingsScreen() {
         <View className="mb-8">
           <Text className="text-[#8C4A28] font-bold text-sm tracking-widest uppercase mb-4 ml-2">Support & About</Text>
           <View className="bg-white rounded-3xl px-4 py-2 shadow-sm border border-[#e2e8f0]">
-            {renderSettingItem(CircleHelp, 'Help Center')}
+            {renderSettingItem(CircleHelp, 'Help Center', true, null, () => navigation.navigate('HelpCenter'))}
             <TouchableOpacity className="flex-row items-center justify-between py-4">
               <View className="flex-row items-center">
                 <View className="w-10 h-10 bg-[#fceddf] rounded-full items-center justify-center mr-4">

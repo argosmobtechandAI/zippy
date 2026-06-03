@@ -16,35 +16,41 @@ export const apiFunction = async (api, params = [], data = {}, method, withAuth)
 
   console.log(fullURL, "fullURL")
 
-  switch (method) {
-    case 'GET':
-      response = await axios.get(fullURL, { headers });
-      console.log(response, "hellowos")
-      break;
-    case 'POST':
-      response = await axios.post(fullURL, { data }, { headers });
-      break;
-    case 'POST_FORM':
-      response = await axios.post(fullURL, data, {
-        headers: { ...headers, 'Content-Type': 'multipart/form-data' }
-      });
-      break;
-    case 'PUT':
-      response = await axios.put(fullURL, { data }, { headers });
-      break;
-    case 'DELETE':
-      response = await axios.delete(fullURL, { headers });
-      break;
-    default:
-      throw new Error('Invalid HTTP method');
-  }
+  try {
+    switch (method) {
+      case 'GET':
+        response = await axios.get(fullURL, { headers });
+        console.log(response, "hellowos")
+        break;
+      case 'POST':
+        response = await axios.post(fullURL, { data }, { headers });
+        break;
+      case 'POST_FORM':
+        response = await axios.post(fullURL, data, {
+          headers: { ...headers, 'Content-Type': 'multipart/form-data' }
+        });
+        break;
+      case 'PUT':
+        response = await axios.put(fullURL, { data }, { headers });
+        break;
+      case 'DELETE':
+        response = await axios.delete(fullURL, { headers });
+        break;
+      default:
+        throw new Error('Invalid HTTP method');
+    }
 
-  if (response) {
-    console.log('API Response:', response.data);
-    return response.data;
-  } else {
-    console.log('API Error:', response);
-    return null;
+    if (response) {
+      console.log('API Response:', response.data);
+      return response.data;
+    } else {
+      console.log('API Error:', response);
+      return null;
+    }
+  } catch (error) {
+    console.error('API Function Error:', error);
+    const errorMessage = error.response?.data?.message || error.message || 'An unknown error occurred';
+    return { success: false, message: errorMessage };
   }
 
 }

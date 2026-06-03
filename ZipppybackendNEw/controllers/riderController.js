@@ -58,7 +58,13 @@ export const getRider = async (req, res) => {
 
 export const enrollPack = async (req, res) => {
     const userId = req.userId;
-    const { planId, paymentEndDate } = req.body.data;
+    const { planId } = req.body.data;
+
+    const addMonths = (date, months) => {
+        const result = new Date(date);
+        result.setMonth(result.getMonth() + months);
+        return result;
+    };
 
     try {
         // 1. Get Plan Details
@@ -74,17 +80,34 @@ export const enrollPack = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Rider record not found' });
         }
 
-        // 3. Update Rider Plan and Session Count
+        // 3. Wallet Check
+        const walletBalance = rider[0].wallet || 0;
+        const planAmount = p.amount || 0;
+
+        if (walletBalance < planAmount) {
+            return res.status(400).json({ success: false, message: 'Insufficient wallet balance' });
+        }
+
+        const newWalletBalance = walletBalance - planAmount;
+
+        // 4. Update Rider Plan and Session Count
         const currentPlans = rider[0].plan || [];
         const plans = [...currentPlans, p];
         const sessionsCount = (rider[0].session_count || rider[0].sessionCount || 0) + (p.sessions_count || p.sessionsCount || 0);
         
+        let monthsToAdd = 1;
+        if (!isNaN(Number(p.validity))) {
+            monthsToAdd = Number(p.validity);
+        }
+        const paymentEndDate = addMonths(new Date(), monthsToAdd).toISOString();
+
         const { data: updatedRider, error: updateError } = await supabase
             .from('rider')
             .update({
                 plan: plans,
                 session_count: sessionsCount,
                 plan_end_date: paymentEndDate,
+                wallet: newWalletBalance
             })
             .eq('user_id', userId)
             .select();
@@ -93,7 +116,25 @@ export const enrollPack = async (req, res) => {
             throw new Error('Failed to update rider');
         }
 
-        // 4. Send Confirmation Notification
+        // 4. Create Revenue Record
+        const revenue = {
+            amount: p.amount,
+            type: "plan",
+            date: new Date(),
+            purchaserId: userId,
+            purchaseType: "plan",
+            planId: planId,
+            plan_key: `wallet_${Date.now()}`,
+            status: "Active",
+            end_date: paymentEndDate,
+        };
+
+        const { error: revenueError } = await supabase.from('revenue').insert(revenue);
+        if (revenueError) {
+            console.error("Failed to insert revenue record:", revenueError);
+        }
+
+        // 5. Send Confirmation Notification
         const notification = {
             id: Math.random().toString(36).substr(2, 9),
             title: "Plan Enrolled Successfully!",
@@ -104,16 +145,29 @@ export const enrollPack = async (req, res) => {
             date: new Date().toISOString()
         };
 
-        const { data: user } = await supabase.from('users').select('notifications').eq('id', userId).limit(1);
+        const { data: user } = await supabase.from('users').select('name, notifications').eq('id', userId).limit(1);
         if (user && user.length > 0) {
             const notifs = user[0].notifications || [];
             await supabase.from('users').update({ notifications: [...notifs, notification] }).eq('id', userId);
+
+            // Send admin notification
+            try {
+                const userName = user[0].name || "A rider";
+                await supabase.from('admin_notifications').insert({
+                    title: "💰 New Plan Purchase",
+                    desc: `${userName} purchased the "${p.name}" plan.`,
+                    type: "plan"
+                });
+            } catch (adminNotifError) {
+                console.error("Admin notification failed on plan buy:", adminNotifError);
+            }
         }
 
         return res.status(200).json({
             success: true,
             message: `Successfully enrolled in ${p.name}`,
-            rider: updatedRider[0]
+            rider: updatedRider[0],
+            newWalletBalance
         });
 
     } catch (error) {

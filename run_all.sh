@@ -16,7 +16,7 @@ lsof -ti :3000,5173,8081,8082,8083 | xargs kill -9 2>/dev/null
 mkdir -p "$ROOT_DIR/logs"
 
 echo "Starting Backend (Port 3000)..."
-(cd "$ROOT_DIR/zippyBackend" && nohup npm start > "$ROOT_DIR/logs/backend.log" 2>&1 &)
+(cd "$ROOT_DIR/ZipppybackendNEw" && nohup npm run dev > "$ROOT_DIR/logs/backend.log" 2>&1 &)
 
 echo "Starting Admin Panel (zippyStable)..."
 (cd "$ROOT_DIR/zippyStable" && nohup npm run dev > "$ROOT_DIR/logs/admin.log" 2>&1 &)

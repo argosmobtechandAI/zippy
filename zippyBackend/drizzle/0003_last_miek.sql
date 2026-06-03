@@ -1,1 +1,0 @@
-ALTER TABLE "rider" ADD COLUMN "medical" varchar(255);
