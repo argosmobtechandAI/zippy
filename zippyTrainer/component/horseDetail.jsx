@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, HeartPulse, CalendarCheck, Activity, Zap, ShieldCheck, MapPin, MoreVertical } from 'lucide-react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
@@ -20,7 +21,7 @@ const HorseDetail = () => {
     }
 
     return (
-        <View className="flex-1 bg-[#F5EDDF]">
+        <SafeAreaView className="flex-1 bg-[#F5EDDF]">
             {/* Header */}
             <View className="flex-row justify-between items-center px-4 py-4 mb-2">
                 <TouchableOpacity 
@@ -109,7 +110,7 @@ const HorseDetail = () => {
                 </View>
 
             </ScrollView>
-        </View>
+        </SafeAreaView>
     );
 };
 

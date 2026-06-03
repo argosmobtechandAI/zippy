@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, SafeAreaView, ScrollView, TouchableOpacity, Image, RefreshControl, ActivityIndicator, Modal, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, RefreshControl, ActivityIndicator, Modal, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getSessionsByTrainerApi, getAllHorsesApi, createSessionApi } from '../api/api';
 import { apiFunction } from '../api/apiFunction';
@@ -365,6 +366,7 @@ export default function ScheduleScreen() {
                      <View className="bg-white rounded-2xl px-4 py-1 border border-[#e2e8f0] mb-4 shadow-sm">
                         <TextInput
                            placeholder="e.g. Morning Dressage"
+                           placeholderTextColor="#94a3b8"
                            className="py-3 text-[#1a202c] font-semibold"
                            value={newSession.title}
                            onChangeText={(t) => setNewSession(prev => ({ ...prev, title: t }))}
@@ -427,6 +429,7 @@ export default function ScheduleScreen() {
                             <View className="bg-white rounded-2xl px-3 py-1 border border-[#e2e8f0] shadow-sm">
                                <TextInput
                                   placeholder="10"
+                                  placeholderTextColor="#94a3b8"
                                   keyboardType="numeric"
                                   className="py-3 text-[#1a202c] font-bold text-center text-sm"
                                   value={newSession.totalSeats}
@@ -468,6 +471,7 @@ export default function ScheduleScreen() {
                      <View className="bg-white rounded-2xl px-4 py-1 border border-[#e2e8f0] mb-4 shadow-sm">
                         <TextInput
                            placeholder="Main Arena / Paddock B"
+                           placeholderTextColor="#94a3b8"
                            className="py-3 text-[#1a202c] font-semibold"
                            value={newSession.location}
                            onChangeText={(t) => setNewSession(prev => ({ ...prev, location: t }))}
@@ -512,6 +516,7 @@ export default function ScheduleScreen() {
                      <View className="bg-white rounded-2xl px-4 py-3 border border-[#e2e8f0] mb-6 shadow-sm">
                         <TextInput
                            placeholder="Focus on..."
+                           placeholderTextColor="#94a3b8"
                            multiline
                            numberOfLines={3}
                            className="text-[#1a202c] font-semibold text-sm"

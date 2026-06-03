@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Image } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Image } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, User, Mail, Phone, ShieldAlert } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { launchImageLibrary } from 'react-native-image-picker';
 import Toast from 'react-native-toast-message';
 import { apiFunction } from '../api/apiFunction';
-import { updateUserApi, uploadProfilePictureApi, baseURL } from '../api/api';
+import { updateUserApi, uploadProfilePictureApi, baseURL, uploadToVPS } from '../api/api';
 
 export default function PersonalInformationScreen() {
   const navigation = useNavigation();
@@ -51,31 +52,29 @@ export default function PersonalInformationScreen() {
   };
 
   const handleChangeProfilePicture = () => {
-    launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, async (response) => {
+    launchImageLibrary({ mediaType: 'photo', quality: 0.8, includeBase64: true }, async (response) => {
       if (response.didCancel || response.errorCode || !response.assets) return;
       if (response.assets.length > 0) {
         const photo = response.assets[0];
 
-        const data = new FormData();
-        data.append('photo', {
-          name: photo.fileName || 'photo.jpg',
-          type: photo.type || 'image/jpeg',
-          uri: Platform.OS === 'ios' ? photo.uri.replace('file://', '') : photo.uri,
-        } as any);
-
         setSaving(true);
         try {
-          const res = await apiFunction(uploadProfilePictureApi(user.id), [], data, 'POST_FORM', true);
+          const uploadedUrl = await uploadToVPS(photo);
+          
+          const res = await apiFunction(`${updateUserApi}/${user.id}`, [], {
+            profilePicture: uploadedUrl
+          }, 'PUT', true);
+
           if (res && res.success) {
             Toast.show({ type: 'success', text1: 'Success', text2: 'Profile picture updated' });
-            const updatedProfilePic = res.profilePicture;
-            const updatedUser = { ...user, profilePicture: updatedProfilePic };
+            const updatedUser = { ...user, profilePicture: uploadedUrl };
             await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
             setUser(updatedUser);
           } else {
             Toast.show({ type: 'error', text1: 'Error', text2: res?.message || 'Upload failed' });
           }
         } catch (error) {
+          console.error("Upload Error:", error);
           Toast.show({ type: 'error', text1: 'Error', text2: 'Network error occurred' });
         } finally {
           setSaving(false);
@@ -152,11 +151,11 @@ export default function PersonalInformationScreen() {
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
           
           <View className="items-center mb-8 mt-2">
-            <View className="w-24 h-24 bg-[#eabba4] rounded-full items-center justify-center mb-4 overflow-hidden border-2 border-white shadow">
+            <View style={{ width: 96, height: 96, borderRadius: 48 }} className="bg-[#eabba4] items-center justify-center mb-4 overflow-hidden border-2 border-white shadow">
               {user?.profilePicture ? (
                  <Image 
-                   source={{ uri: `${baseURL.replace('/api', '')}${user.profilePicture}` }} 
-                   className="w-full h-full" 
+                   source={{ uri: user.profilePicture.startsWith('/') ? `${baseURL.replace('/api', '')}${user.profilePicture}` : user.profilePicture }} 
+                   style={{ width: '100%', height: '100%' }}
                    resizeMode="cover" 
                  />
               ) : (

@@ -3,8 +3,9 @@ import { View, Text, TouchableOpacity, TextInput, ActivityIndicator, Alert, Imag
 import { Camera, Calendar, Dumbbell, Activity, HeartPulse, ChevronDown } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiFunction } from '../api/apiFunction';
-import { createHorseApi, updateHorseApi, updateUserApi, getAllStablesApi } from '../api/api';
+import { createHorseApi, updateHorseApi, updateUserApi, getAllStablesApi, uploadToVPS, baseURL } from '../api/api';
 import RNDateTimePicker from '@react-native-community/datetimepicker';
+import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 
 const CATEGORIES = ["Show Jumping", "Beginner Friendly", "Dressage", "Eventing", "Training Only"];
 const STATUSES = ["Available", "Resting", "Competition", "Medical", "Training"];
@@ -105,6 +106,58 @@ export default function HorseForm({ horse, user, onClose }: { horse: any, user: 
     }
   };
 
+  const handleImagePick = () => {
+    Alert.alert(
+      'Upload Photo',
+      'Choose where to pick your horse photo from',
+      [
+        {
+          text: 'Camera',
+          onPress: () => {
+            launchCamera(
+              { mediaType: 'photo', quality: 0.5, maxWidth: 1024, maxHeight: 1024, includeBase64: true },
+              async (response) => {
+                if (response.assets && response.assets.length > 0) {
+                  const photo = response.assets[0];
+                  setLoading(true);
+                  try {
+                    const url = await uploadToVPS(photo);
+                    setForm(prev => ({ ...prev, imageUrl: url }));
+                  } catch (e) {
+                     Alert.alert("Error", "Failed to upload image");
+                  }
+                  setLoading(false);
+                }
+              }
+            );
+          },
+        },
+        {
+          text: 'Gallery',
+          onPress: () => {
+            launchImageLibrary(
+              { mediaType: 'photo', quality: 0.5, maxWidth: 1024, maxHeight: 1024, includeBase64: true },
+              async (response) => {
+                if (response.assets && response.assets.length > 0) {
+                  const photo = response.assets[0];
+                  setLoading(true);
+                  try {
+                    const url = await uploadToVPS(photo);
+                    setForm(prev => ({ ...prev, imageUrl: url }));
+                  } catch (e) {
+                     Alert.alert("Error", "Failed to upload image");
+                  }
+                  setLoading(false);
+                }
+              }
+            );
+          },
+        },
+        { text: 'Cancel', style: 'cancel' }
+      ]
+    );
+  };
+
   const renderInput = (label: string, value: string, key: string, placeholder: string, keyboardType: any = 'default', isMultiline = false) => (
     <View className="mb-4">
       <Text className="text-[10px] font-black text-[#64748b] uppercase tracking-widest mb-1.5 ml-1">{label}</Text>
@@ -125,13 +178,19 @@ export default function HorseForm({ horse, user, onClose }: { horse: any, user: 
     <View className="pb-10">
       {/* Visual Image Banner & Pick */}
       <View className="items-center mb-6">
-        <View className="w-28 h-28 bg-white rounded-[2.5rem] border-2 border-[#8C4A28]/20 items-center justify-center overflow-hidden shadow-sm">
+        <TouchableOpacity 
+          onPress={handleImagePick}
+          className="w-28 h-28 bg-white rounded-[2.5rem] border-2 border-[#8C4A28]/20 items-center justify-center overflow-hidden shadow-sm"
+        >
            {form.imageUrl ? (
-             <Image source={{ uri: form.imageUrl }} className="w-full h-full" />
+             <Image 
+               source={{ uri: form.imageUrl.startsWith('/') ? `${baseURL.replace('/api', '')}${form.imageUrl}` : form.imageUrl }} 
+               className="w-full h-full" 
+             />
            ) : (
              <Camera color="#8C4A28" size={32} opacity={0.3} />
            )}
-        </View>
+        </TouchableOpacity>
         <Text className="mt-3 text-[#8C4A28] font-bold text-xs uppercase tracking-widest">Biological Profile</Text>
       </View>
 
@@ -143,7 +202,6 @@ export default function HorseForm({ horse, user, onClose }: { horse: any, user: 
         </View>
         
         {renderInput("Name", form.name, "name", "e.g. Thunder")}
-        {renderInput("Image URL", form.imageUrl, "imageUrl", "Paste public image link...")}
         <View className="mb-4">
           <Text className="text-[10px] font-black text-[#64748b] uppercase tracking-widest mb-1.5 ml-1">Stable Location</Text>
           <TouchableOpacity

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Activity, CheckCircle2, AlertTriangle, AlertCircle, X, ChevronDown, BellRing, Wrench, Eye, BedDouble, UserPlus, User, Ban, Camera, Info, HeartPulse, ChevronLeft, ChevronRight } from 'lucide-react';
 import { apiFunction } from '../api/apiFunction';
-import { getStableStatsApi, getAllStablesApi, getAllHorsesApi, createHorseApi, getHorsesByStableApi, getAllUsersApi, getAllVatsApi, assignVetApi } from '../api/apis';
+import { getStableStatsApi, getAllStablesApi, getAllHorsesApi, createHorseApi, getHorsesByStableApi, getAllUsersApi, getAllVatsApi, assignVetApi, baseUrl } from '../api/apis';
 import { useSelector } from 'react-redux';
 
 const Inventory = () => {
@@ -449,9 +449,9 @@ const HorseModal = ({ horseToEdit, setShowModal, onSuccess, trainers, selectedSt
 
             let res;
             if (horseToEdit) {
-                res = await apiFunction(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api"}/horse/${horseToEdit.id}`, [], horseData, "PUT", true);
+                res = await apiFunction(`${baseUrl}/horse/${horseToEdit.id}`, [], horseData, "PUT", true);
             } else {
-                res = await apiFunction(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api"}/horse`, [], horseData, "POST", true);
+                res = await apiFunction(`${baseUrl}/horse`, [], horseData, "POST", true);
             }
 
             if (res && res.success) {

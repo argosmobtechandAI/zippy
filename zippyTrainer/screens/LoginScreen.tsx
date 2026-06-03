@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, ArrowRight, Smartphone, Mail, ScanLine, Lock } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { apiFunction } from "../api/apiFunction"
@@ -75,7 +76,7 @@ export default function LoginScreen() {
 
 
   return (
-    <View className="flex-1 bg-[#F5EDDF]">
+    <SafeAreaView className="flex-1 bg-[#F5EDDF]">
       <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
         <View className="flex-1 bg-white rounded-3xl p-6 shadow-sm">
           {/* Header section with Logo */}
@@ -203,6 +204,6 @@ export default function LoginScreen() {
           </View>
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }

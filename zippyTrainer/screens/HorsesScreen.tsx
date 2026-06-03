@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator, Modal, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Search, Filter, Plus, Edit, Trash2, X, ChevronRight } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiFunction } from '../api/apiFunction';
-import { getAllHorsesApi, deleteHorseApi } from '../api/api';
+import { getAllHorsesApi, deleteHorseApi, baseURL } from '../api/api';
 import HorseForm from '../component/HorseForm';
 import { RefreshControl } from 'react-native';
 
@@ -76,7 +77,7 @@ export default function HorsesScreen() {
   );
 
   return (
-    <View className="flex-1 bg-[#F5EDDF]">
+    <SafeAreaView className="flex-1 bg-[#F5EDDF]">
       <View className="px-4 py-4 mb-2 flex-row justify-between items-center">
         <View>
           <Text className="text-2xl font-bold text-[#1a202c]">My Horses</Text>
@@ -137,7 +138,7 @@ export default function HorsesScreen() {
             >
               <View className="relative">
                 <Image
-                  source={{ uri: horse.imageUrl || 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?q=80&w=300&auto=format&fit=crop' }}
+                  source={{ uri: (horse.imageUrl && horse.imageUrl.startsWith('/')) ? `${baseURL.replace('/api', '')}${horse.imageUrl}` : (horse.imageUrl || 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?q=80&w=300&auto=format&fit=crop') }}
                   className="w-full h-40 rounded-[2rem] mb-3"
                 />
                 <View className="absolute top-2 right-2 flex-row">
@@ -192,6 +193,6 @@ export default function HorsesScreen() {
           </KeyboardAvoidingView>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }

@@ -1,4 +1,5 @@
-import { View, Text, TouchableOpacity, ScrollView, Image, SafeAreaView } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, Image } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { CheckCircle2, XCircle, ArrowLeft, User, Clock, MapPin } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useEffect, useState } from "react";

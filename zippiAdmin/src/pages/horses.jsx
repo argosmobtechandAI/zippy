@@ -8,13 +8,14 @@ import { apiFunction } from '../api/apiFunction';
 import {
     getAllHorsesApi, getAllUsersApi, updateUserApi, updateHorseApi,
     deleteHorseApi, createHorseApi, notifyUserApi, logHealthApi, logVaccinationApi,
-    getHealthRecordsByHorseApi, getVaccinationRecordsByHorseApi
+    getHealthRecordsByHorseApi, getVaccinationRecordsByHorseApi, uploadFileApi, baseUrl
 } from '../api/apis';
 import toast from 'react-hot-toast';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 
 const DEFAULT_HORSE_IMAGE = "https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?auto=format&fit=crop&q=80&w=800";
+const getImageUrl = (url) => url?.startsWith('/') ? `${baseUrl.replace('/api', '')}${url}` : url;
 
 const Horses = () => {
     const [horses, setHorses] = useState([]);
@@ -214,7 +215,7 @@ const Horses = () => {
                                         <td className="px-8 py-6">
                                             <div className="flex items-center gap-4">
                                                 <div className="w-14 h-14 rounded-2xl overflow-hidden bg-gray-100 shadow-sm group-hover:shadow-md transition-shadow">
-                                                    <img src={horse.imageUrl || DEFAULT_HORSE_IMAGE} className="w-full h-full object-cover" />
+                                                    <img src={horse.imageUrl ? getImageUrl(horse.imageUrl) : DEFAULT_HORSE_IMAGE} className="w-full h-full object-cover" />
                                                 </div>
                                                 <div>
                                                     <p className="text-sm font-black text-[#1e2330]">{horse.name}</p>
@@ -338,24 +339,36 @@ const HorseModal = ({ horseToEdit, setShowModal, onSuccess, trainers }) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        const uploadData = new FormData();
-        uploadData.append('file', file);
-
         try {
-            toast.loading("Uploading image...", { id: "upload" });
-            const res = await axios.post("http://localhost:3000/api/stable/uploadFile", uploadData, {
-                headers: {
-                    "Content-Type": "multipart/form-data",
-                    "Authorization": `Bearer ${localStorage.getItem("token")}`
+            toast.loading("Converting image...", { id: "upload" });
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onloadend = async () => {
+                const base64data = reader.result;
+                toast.loading("Uploading image...", { id: "upload" });
+                
+                const res = await fetch(`${baseUrl}/upload-local`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        base64: base64data,
+                        fileName: file.name || `photo_${Date.now()}.jpg`,
+                        mimeType: file.type || 'image/jpeg'
+                    })
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok && data.success) {
+                    setFormData({ ...formData, imageUrl: data.files[0].url });
+                    toast.success("Image uploaded successfully", { id: "upload" });
+                } else {
+                    toast.error(data?.error || data?.message || "Failed to upload image", { id: "upload" });
                 }
-            });
-
-            if (res.data?.success) {
-                setFormData({ ...formData, imageUrl: res.data.url });
-                toast.success("Image uploaded successfully", { id: "upload" });
-            } else {
-                toast.error(res.data?.message || "Failed to upload image", { id: "upload" });
-            }
+            };
         } catch (error) {
             console.error("Upload error:", error);
             toast.error("Error uploading image", { id: "upload" });
@@ -406,7 +419,7 @@ const HorseModal = ({ horseToEdit, setShowModal, onSuccess, trainers }) => {
                 <div className="md:w-1/3 bg-white p-12 border-r border-gray-100 flex flex-col items-center">
                     <div className="w-48 h-48 rounded-[2rem] overflow-hidden mb-8 shadow-2xl shadow-[#964C2E]/10 bg-gray-50 group relative">
                         <img
-                            src={formData.imageUrl || DEFAULT_HORSE_IMAGE}
+                            src={formData.imageUrl ? getImageUrl(formData.imageUrl) : DEFAULT_HORSE_IMAGE}
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                             alt="preview"
                         />
@@ -659,7 +672,7 @@ const HorseProfileModal = ({ horse, trainers, onClose }) => {
             <div className="w-full max-w-[550px] bg-white h-full shadow-2xl animate-in slide-in-from-right duration-500 flex flex-col">
                 {/* Visual Header */}
                 <div className="h-[280px] relative shrink-0">
-                    <img src={horse.imageUrl || DEFAULT_HORSE_IMAGE} className="w-full h-full object-cover" alt={horse.name} />
+                    <img src={horse.imageUrl ? getImageUrl(horse.imageUrl) : DEFAULT_HORSE_IMAGE} className="w-full h-full object-cover" alt={horse.name} />
                     <div className="absolute inset-0 bg-gradient-to-t from-[#fdfaf7] via-transparent to-transparent"></div>
 
                     <button onClick={onClose} className="absolute top-8 left-8 bg-white/10 hover:bg-white/30 backdrop-blur-xl p-4 rounded-3xl text-white transition-all transform hover:rotate-90 shadow-2xl">
@@ -991,7 +1004,7 @@ const NotificationModal = ({ horse, trainers, onClose }) => {
 
                 <div className="p-10 space-y-6">
                     <div className="flex items-center gap-4 bg-[#fdfaf7] p-4 rounded-2xl border border-gray-100">
-                        <img src={horse.imageUrl || DEFAULT_HORSE_IMAGE} className="w-12 h-12 rounded-xl object-cover" />
+                        <img src={horse.imageUrl ? getImageUrl(horse.imageUrl) : DEFAULT_HORSE_IMAGE} className="w-12 h-12 rounded-xl object-cover" />
                         <div>
                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Subject Context</p>
                             <p className="text-sm font-bold text-[#1e2330]">{horse.name} • {horse.title}</p>

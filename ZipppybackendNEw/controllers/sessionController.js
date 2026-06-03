@@ -25,8 +25,8 @@ const mapToDb = (data) => {
 
 // Allowed columns in the sessions table (DB snake_case)
 const SESSION_ALLOWED_COLS = [
-    'title', 'timing', 'date', 'trainers', 'horse_id', 'participants',
-    'duration', 'location', 'total_seats', 'note', 'status'
+    'title', 'timing', 'date', 'trainers', 'horse_id', 'horse', 'participants',
+    'duration', 'location', 'total_seats', 'note', 'status', 'joining_amount'
 ];
 
 const sanitizeSessionData = (data) => {

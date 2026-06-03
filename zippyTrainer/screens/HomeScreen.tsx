@@ -1,10 +1,11 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator, RefreshControl } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Bell, ChevronRight, Bookmark } from 'lucide-react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiFunction } from '../api/apiFunction';
-import { getSessionsByTrainerApi, getAllHorsesApi, getAllTrainersApi, getUserApi } from '../api/api';
+import { getSessionsByTrainerApi, getAllHorsesApi, getAllTrainersApi, getUserApi, baseURL } from '../api/api';
 
 export default function HomeScreen() {
     const navigation = useNavigation();
@@ -107,7 +108,7 @@ export default function HomeScreen() {
 
 
    return (
-      <View className="flex-1 bg-brand-beige">
+      <SafeAreaView className="flex-1 bg-brand-beige">
          <ScrollView
             contentContainerStyle={{ padding: 24, paddingBottom: 60 }}
             showsVerticalScrollIndicator={false}
@@ -120,7 +121,7 @@ export default function HomeScreen() {
                <View className="flex-row items-center">
                   <View className="w-14 h-14 bg-white rounded-full overflow-hidden mr-4 border-[3px] border-white shadow-xl">
                      <Image
-                        source={{ uri: user?.image || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop' }}
+                        source={{ uri: user?.profilePicture ? (user.profilePicture.startsWith('/') ? `${baseURL.replace('/api', '')}${user.profilePicture}` : user.profilePicture) : 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop' }}
                         className="w-full h-full"
                      />
                   </View>
@@ -252,7 +253,7 @@ export default function HomeScreen() {
                ))}
             </ScrollView>
          </ScrollView>
-      </View>
+      </SafeAreaView>
 
    );
 }

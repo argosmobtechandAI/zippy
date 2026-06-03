@@ -31,3 +31,30 @@ export const deleteSessionApi = `${baseURL}/session`;
 export const approveSessionApi = `${baseURL}/session/status`;
 export const updateTrainerApi = `${baseURL}/trainer`;
 export const getAllStablesApi = `${baseURL}/stable/all`;
+export const uploadToVPSApi = `${baseURL}/upload-local`;
+
+export const uploadToVPS = async (asset) => {
+  try {
+    const response = await fetch(uploadToVPSApi, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({
+        base64: asset.base64,
+        fileName: asset.fileName || `photo_${Date.now()}.jpg`,
+        mimeType: asset.type || 'image/jpeg'
+      }),
+    });
+
+    const data = await response.json();
+    if (response.ok && data.success) {
+      return data.files[0].url; 
+    } else {
+      throw new Error(data.error || 'Upload failed');
+    }
+  } catch (error) {
+    throw error;
+  }
+};

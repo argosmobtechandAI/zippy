@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, ActivityIndicator, Alert, Platform, RefreshControl } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Calendar, MapPin, Clock, CheckCircle2, XCircle, AlertTriangle, CalendarOff, CalendarRange, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiFunction } from '../api/apiFunction';
@@ -305,7 +306,7 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
   };
 
   return (
-    <View className="flex-1 bg-[#F5EDDF]">
+    <SafeAreaView className="flex-1 bg-[#F5EDDF]">
       {/* Custom Header */}
       <View className="flex-row items-center justify-start px-4 py-4 mb-2">
         <TouchableOpacity onPress={onBack} className="p-2">
@@ -620,6 +621,7 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
                     value={leaveForm.reason}
                     onChangeText={t => setLeaveForm({ ...leaveForm, reason: t })}
                     placeholder="e.g. Annual Vacation, Medical"
+                    placeholderTextColor="#94a3b8"
                     className="px-4 py-4 text-[#1a202c] font-bold"
                     multiline
                     numberOfLines={4}
@@ -635,6 +637,7 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
                       <TextInput
                         value={leaveForm.startDate}
                         placeholder="YYYY-MM-DD"
+                        placeholderTextColor="#94a3b8"
                         className="bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl px-4 py-4 text-[#1a202c] font-bold"
                         editable={false}
                       />
@@ -648,6 +651,7 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
                       <TextInput
                         value={leaveForm.endDate}
                         placeholder="YYYY-MM-DD"
+                        placeholderTextColor="#94a3b8"
                         className="bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl px-4 py-4 text-[#1a202c] font-bold"
                         editable={false}
                       />
@@ -755,6 +759,6 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
         </ScrollView>
       }
 
-    </View>
+    </SafeAreaView>
   );
 }

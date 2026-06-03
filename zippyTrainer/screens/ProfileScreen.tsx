@@ -1,23 +1,58 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, SafeAreaView, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Settings, User, Award, Calendar, ChevronRight, LogOut, ShieldCheck } from 'lucide-react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { baseURL } from '../api/api';
 
 export default function ProfileScreen() {
     const navigation = useNavigation();
     const [user, setUser] = useState(null);
+    const [stats, setStats] = useState({ sessionsCount: 0, horsesCount: 0 });
 
     useFocusEffect(
         useCallback(() => {
-            fetchUser();
+            fetchUserAndStats();
         }, [])
     );
 
-    const fetchUser = async () => {
+    const fetchUserAndStats = async () => {
         const userData = await AsyncStorage.getItem('user');
         if (userData) {
-            setUser(JSON.parse(userData));
+            const parsedUser = JSON.parse(userData);
+            setUser(parsedUser);
+            
+            try {
+                // Fetch dynamic stats
+                const trainerId = parsedUser.trainerId || parsedUser.id;
+                
+                // We'll import these at the top: getSessionsByTrainerApi, getAllHorsesApi, apiFunction
+                const { getSessionsByTrainerApi, getAllHorsesApi } = require('../api/api');
+                const { apiFunction } = require('../api/apiFunction');
+                
+                const [sessionsRes, horsesRes] = await Promise.all([
+                    apiFunction(getSessionsByTrainerApi(trainerId), [], {}, "GET", true),
+                    apiFunction(getAllHorsesApi, [], {}, "GET", true)
+                ]);
+
+                let sCount = 0;
+                let hCount = 0;
+
+                if (sessionsRes && sessionsRes.success) {
+                    sCount = sessionsRes.sessions?.length || 0;
+                }
+                
+                if (horsesRes && horsesRes.success) {
+                    const allHorses = horsesRes.horses || [];
+                    const filtered = allHorses.filter((h: any) => h.trainerId === parsedUser.id);
+                    hCount = filtered.length;
+                }
+
+                setStats({ sessionsCount: sCount, horsesCount: hCount });
+            } catch (err) {
+                console.error("Failed to fetch stats", err);
+            }
         }
     };
 
@@ -52,7 +87,9 @@ export default function ProfileScreen() {
                     <View className="relative">
                         <View className="w-28 h-28 rounded-full border-[6px] border-white shadow-xl overflow-hidden bg-white">
                             <Image 
-                                source={{ uri: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop' }}
+                                source={{ uri: user?.profilePicture 
+                                    ? (user.profilePicture.startsWith('/') ? `${baseURL.replace('/api', '')}${user.profilePicture}` : user.profilePicture) 
+                                    : 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop' }}
                                 className="w-full h-full"
                             />
                         </View>
@@ -61,21 +98,21 @@ export default function ProfileScreen() {
                         </View>
                     </View>
                     <Text className="text-brand-brown font-display text-2xl mt-5 mb-1">{user ? user.name : 'Zippy Trainer'}</Text>
-                    <Text className="text-brand-brown/50 font-body text-xs uppercase tracking-widest">Master Trainer • Level 12</Text>
+                    <Text className="text-brand-brown/50 font-body text-xs uppercase tracking-widest">{user?.title || 'Master Trainer'} • Level {user?.level || '1'}</Text>
                 </View>
 
                 {/* Refined Quick Stats Tiles */}
                 <View className="flex-row justify-between mb-10">
                     <View className="flex-1 bg-[#FDF8F2] border border-brand-brown/5 rounded-[24px] p-4 mr-2 shadow-sm items-center">
-                        <Text className="text-brand-brown font-display text-2xl mb-0.5">12</Text>
+                        <Text className="text-brand-brown font-display text-2xl mb-0.5">{user?.experience || '0'}</Text>
                         <Text className="text-brand-brown/40 text-[9px] font-display uppercase tracking-[2px] text-center">Years Exp.</Text>
                     </View>
                     <View className="flex-1 bg-[#FDF8F2] border border-brand-brown/5 rounded-[24px] p-4 mx-1 shadow-sm items-center">
-                        <Text className="text-brand-brown font-display text-2xl mb-0.5">24</Text>
+                        <Text className="text-brand-brown font-display text-2xl mb-0.5">{stats.sessionsCount}</Text>
                         <Text className="text-brand-brown/40 text-[9px] font-display uppercase tracking-[2px] text-center">Sessions</Text>
                     </View>
                     <View className="flex-1 bg-[#FDF8F2] border border-brand-brown/5 rounded-[24px] p-4 ml-2 shadow-sm items-center">
-                        <Text className="text-brand-brown font-display text-2xl mb-0.5">8</Text>
+                        <Text className="text-brand-brown font-display text-2xl mb-0.5">{stats.horsesCount}</Text>
                         <Text className="text-brand-brown/40 text-[9px] font-display uppercase tracking-[2px] text-center">Horses</Text>
                     </View>
                 </View>

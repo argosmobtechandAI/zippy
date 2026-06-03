@@ -288,7 +288,7 @@ const UserManagement = () => {
             const formData = new FormData();
             formData.append('stableId', stableId);
             formData.append('file', file);
-            const res = await axios.post("http://localhost:3000/api/stable/uploadFile", formData, {
+            const res = await axios.post(uploadFileApi, formData, {
                 headers: {
                     "Content-Type": "multipart/form-data",
                     "Authorization": `Bearer ${localStorage.getItem("token")}`

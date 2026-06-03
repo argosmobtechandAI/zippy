@@ -11,6 +11,7 @@ import {
    StyleSheet,
    KeyboardAvoidingView
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
    ArrowLeft,
    Plus,
@@ -389,9 +390,9 @@ export default function SlotManagementScreen() {
    );
 
    return (
-      <View className="flex-1 bg-brand-beige">
+      <SafeAreaView className="flex-1 bg-brand-beige">
          {/* HEADER */}
-         <View className="bg-white px-6 pt-12 pb-6 border-b border-brand-brown/10 shadow-sm flex-row items-center justify-between">
+         <View className="bg-white px-6 py-4 border-b border-brand-brown/10 shadow-sm flex-row items-center justify-between">
             <TouchableOpacity onPress={() => navigation.goBack()} className="p-2 -ml-2">
                <ArrowLeft color="#85431E" size={24} strokeWidth={2.5} />
             </TouchableOpacity>
@@ -917,6 +918,6 @@ export default function SlotManagementScreen() {
                </View>
             </View>
          )}
-      </View>
+      </SafeAreaView>
    );
 }

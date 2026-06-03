@@ -304,7 +304,7 @@ export const clearNotifications = async (req, res) => {
 
 // Columns that actually exist in the `users` table
 const USERS_TABLE_COLUMNS = new Set([
-    'name', 'email', 'mobile', 'type', 'status', 'image', 'age',
+    'name', 'email', 'mobile', 'type', 'status', 'image', 'profile_picture', 'age',
     'dob', 'weight', 'address', 'city', 'state', 'country', 'pincode', 'bio',
     'emergency_contact', 'parent_name', 'notifications', 'stable_id', 'password'
 ]);
@@ -317,7 +317,7 @@ export const updateUser = async (req, res) => {
     const {
         title, experience, level, medical, instructions, allergies,
         riderType, addHorseId, newTrophy, code, password,
-        parentName, emergencyContact, riderWallet, wallet,
+        parentName, emergencyContact, riderWallet, wallet, profilePicture,
         ...rest
     } = data;
 
@@ -333,6 +333,7 @@ export const updateUser = async (req, res) => {
         // Map camelCase to snake_case
         if (parentName !== undefined) coreData.parent_name = parentName;
         if (emergencyContact !== undefined) coreData.emergency_contact = emergencyContact;
+        if (profilePicture !== undefined) coreData.profile_picture = profilePicture;
 
         // Securely hash password if provided
         if (password && password.trim() !== '') {
