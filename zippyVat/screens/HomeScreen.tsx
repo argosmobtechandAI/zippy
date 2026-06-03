@@ -5,6 +5,9 @@ import { apiFunction } from '../api/apiFunction';
 import { getAllHorsesApi, getHorsesByVat } from '../api/api';
 import { View, Text, ScrollView, Image, TouchableOpacity, Dimensions, RefreshControl, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Config } from '../api/config';
+
+const getImageUrl = (url: string) => url?.startsWith('/') ? `${Config.BASE_URL}${url}` : url;
 
 const { width } = Dimensions.get('window');
 
@@ -77,13 +80,19 @@ export default function HomeScreen() {
             <View className="flex-row justify-between items-center mb-10 mt-8">
                <View className="flex-row items-center">
                   <View className="w-16 h-16 rounded-full border-[4px] border-white shadow-xl overflow-hidden bg-white">
-                     <Image
-                        source={{ uri: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop' }}
-                        className="w-full h-full"
-                     />
+                     {user?.profilePicture ? (
+                        <Image
+                           source={{ uri: user.profilePicture }}
+                           className="w-full h-full"
+                        />
+                     ) : (
+                        <View className="w-full h-full bg-brand-beige items-center justify-center">
+                           <Stethoscope color="#85431E" size={24} />
+                        </View>
+                     )}
                   </View>
                   <View className="ml-5">
-                     <Text className="text-2xl font-display text-brand-brown leading-tight">{user?.name || 'Veterinary User'}</Text>
+                     <Text className="text-2xl font-display text-brand-brown leading-tight">{user?.name}</Text>
                      <View className="flex-row items-center mt-1">
                         <View className="w-2 h-2 rounded-full bg-emerald-500 mr-2" />
                         <Text className="text-[10px] font-body text-brand-brown/50 uppercase tracking-[2px]">{user?.type === 'vet' ? 'Chief Veterinarian' : (user?.type || 'Specialist')}</Text>
@@ -187,7 +196,7 @@ export default function HomeScreen() {
                         <View className="w-20 h-20 rounded-[22px] overflow-hidden bg-brand-beige/30 items-center justify-center border border-brand-brown/5 shadow-inner">
                            {horse.imageUrl || horse.image ? (
                               <Image
-                                 source={{ uri: horse.imageUrl || horse.image }}
+                                 source={{ uri: getImageUrl(horse.imageUrl || horse.image) }}
                                  className="w-full h-full"
                               />
                            ) : (
@@ -200,11 +209,11 @@ export default function HomeScreen() {
                            <View className="flex-row justify-between items-center mb-1">
                               <Text className="text-brand-brown font-display-reg font-bold text-lg leading-tight tracking-tight">{horse.name}</Text>
                               <View className="bg-brand-orange/10 px-3 py-1.5 rounded-2xl">
-                                 <Text className="text-[9px] font-display text-brand-orange uppercase tracking-widest leading-none">Healthy</Text>
+                                 <Text className="text-[9px] font-display text-brand-orange uppercase tracking-widest leading-none">{horse.healthStatus?.status || 'Unfit'}</Text>
                               </View>
                            </View>
                            <View className="flex-row items-center">
-                              <Text className="text-brand-brown/40 font-body text-[10px] uppercase tracking-[1.5px]">{horse.title || 'Standard Checkup'}</Text>
+                              <Text className="text-brand-brown/40 font-body text-[10px] uppercase tracking-[1.5px]">{horse.title || 'General Checkup'}</Text>
                               <View className="w-1 h-1 rounded-full bg-brand-brown/10 mx-2" />
                               <Text className="text-brand-brown/40 font-body text-[10px] uppercase tracking-[1.5px] flex-1" numberOfLines={1}>{horse.location}</Text>
                            </View>
@@ -233,10 +242,16 @@ export default function HomeScreen() {
                      className="bg-white rounded-[40px] p-4 mr-6 shadow-xl shadow-brand-brown/5 border border-brand-brown/5 w-60"
                   >
                      <View className="relative">
-                        <Image
-                           source={{ uri: horse.imageUrl || 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a' }}
-                           className="w-full h-72 rounded-[32px] border-2 border-white/50"
-                        />
+                        {horse.imageUrl || horse.image ? (
+                           <Image
+                              source={{ uri: getImageUrl(horse.imageUrl || horse.image) }}
+                              className="w-full h-72 rounded-[32px] border-2 border-white/50"
+                           />
+                        ) : (
+                           <View className="w-full h-72 rounded-[32px] border-2 border-white/50 bg-brand-beige items-center justify-center">
+                              <Stethoscope color="#85431E" size={48} opacity={0.2} />
+                           </View>
+                        )}
                         <View className="absolute bottom-4 left-4 right-4 bg-white/95 p-5 rounded-[24px] shadow-sm">
                            <Text className="text-brand-brown font-display text-lg tracking-tight leading-tight">{horse.name}</Text>
                            <Text className="text-brand-orange text-[9px] font-display uppercase tracking-[2px] mt-1">{horse.location}</Text>

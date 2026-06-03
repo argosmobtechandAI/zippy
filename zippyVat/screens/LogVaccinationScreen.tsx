@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Image, Alert, ActivityIndicator, Modal } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, Image, Alert, ActivityIndicator, Modal, SafeAreaView } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { ArrowLeft, Calendar, Syringe, X, CheckCircle2 } from 'lucide-react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { apiFunction } from '../api/apiFunction';
-import { logVaccinationApi } from '../api/api';
+import { logVaccinationApi, getAllHorsesApi } from '../api/api';
 
 // Custom Simple JS Date Picker Component
 const CustomDatePicker = ({ visible, onClose, onSelect, initialDate }: any) => {
@@ -37,8 +38,8 @@ const CustomDatePicker = ({ visible, onClose, onSelect, initialDate }: any) => {
 
                     <View className="p-6">
                         <View className="flex-row mb-4">
-                            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => (
-                                <Text key={d} className="flex-1 text-center text-[#94a3b8] text-[10px] font-bold">{d}</Text>
+                            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, idx) => (
+                                <Text key={idx} className="flex-1 text-center text-[#94a3b8] text-[10px] font-bold">{d}</Text>
                             ))}
                         </View>
                         
@@ -84,7 +85,10 @@ const CustomDatePicker = ({ visible, onClose, onSelect, initialDate }: any) => {
 export default function LogVaccinationScreen() {
     const navigation = useNavigation();
     const route = useRoute();
-    const { horse } = route.params as any;
+    const { horse, horseId } = (route.params as any) || {};
+    
+    // Safely extract the ID whether we got a full object or just a string ID
+    const targetHorseId = horse?.id || horseId || (typeof horse === 'string' ? horse : null);
 
     const [vaccineName, setVaccineName] = useState("");
     const [dateAdministered, setDateAdministered] = useState(new Date());
@@ -95,7 +99,33 @@ export default function LogVaccinationScreen() {
     const [notes, setNotes] = useState("");
     const [saving, setSaving] = useState(false);
 
+    const [horses, setHorses] = useState<any[]>([]);
+    const [selectedHorseId, setSelectedHorseId] = useState(targetHorseId);
+    const [showHorsePicker, setShowHorsePicker] = useState(false);
+
+    useEffect(() => {
+        if (!targetHorseId) {
+            fetchHorses();
+        }
+    }, [targetHorseId]);
+
+    const fetchHorses = async () => {
+        try {
+            const res = await apiFunction(getAllHorsesApi, [], {}, "GET", true);
+            if (res && res.success) {
+                setHorses(res.horses || []);
+            }
+        } catch (e) {
+            console.error("Failed to fetch horses for dropdown", e);
+        }
+    };
+
     const handleSave = async () => {
+        if (!selectedHorseId) {
+            Alert.alert("Error", "No horse selected.");
+            return;
+        }
+
         if (!vaccineName || !dateAdministered) {
             Alert.alert("Error", "Please enter vaccine name and date.");
             return;
@@ -103,28 +133,43 @@ export default function LogVaccinationScreen() {
 
         setSaving(true);
         try {
-            const res = await apiFunction(logVaccinationApi, [], {
-                horseId: horse.id,
+            const payload = {
+                horseId: selectedHorseId,
                 name: vaccineName,
                 date: dateAdministered.toISOString().split('T')[0],
                 nextDate: nextDueDate.toISOString().split('T')[0],
-                batchNumber: batchNo,
+                batchNumber: batchNo || `B${Date.now().toString().slice(-6)}`,
                 notes: notes
-            }, "POST", true);
+            };
+            console.log('Vaccination payload:', JSON.stringify(payload));
+
+            const res = await apiFunction(logVaccinationApi, [], payload, "POST", true);
+            console.log('Vaccination response:', JSON.stringify(res));
 
             if (res && res.success) {
-                Alert.alert("Success", "Vaccination record saved.");
+                Alert.alert("Success", "Vaccination record saved successfully.");
                 navigation.goBack();
+            } else {
+                Alert.alert("Error", res?.message || "Server rejected the request. Please try again.");
             }
-        } catch (error) {
-            Alert.alert("Error", "Failed to save vaccination record.");
+        } catch (error: any) {
+            console.error('Vaccination save error:', error?.response?.data || error?.message || error);
+            const serverMsg = error?.response?.data?.message;
+            Alert.alert("Error", serverMsg || "Network error. Please check your connection.");
         } finally {
             setSaving(false);
         }
     };
 
     return (
-        <View className="flex-1 bg-[#F5EDDF]">
+        <SafeAreaView className="flex-1 bg-[#F5EDDF]">
+            <View className="flex-row items-center px-4 py-4 mb-2 mt-2">
+                <TouchableOpacity onPress={() => navigation.goBack()} className="w-10 h-10 bg-white rounded-full items-center justify-center shadow-sm border border-[#e2e8f0]">
+                    <ArrowLeft color="#8C4A28" size={20} />
+                </TouchableOpacity>
+                <Text className="text-xl font-bold text-[#8C4A28] ml-4">Log Vaccination</Text>
+            </View>
+
             <CustomDatePicker 
                 visible={showAdminPicker} 
                 onClose={() => setShowAdminPicker(false)}
@@ -148,6 +193,47 @@ export default function LogVaccinationScreen() {
                 
                 {/* Form Fields */}
                 <Text className="text-[#1a202c] font-bold text-base mb-3">Vaccine Details</Text>
+
+                {!targetHorseId && (
+                    <>
+                        <Text className="text-[#1a202c] font-semibold text-xs mb-1 ml-1">Patient (Horse)</Text>
+                        <TouchableOpacity 
+                            onPress={() => setShowHorsePicker(true)}
+                            className="bg-white rounded-xl px-4 py-1 mb-4 border border-[#e2e8f0] shadow-sm flex-row items-center h-11"
+                        >
+                            <Text className={`flex-1 ${selectedHorseId ? 'text-[#1a202c]' : 'text-[#94a3b8]'}`}>
+                                {selectedHorseId ? horses.find((h: any) => h.id === selectedHorseId)?.name || 'Select Horse' : 'Select Horse'}
+                            </Text>
+                        </TouchableOpacity>
+
+                        <Modal visible={showHorsePicker} transparent animationType="fade">
+                            <View className="flex-1 bg-black/50 justify-center items-center px-6">
+                                <View className="bg-white w-full rounded-3xl max-h-[60%] overflow-hidden shadow-2xl">
+                                    <View className="bg-[#8C4A28] p-4 flex-row justify-between items-center">
+                                        <Text className="text-white font-bold text-lg">Select Patient</Text>
+                                        <TouchableOpacity onPress={() => setShowHorsePicker(false)}>
+                                            <X color="white" size={20} />
+                                        </TouchableOpacity>
+                                    </View>
+                                    <ScrollView className="p-4 mb-2">
+                                        {horses.map((h: any) => (
+                                            <TouchableOpacity 
+                                                key={h.id} 
+                                                onPress={() => {
+                                                    setSelectedHorseId(h.id);
+                                                    setShowHorsePicker(false);
+                                                }}
+                                                className="py-4 border-b border-gray-100"
+                                            >
+                                                <Text className="text-[#1a202c] font-bold">{h.name}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </ScrollView>
+                                </View>
+                            </View>
+                        </Modal>
+                    </>
+                )}
 
                 <Text className="text-[#1a202c] font-semibold text-xs mb-1 ml-1">Vaccine Name</Text>
                 <View className="bg-white rounded-xl px-4 py-1 mb-4 border border-[#e2e8f0] shadow-sm flex-row items-center">
@@ -247,6 +333,6 @@ export default function LogVaccinationScreen() {
                 </TouchableOpacity>
 
             </ScrollView>
-        </View>
+        </SafeAreaView>
     );
 }

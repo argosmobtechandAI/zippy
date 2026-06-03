@@ -4,7 +4,7 @@ import { Check, Award, FileText, Activity, User, ChevronRight, LogOut, HeartPuls
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiFunction } from '../api/apiFunction';
-import { getAllHorsesApi, getHorsesByVat, getUserApi } from '../api/api';
+import { getHorsesByVat, getUserApi, getVaccinationRecordsApi, getHealthRecordsApi } from '../api/api';
 
 export default function ProfileScreen() {
    const navigation = useNavigation<any>();
@@ -12,8 +12,8 @@ export default function ProfileScreen() {
    const [loading, setLoading] = useState(true);
    const [stats, setStats] = useState({
       patients: 0,
-      logs: 24, // Mocked for now
-      alerts: 2
+      logs: 0,
+      alerts: 0
    });
 
    const loadUserData = async () => {
@@ -31,11 +31,30 @@ export default function ProfileScreen() {
             }
          }
 
-         // Fetch total patients for stat
+         // Fetch total patients and alerts
          const horseRes = await apiFunction(getHorsesByVat, [], {}, "GET", true);
-         if (horseRes && horseRes.success) {
-            setStats(prev => ({ ...prev, patients: horseRes.horses?.length || 0 }));
+         let patientsCount = 0;
+         let alertsCount = 0;
+         if (horseRes && horseRes.success && horseRes.horses) {
+            patientsCount = horseRes.horses.length;
+            alertsCount = horseRes.horses.filter((h: any) => h.healthStatus?.status?.toLowerCase() === 'unfit').length;
          }
+
+         // Fetch logs (health + vaccinations)
+         const [vacRes, healthRes] = await Promise.all([
+            apiFunction(getVaccinationRecordsApi, [], {}, "GET", true),
+            apiFunction(getHealthRecordsApi, [], {}, "GET", true)
+         ]);
+         
+         let logsCount = 0;
+         if (vacRes && vacRes.success) logsCount += (vacRes.records?.length || 0);
+         if (healthRes && healthRes.success) logsCount += (healthRes.records?.length || 0);
+
+         setStats({
+            patients: patientsCount,
+            alerts: alertsCount,
+            logs: logsCount
+         });
       } catch (error) {
          console.error("Load profile data error:", error);
       } finally {
@@ -70,17 +89,23 @@ export default function ProfileScreen() {
             <View className="items-center mt-12 mb-10">
                <View className="relative">
                   <View className="w-32 h-32 rounded-full border-[6px] border-white shadow-xl overflow-hidden bg-white">
-                     <Image
-                        source={{ uri: user?.imageUrl || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop' }}
-                        className="w-full h-full"
-                     />
+                     {user?.profilePicture ? (
+                        <Image
+                           source={{ uri: user.profilePicture }}
+                           className="w-full h-full"
+                        />
+                     ) : (
+                        <View className="w-full h-full bg-brand-beige items-center justify-center">
+                           <User color="#85431E" size={48} />
+                        </View>
+                     )}
                   </View>
                   <View className="absolute bottom-1 right-1 bg-brand-orange w-9 h-9 border-[3px] border-white rounded-full items-center justify-center shadow-lg">
                      <Check color="white" size={18} strokeWidth={3} />
                   </View>
                </View>
 
-               <Text className="text-3xl font-display text-brand-brown mt-6 mb-1">{user?.name || 'Dr. Alexander'}</Text>
+               <Text className="text-3xl font-display text-brand-brown mt-6 mb-1">{user?.name}</Text>
                <Text className="text-brand-brown/50 font-body text-xs uppercase tracking-[3px]">{user?.type === 'vet' ? 'Chief Veterinarian • Specialist' : (user?.type || 'Specialist')}</Text>
                <View className="bg-white/50 px-5 py-2 rounded-full border border-brand-brown/5 mt-4">
                   <Text className="text-brand-brown/40 text-[10px] font-body uppercase tracking-widest">{user?.email}</Text>

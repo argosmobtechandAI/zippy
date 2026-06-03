@@ -4,11 +4,13 @@ import { Menu, Bell, Search, ListFilter, Activity, ChevronRight, Plus, ArrowLeft
 import { useNavigation } from '@react-navigation/native';
 import { apiFunction } from '../api/apiFunction';
 import { getAllHorsesApi, getHorsesByVat } from '../api/api';
+import { Config } from '../api/config';
+
+const getImageUrl = (url: string) => url?.startsWith('/') ? `${Config.BASE_URL}${url}` : url;
 
 const { width } = Dimensions.get('window');
 
 export default function HorsesScreen() {
-  const [activeTab, setActiveTab] = useState('All Horses');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [horses, setHorses] = useState<any[]>([]);
@@ -40,13 +42,7 @@ export default function HorsesScreen() {
 
   console.log(horses, "horses")
 
-  const filteredHorses = horses.filter(h => {
-    if (activeTab === 'All Horses') return true;
-    let status = activeTab === "Fit for Work" ? "Fit" : activeTab === "Light Work" ? "Light Work" : "Unfit";
-    return h.healthStatus?.status?.toLowerCase() === status.toLowerCase();
-  });
-
-  const filterTabs = ['All Horses', 'Fit for Work', 'Light Work', 'Rest Required'];
+  const filteredHorses = Array.isArray(horses) ? horses : [];
 
   return (
     <View className="flex-1 bg-[#FDF5EA]">
@@ -84,27 +80,6 @@ export default function HorsesScreen() {
           </View>
         </View>
 
-        {/* Categories */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          className="mb-8"
-          contentContainerStyle={{ gap: 12 }}
-        >
-          {filterTabs.map(tab => (
-            <TouchableOpacity
-              key={tab}
-              onPress={() => setActiveTab(tab)}
-              style={{ backgroundColor: activeTab === tab ? "#8C4A28" : "transparent" }}
-              className={`px-6 py-3 rounded-full border`}
-            >
-              <Text style={{ color: activeTab === tab ? "white" : "#8C4A28" }} className={`text-[10px] font-black tracking-widest uppercase`}>
-                {tab}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
         {/* Stable Overview Hero */}
         <TouchableOpacity
           activeOpacity={0.9}
@@ -115,16 +90,16 @@ export default function HorsesScreen() {
             <Text className="text-white/60 text-[10px] font-black tracking-[2px] uppercase">Stable Overview</Text>
           </View>
           <View className="flex-row justify-between items-end">
-            <Text className="text-white text-4xl font-black">{horses.length} Total Horses</Text>
+            <Text className="text-white text-4xl font-black">{Array.isArray(horses) ? horses.length : 0} Total Horses</Text>
             <View className="flex-row items-center">
               <View className="flex-row -space-x-4">
-                {horses.slice(0, 2).map((h, i) => (
-                  <View key={i} className="w-10 h-10 rounded-full border-2 border-[#8C4A28] overflow-hidden bg-white shadow-sm">
-                    <Image source={{ uri: h.imageUrl || 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a' }} className="w-full h-full" />
+                {Array.isArray(horses) && horses.slice(0, 2).map((h, i) => (
+                  <View key={i} className="w-10 h-10 rounded-full border-2 border-[#8C4A28] overflow-hidden bg-white shadow-sm items-center justify-center">
+                    {h.imageUrl ? <Image source={{ uri: getImageUrl(h.imageUrl) }} className="w-full h-full" /> : <Activity color="#8C4A28" size={20} opacity={0.5} />}
                   </View>
                 ))}
                 <View className="w-10 h-10 rounded-full border-2 border-white bg-[#FAF7F2] items-center justify-center z-10 shadow-sm">
-                  <Text className="text-[#8C4A28] text-[10px] font-black">+{horses.length > 2 ? horses.length - 2 : 21}</Text>
+                  <Text className="text-[#8C4A28] text-[10px] font-black">+{Array.isArray(horses) && horses.length > 2 ? horses.length - 2 : 0}</Text>
                 </View>
               </View>
             </View>
@@ -151,26 +126,32 @@ export default function HorsesScreen() {
                 className="bg-white rounded-[2.5rem] p-5 shadow-xl shadow-gray-200 border border-white flex-row items-center"
               >
                 <View className="shadow-lg shadow-gray-200">
-                  <Image
-                    source={{ uri: horse.imageUrl || 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a' }}
-                    className="w-24 h-24 rounded-[2rem] border-2 border-gray-50 bg-[#FAF7F2]"
-                  />
+                  {horse.imageUrl ? (
+                    <Image
+                      source={{ uri: getImageUrl(horse.imageUrl) }}
+                      className="w-24 h-24 rounded-[2rem] border-2 border-gray-50 bg-[#FAF7F2]"
+                    />
+                  ) : (
+                    <View className="w-24 h-24 rounded-[2rem] border-2 border-gray-50 bg-[#FAF7F2] items-center justify-center p-2">
+                      <Text className="text-[10px] font-bold text-[#94a3b8] text-center uppercase tracking-widest">No Preview Image</Text>
+                    </View>
+                  )}
                 </View>
 
                 <View className="flex-1 ml-5">
                   <View className="flex-row justify-between items-center mb-1">
                     <Text className="text-[#1a202c] font-black text-lg tracking-tight">{horse.name}</Text>
-                    <Text className="text-[10px] font-black text-[#8C4A28] uppercase tracking-wider">{horse.shoeStatus || 'FIT FOR WORK'}</Text>
+                    <Text className="text-[10px] font-black text-[#8C4A28] uppercase tracking-wider">{horse.status || 'UNKNOWN'}</Text>
                   </View>
 
                   <Text className="text-[#94a3b8] text-[9px] font-black uppercase tracking-[1px] mb-3">
-                    ID: #{horse.id?.substring(0, 8).toUpperCase()} | {horse.title || 'Bay Stallion'}
+                    ID: #{horse.id?.substring(0, 8).toUpperCase()} | {horse.title || 'General'}
                   </Text>
 
                   <View className="flex-row items-center">
                     <Calendar color="#8C4A28" size={12} opacity={0.5} />
                     <Text className="text-[#64748b] text-[10px] font-bold ml-2">
-                      {horse.lastVisit ? `Last Check: ${horse.lastVisit}` : 'Last Check: Today, 09:30 AM'}
+                      {horse.lastVisit ? `Last Check: ${horse.lastVisit}` : 'No recent visits'}
                     </Text>
                   </View>
                 </View>

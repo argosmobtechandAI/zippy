@@ -4,6 +4,9 @@ import { ArrowLeft, HeartPulse, CalendarCheck, Activity, Zap, ShieldCheck, MapPi
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { apiFunction } from '../api/apiFunction';
 import { getHealthRecordsApi, getVaccinationRecordsApi, getSessionsApi } from '../api/api';
+import { Config } from '../api/config';
+
+const getImageUrl = (url) => url?.startsWith('/') ? `${Config.BASE_URL}${url}` : url;
 
 const HorseDetail = () => {
     const navigation = useNavigation();
@@ -80,7 +83,7 @@ const HorseDetail = () => {
                 {/* Profile Card */}
                 <View className="bg-white rounded-3xl p-4 shadow-sm border border-[#e2e8f0] mb-6">
                     <Image
-                        source={{ uri: horse.imageUrl || 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?q=80&w=400&auto=format&fit=crop' }}
+                        source={{ uri: getImageUrl(horse.imageUrl || horse.image) || 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?q=80&w=400&auto=format&fit=crop' }}
                         className="w-full h-48 rounded-2xl mb-4"
                     />
                     <View className="flex-row justify-between items-start mb-2">
@@ -139,43 +142,6 @@ const HorseDetail = () => {
                     </View>
                 </View>
 
-                {/* Availability */}
-                <View className="flex-row items-center justify-between mb-5 px-1">
-                    <View className="flex-row items-center">
-                        <CalendarCheck color="#8C4A28" size={24} className="mr-2" />
-                        <Text className="text-xl font-black text-[#1a202c]">Availability</Text>
-                    </View>
-                    <TouchableOpacity>
-                        <Text className="text-[#8C4A28] font-black text-[10px] uppercase tracking-wider">View Calendar</Text>
-                    </TouchableOpacity>
-                </View>
-
-                <View className="bg-white rounded-[2.5rem] p-6 shadow-xl shadow-gray-200 border border-white mb-4">
-                    <Text className="text-[#1a202c] font-black text-base mb-6">Today's Schedule</Text>
-
-                    {sessions.length === 0 ? (
-                        <View className="py-8 items-center border border-dashed border-gray-100 rounded-3xl">
-                             <Text className="text-gray-400 font-bold text-[10px] uppercase tracking-widest">No activities scheduled for today</Text>
-                        </View>
-                    ) : (
-                        sessions.map((session, index) => (
-                            <View key={session.id} className={`flex-row items-center ${index !== 0 ? 'mt-6 pt-6 border-t border-gray-50' : ''}`}>
-                                <View className="w-14 items-center mr-3">
-                                    <Text className="text-[#1a202c] font-black">{session.timing?.split(' ')[0]}</Text>
-                                    <Text className="text-[#94a3b8] text-[9px] font-black uppercase tracking-tighter">{session.timing?.split(' ')[1] || 'AM'}</Text>
-                                </View>
-                                <View className={`w-1 h-10 ${index % 2 === 0 ? 'bg-[#8C4A28]' : 'bg-gray-200'} rounded-full mr-4`} />
-                                <View className="flex-1">
-                                    <Text className="text-[#1a202c] font-black text-sm leading-tight">{session.title}</Text>
-                                    <Text className="text-[#94a3b8] text-[9px] font-bold uppercase tracking-wider mt-0.5">{session.location}</Text>
-                                </View>
-                                <View className={`${index % 2 === 0 ? 'bg-[#FAF7F2]' : 'bg-[#F0FDF4]'} px-3 py-1.5 rounded-2xl`}>
-                                    <Text className={`text-[9px] font-black ${index % 2 === 0 ? 'text-[#8C4A28]' : 'text-emerald-700'} uppercase tracking-wider`}>{index % 2 === 0 ? 'UPCOMING' : 'DONE'}</Text>
-                                </View>
-                            </View>
-                        ))
-                    )}
-                </View>
 
                 {loading && (
                     <View className="mt-4 flex-row justify-center items-center">

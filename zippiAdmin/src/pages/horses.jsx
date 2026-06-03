@@ -2,13 +2,14 @@
 import {
     Plus, Search, Edit, Ban, Info, ChevronRight, Activity,
     Droplets, Zap, Weight, MapPin, UserPlus, X, Camera, Clipboard,
-    ShieldCheck, HeartPulse, Trash2, Bell, Send, AlertTriangle
+    ShieldCheck, HeartPulse, Trash2, Bell, Send, AlertTriangle, Tag, Settings
 } from 'lucide-react';
 import { apiFunction } from '../api/apiFunction';
 import {
     getAllHorsesApi, getAllUsersApi, updateUserApi, updateHorseApi,
     deleteHorseApi, createHorseApi, notifyUserApi, logHealthApi, logVaccinationApi,
-    getHealthRecordsByHorseApi, getVaccinationRecordsByHorseApi, uploadFileApi, baseUrl
+    getHealthRecordsByHorseApi, getVaccinationRecordsByHorseApi, uploadFileApi, baseUrl,
+    getAllStablesApi, getCategoriesApi, createCategoryApi, deleteCategoryApi
 } from '../api/apis';
 import toast from 'react-hot-toast';
 import { useState, useEffect } from 'react';
@@ -20,9 +21,12 @@ const getImageUrl = (url) => url?.startsWith('/') ? `${baseUrl.replace('/api', '
 const Horses = () => {
     const [horses, setHorses] = useState([]);
     const [trainers, setTrainers] = useState([]);
+    const [stables, setStables] = useState([]);
+    const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
     const [showModal, setShowModal] = useState(false);
+    const [showCategoryModal, setShowCategoryModal] = useState(false);
     const [horseToEdit, setHorseToEdit] = useState(null);
     const [selectedHorse, setSelectedHorse] = useState(null);
     const [notifHorse, setNotifHorse] = useState(null);
@@ -30,15 +34,16 @@ const Horses = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const res = await apiFunction(getAllHorsesApi, [], {}, "GET", true);
-            console.log(res, "res")
-            if (res && res.success) {
-                setHorses(res.horses || []);
-            }
-            const uRes = await apiFunction(getAllUsersApi, [], {}, "GET", true);
-            if (uRes && uRes.success) {
-                setTrainers(uRes.users.filter(u => u.type === 'trainer'));
-            }
+            const [horseRes, uRes, stableRes, catRes] = await Promise.all([
+                apiFunction(getAllHorsesApi, [], {}, "GET", true),
+                apiFunction(getAllUsersApi, [], {}, "GET", true),
+                apiFunction(getAllStablesApi, [], {}, "GET", true),
+                apiFunction(getCategoriesApi, [], {}, "GET", false),
+            ]);
+            if (horseRes?.success) setHorses(horseRes.horses || []);
+            if (uRes?.success) setTrainers(uRes.users.filter(u => u.type === 'trainer'));
+            if (stableRes?.success) setStables(stableRes.stables || []);
+            if (catRes?.success) setCategories(catRes.categories || []);
         } catch (error) {
             console.error("Error fetching horse data", error);
         } finally {
@@ -106,6 +111,13 @@ const Horses = () => {
                 </div>
 
                 <div className="flex items-center gap-4">
+                    <button
+                        onClick={() => setShowCategoryModal(true)}
+                        className="flex items-center gap-2 bg-white border border-[#964C2E]/20 text-[#964C2E] text-sm font-bold px-6 py-4 rounded-2xl hover:bg-[#964C2E]/5 transition-all duration-200"
+                    >
+                        <Tag className="w-4 h-4" />
+                        Manage Categories
+                    </button>
                     <button
                         onClick={() => { setHorseToEdit(null); setShowModal(true); }}
                         className="group bg-[#964C2E] text-white text-sm font-bold px-8 py-4 rounded-2xl shadow-2xl shadow-[#964C2E]/20 flex items-center gap-3 hover:bg-[#7D3F25] transition-all duration-300 transform hover:scale-[1.02] whitespace-nowrap"
@@ -286,9 +298,10 @@ const Horses = () => {
                 </div>
             </div>
 
-            {showModal && <HorseModal horseToEdit={horseToEdit} setShowModal={setShowModal} onSuccess={fetchData} trainers={trainers} />}
+            {showModal && <HorseModal horseToEdit={horseToEdit} setShowModal={setShowModal} onSuccess={fetchData} trainers={trainers} stables={stables} categories={categories} />}
             {selectedHorse && <HorseProfileModal horse={selectedHorse} trainers={trainers} onClose={() => setSelectedHorse(null)} />}
             {notifHorse && <NotificationModal horse={notifHorse} trainers={trainers} onClose={() => setNotifHorse(null)} />}
+            {showCategoryModal && <CategoryModal categories={categories} onClose={() => setShowCategoryModal(false)} onSuccess={fetchData} />}
 
             <footer className="mt-12 py-8 border-t border-gray-100 flex justify-between text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
                 <div className="flex gap-6">
@@ -305,11 +318,13 @@ const Horses = () => {
 // =====================================
 // HORSE MODAL (Add/Edit)
 // =====================================
-const HorseModal = ({ horseToEdit, setShowModal, onSuccess, trainers }) => {
+const HorseModal = ({ horseToEdit, setShowModal, onSuccess, trainers, stables = [], categories = [] }) => {
     const assignedTrainer = trainers?.find(t => t.horseId?.includes(horseToEdit?.id));
+    const assignedStable = stables?.find(s => s.id === horseToEdit?.stableId);
     const [formData, setFormData] = useState({
         name: horseToEdit?.name || "",
-        location: horseToEdit?.location || "Lexington Stables",
+        location: horseToEdit?.location || "",
+        stableId: horseToEdit?.stableId || "",
         title: horseToEdit?.title || "",
         weight: horseToEdit?.weight || "",
         speed: horseToEdit?.speed || "",
@@ -385,6 +400,11 @@ const HorseModal = ({ horseToEdit, setShowModal, onSuccess, trainers }) => {
                 speed: parseInt(formData.speed) || 40,
                 age: parseInt(formData.age) || 0,
                 trainerId: formData.trainerId || null,
+                stableId: formData.stableId || null,
+                // Use selected stable's name as location if a stable is chosen
+                location: formData.stableId
+                    ? (stables.find(s => s.id === formData.stableId)?.name || formData.location)
+                    : formData.location,
                 shoeStatus: formData.shoeStatus || "Regular"
             };
 
@@ -478,11 +498,16 @@ const HorseModal = ({ horseToEdit, setShowModal, onSuccess, trainers }) => {
                                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Category</label>
                                     <select value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="w-full bg-white border border-gray-100 rounded-2xl px-6 py-5 text-sm font-bold text-[#1e2330] focus:outline-none focus:border-[#964C2E]/30 transition-all shadow-sm appearance-none">
                                         <option value="">Select Category</option>
-                                        <option value="Show Jumping">Show Jumping</option>
-                                        <option value="Beginner Friendly">Beginner Friendly</option>
-                                        <option value="Dressage">Dressage</option>
-                                        <option value="Eventing">Eventing</option>
-                                        <option value="Training Only">Training Only</option>
+                                        {categories.length > 0
+                                            ? categories.map(cat => <option key={cat.id} value={cat.name}>{cat.name}</option>)
+                                            : [
+                                                <option key="sj" value="Show Jumping">Show Jumping</option>,
+                                                <option key="bf" value="Beginner Friendly">Beginner Friendly</option>,
+                                                <option key="dr" value="Dressage">Dressage</option>,
+                                                <option key="ev" value="Eventing">Eventing</option>,
+                                                <option key="tr" value="Training Only">Training Only</option>,
+                                            ]
+                                        }
                                     </select>
                                 </div>
                                 <div className="space-y-2">
@@ -495,6 +520,28 @@ const HorseModal = ({ horseToEdit, setShowModal, onSuccess, trainers }) => {
                                         <option value="Training">Training Only</option>
                                     </select>
                                 </div>
+                            </div>
+
+                            {/* Stable Dropdown */}
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Stable / Location</label>
+                                {stables.length > 0 ? (
+                                    <select
+                                        value={formData.stableId}
+                                        onChange={e => setFormData({ ...formData, stableId: e.target.value, location: stables.find(s => s.id === e.target.value)?.name || formData.location })}
+                                        className="w-full bg-white border border-gray-100 rounded-2xl px-6 py-5 text-sm font-bold text-[#1e2330] focus:outline-none focus:border-[#964C2E]/30 transition-all shadow-sm appearance-none"
+                                    >
+                                        <option value="">Select Stable</option>
+                                        {stables.map(s => <option key={s.id} value={s.id}>{s.name} — {s.location}</option>)}
+                                    </select>
+                                ) : (
+                                    <input
+                                        value={formData.location}
+                                        onChange={e => setFormData({ ...formData, location: e.target.value })}
+                                        className="w-full bg-white border border-gray-100 rounded-2xl px-6 py-5 text-sm font-bold text-[#1e2330] focus:outline-none focus:border-[#964C2E]/30 transition-all shadow-sm"
+                                        placeholder="e.g., Lexington Stables"
+                                    />
+                                )}
                             </div>
 
                             <div className="space-y-2">
@@ -1051,3 +1098,126 @@ const NotificationModal = ({ horse, trainers, onClose }) => {
 
 export default Horses;
 
+// =====================================
+// CATEGORY MANAGEMENT MODAL
+// =====================================
+const CategoryModal = ({ categories, onClose, onSuccess }) => {
+    const [newName, setNewName] = useState('');
+    const [newDesc, setNewDesc] = useState('');
+    const [saving, setSaving] = useState(false);
+    const [deleting, setDeleting] = useState(null);
+
+    const handleCreate = async (e) => {
+        e.preventDefault();
+        if (!newName.trim()) return;
+        setSaving(true);
+        try {
+            const res = await apiFunction(createCategoryApi, [], { name: newName.trim(), description: newDesc.trim() }, 'POST', false);
+            if (res?.success) {
+                toast.success(`Category "${newName}" created`);
+                setNewName('');
+                setNewDesc('');
+                onSuccess();
+            } else {
+                toast.error(res?.message || 'Failed to create category');
+            }
+        } catch {
+            toast.error('Network error');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleDelete = async (cat) => {
+        if (!window.confirm(`Delete category "${cat.name}"? Existing horses won't lose their category label.`)) return;
+        setDeleting(cat.id);
+        try {
+            const res = await apiFunction(`${deleteCategoryApi}?id=${cat.id}`, [], {}, 'DELETE', false);
+            if (res?.success) {
+                toast.success(`Category "${cat.name}" deleted`);
+                onSuccess();
+            } else {
+                toast.error(res?.message || 'Failed to delete');
+            }
+        } catch {
+            toast.error('Network error');
+        } finally {
+            setDeleting(null);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-[#1e2330]/60 backdrop-blur-md flex items-center justify-center z-50 p-4">
+            <div className="bg-[#fdfaf7] rounded-[2.5rem] w-full max-w-[600px] shadow-2xl overflow-hidden">
+                {/* Header */}
+                <div className="flex justify-between items-center p-10 border-b border-gray-100">
+                    <div>
+                        <p className="text-[10px] font-bold text-[#964C2E] uppercase tracking-[0.2em] mb-1">Admin Panel</p>
+                        <h3 className="text-3xl font-black text-[#1e2330] tracking-tight">Manage Categories</h3>
+                    </div>
+                    <button onClick={onClose} className="bg-white text-gray-400 hover:text-[#964C2E] p-4 rounded-2xl transition-all shadow-sm border border-gray-100">
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+
+                <div className="p-10 space-y-8 max-h-[60vh] overflow-y-auto">
+                    {/* Create New */}
+                    <form onSubmit={handleCreate} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-4">
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Create New Category</p>
+                        <div className="flex gap-4">
+                            <input
+                                value={newName}
+                                onChange={e => setNewName(e.target.value)}
+                                className="flex-1 bg-[#fdfaf7] border border-gray-100 rounded-xl px-5 py-4 text-sm font-bold text-[#1e2330] focus:outline-none focus:border-[#964C2E]/30"
+                                placeholder="Category name (e.g., Polo)"
+                                required
+                            />
+                            <button
+                                type="submit"
+                                disabled={saving}
+                                className="bg-[#964C2E] text-white text-xs font-black uppercase tracking-widest px-6 py-4 rounded-xl shadow-lg shadow-[#964C2E]/20 hover:bg-[#7D3F25] transition-all disabled:opacity-50 whitespace-nowrap"
+                            >
+                                {saving ? 'Saving...' : '+ Add'}
+                            </button>
+                        </div>
+                        <input
+                            value={newDesc}
+                            onChange={e => setNewDesc(e.target.value)}
+                            className="w-full bg-[#fdfaf7] border border-gray-100 rounded-xl px-5 py-4 text-sm font-bold text-[#1e2330] focus:outline-none focus:border-[#964C2E]/30"
+                            placeholder="Short description (optional)"
+                        />
+                    </form>
+
+                    {/* Existing Categories */}
+                    <div>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Existing Categories ({categories.length})</p>
+                        {categories.length === 0 ? (
+                            <div className="text-center py-12 opacity-40">
+                                <Tag className="w-8 h-8 text-[#964C2E] mx-auto mb-3" />
+                                <p className="text-sm font-bold text-gray-400">No categories yet. Create one above.</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {categories.map(cat => (
+                                    <div key={cat.id} className="bg-white rounded-2xl px-6 py-4 border border-gray-100 flex items-center justify-between group">
+                                        <div>
+                                            <p className="text-sm font-black text-[#1e2330]">{cat.name}</p>
+                                            {cat.description && <p className="text-[10px] font-bold text-gray-400 mt-0.5">{cat.description}</p>}
+                                        </div>
+                                        <button
+                                            onClick={() => handleDelete(cat)}
+                                            disabled={deleting === cat.id}
+                                            className="p-2 hover:bg-red-50 rounded-xl text-gray-300 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};

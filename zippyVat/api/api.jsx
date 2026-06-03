@@ -18,4 +18,6 @@ export const updateHealthStatusApi = `${baseURL}/horse/health`;
 export const getVaccinationRecordsApi = `${baseURL}/horse/vaccination`;
 export const getHealthRecordsApi = `${baseURL}/horse/health`;
 export const getSessionsApi = `${baseURL}/session`;
-export const getHorsesByVat = `${baseURL}/vat/horse`
+export const getHorsesByVat = `${baseURL}/vat/horse`;
+export const getAllStablesApi = `${baseURL}/stable/all`;
+export const getCategoriesApi = `${baseURL}/categories`;

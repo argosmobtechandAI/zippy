@@ -8,6 +8,8 @@ import { getUserApi, uploadProfilePictureApi } from '../api/api';
 import { Config } from '../api/config';
 import { launchImageLibrary } from 'react-native-image-picker';
 
+const getImageUrl = (url: string) => url?.startsWith('/') ? `${Config.BASE_URL}${url}` : url;
+
 export default function PersonalInformationScreen() {
   const navigation = useNavigation();
   const [loading, setLoading] = useState(false);
@@ -72,25 +74,29 @@ export default function PersonalInformationScreen() {
       if (response.didCancel || response.errorCode) return;
       if (response.assets && response.assets.length > 0) {
         const photo = response.assets[0];
-        
-        const data = new FormData();
-        data.append('photo', {
-          name: photo.fileName || 'photo.jpg',
+
+        const formData = new FormData();
+        formData.append('photo', {
+          name: photo.fileName || 'profile.jpg',
           type: photo.type || 'image/jpeg',
-          uri: Platform.OS === 'ios' ? photo.uri.replace('file://', '') : photo.uri,
-        });
+          uri: Platform.OS === 'ios' ? photo.uri!.replace('file://', '') : photo.uri,
+        } as any);
 
         setLoading(true);
         try {
-          const res = await apiFunction(uploadProfilePictureApi(userId), [], data, 'POST_FORM', true);
-          if (res && res.success) {
-            Alert.alert('Success', 'Profile picture updated');
-            loadCurrentData();
+          const res = await apiFunction(uploadProfilePictureApi(userId), [], formData, 'POST_FORM', true);
+          if (res && res.success && res.url) {
+            // Save the new URL locally so all screens show it immediately
+            const updatedUser = { ...userMetadata, profilePicture: res.url };
+            setUserMetadata(updatedUser);
+            await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+            Alert.alert('Success', 'Profile picture updated!');
           } else {
-            Alert.alert('Error', res?.message || 'Upload failed');
+            Alert.alert('Error', res?.message || 'Upload failed. Please try again.');
           }
         } catch (error) {
-          Alert.alert('Error', 'Network error occurred');
+          console.error('Upload error:', error);
+          Alert.alert('Error', 'Network error. Could not upload photo.');
         } finally {
           setLoading(false);
         }
@@ -164,7 +170,7 @@ export default function PersonalInformationScreen() {
         <View className="flex-row items-center px-8 py-6">
           <TouchableOpacity 
             onPress={() => navigation.goBack()} 
-            className="w-10 h-10 bg-white rounded-xl items-center justify-center shadow-sm"
+            className="w-10 h-10 bg-white rounded-full items-center justify-center shadow-sm border border-[#e2e8f0]"
           >
             <ArrowLeft color="#85431E" size={20} />
           </TouchableOpacity>
@@ -184,8 +190,8 @@ export default function PersonalInformationScreen() {
             <View className="items-center mb-10 mt-4">
               <View className="relative">
                 <View className="w-32 h-32 border-[3px] border-white rounded-full items-center justify-center shadow-xl bg-white overflow-hidden">
-                   {userMetadata?.profilePicture || userMetadata?.imageUrl ? (
-                     <Image source={{ uri: userMetadata?.profilePicture ? `${Config.API_BASE_URL.replace('/api', '')}${userMetadata.profilePicture}` : userMetadata?.imageUrl }} className="w-full h-full" />
+                   {userMetadata?.profilePicture ? (
+                     <Image source={{ uri: getImageUrl(userMetadata.profilePicture) }} className="w-full h-full" />
                    ) : (
                      <User color="#85431E" opacity={0.08} size={60} />
                    )}

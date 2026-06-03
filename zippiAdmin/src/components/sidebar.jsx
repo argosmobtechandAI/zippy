@@ -1,9 +1,9 @@
-import { LayoutDashboard, BarChart2, MapPin, Users, Settings, Plus, CloudLightning, LogOut, Package, Calendar, ClipboardList } from 'lucide-react';
+import { LayoutDashboard, BarChart2, MapPin, Users, Settings, Plus, CloudLightning, LogOut, Package, Calendar, ClipboardList, Tag, HeartPulse } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
 const Sidebar = () => {
     return (
-        <div className="w-[280px] bg-brand-brown h-full flex flex-col text-brand-beige shadow-lg relative z-20 font-body">
+        <div className="w-[280px] bg-brand-brown h-screen flex flex-col text-brand-beige shadow-lg relative z-20 font-body overflow-hidden">
             {/* Header / Logo */}
             <div className="p-8 flex items-center gap-4">
                 <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center">
@@ -16,7 +16,7 @@ const Sidebar = () => {
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 mt-2 px-5 space-y-1">
+            <nav className="flex-1 mt-2 px-5 space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent pb-4">
                 <NavLink to="/" className={({ isActive }) => `flex items-center gap-4 px-4 py-3.5 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
                     <LayoutDashboard className="w-5 h-5" />
                     Dashboard
@@ -44,6 +44,14 @@ const Sidebar = () => {
                 <NavLink to="/horses" className={({ isActive }) => `flex items-center gap-4 px-4 py-3.5 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
                     <CloudLightning className="w-5 h-5" />
                     Horses registry
+                </NavLink>
+                <NavLink to="/categories" className={({ isActive }) => `flex items-center gap-4 px-4 py-3.5 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
+                    <Tag className="w-5 h-5" />
+                    Horse Categories
+                </NavLink>
+                <NavLink to="/medical-records" className={({ isActive }) => `flex items-center gap-4 px-4 py-3.5 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
+                    <HeartPulse className="w-5 h-5" />
+                    Medical Registry
                 </NavLink>
                 <NavLink to="/userManagement" className={({ isActive }) => `flex items-center gap-4 px-4 py-3.5 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
                     <Users className="w-5 h-5" />

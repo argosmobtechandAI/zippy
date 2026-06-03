@@ -172,28 +172,14 @@ export default function HealthScreen({ navigation, route }: any) {
 
             {/* Weekly Health Summary */}
             <View className="bg-white rounded-3xl p-5 shadow-sm border border-[#e2e8f0] mb-6">
-               <Text className="text-[#1a202c] font-bold text-sm mb-6">Weekly Health Summary</Text>
+               <Text className="text-[#1a202c] font-bold text-sm mb-2">Weekly Health Summary</Text>
 
-               <View className="h-24 justify-end mb-4 bg-[#f8fafc] rounded-xl relative overflow-hidden">
-                  <View className="flex-row justify-between items-end px-4 pb-8 w-full h-full">
-                     {[40, 60, 45, 80, 50, 70, 65].map((h, i) => (
-                        <View
-                           key={i}
-                           style={{ height: `${h}%` }}
-                           className={`w-2 rounded-full ${i === 3 ? 'bg-[#8C4A28]' : 'bg-[#d1c2a3]'}`}
-                        />
-                     ))}
-                  </View>
-                  <View className="flex-row justify-between pl-4 pr-4 border-t border-[#f1f5f9] pt-2 w-full absolute bottom-0">
-                     {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => (
-                        <Text key={i} className="text-[#94a3b8] text-[8px] font-bold">{d}</Text>
-                     ))}
-                  </View>
+               <View className="h-24 justify-center items-center mb-4 bg-[#f8fafc] rounded-xl relative overflow-hidden border border-dashed border-[#e2e8f0]">
+                  <Activity color="#94a3b8" size={24} opacity={0.5} className="mb-2" />
+                  <Text className="text-[#94a3b8] text-[10px] font-bold uppercase tracking-widest text-center px-4">
+                     Insufficient historical data for chart generation
+                  </Text>
                </View>
-
-               {/* <Text className="text-[#64748b] text-xs leading-5">
-                  Vitals for {currentHorse?.name} remain stable. Last check recorded {currentHorse?.shoeStatus || 'Stable'} condition. {health === 'Fit for Work' ? 'Regular training recommended.' : 'Observation period active.'}
-               </Text> */}
             </View>
 
             {/* Veterinary Notes */}
@@ -256,31 +242,7 @@ export default function HealthScreen({ navigation, route }: any) {
                {saving ? <ActivityIndicator color="white" /> : <Text className="text-white font-bold">Log Health Entry</Text>}
             </TouchableOpacity>
 
-            {/* Medications & Vaccination Links */}
-            <View className="flex-row justify-between items-center mb-4">
-               <Text className="text-sm font-bold text-[#1a202c]">Vaccinations & Procedures</Text>
-               <TouchableOpacity onPress={() => navigation.navigate("LogVaccination", { horse: currentHorse })}>
-                  <View className="flex-row items-center bg-[#8C4A28]/10 px-3 py-1.5 rounded-lg border border-[#8C4A28]/20">
-                     <Syringe color="#8C4A28" size={12} className="mr-1" />
-                     <Text className="text-[#8C4A28] font-bold text-[10px]">Log Vaccine</Text>
-                  </View>
-               </TouchableOpacity>
-            </View>
 
-            <TouchableOpacity
-               activeOpacity={0.8}
-               onPress={() => navigation.navigate("Records", { horseId: currentHorse?.id })}
-               className="bg-white rounded-xl p-4 shadow-sm border border-[#e2e8f0] mb-8 flex-row items-center"
-            >
-               <View className="w-10 h-10 bg-[#fde1d3] rounded-full items-center justify-center mr-3">
-                  <Syringe color="#8C4A28" size={18} />
-               </View>
-               <View className="flex-1">
-                  <Text className="text-[#1a202c] font-bold text-sm">Vaccination Records</Text>
-                  <Text className="text-[#94a3b8] text-xs">{currentHorse?.vaccinationRecords?.length || 0} entries found</Text>
-               </View>
-               <ChevronRight color="#94a3b8" size={20} />
-            </TouchableOpacity>
 
          </ScrollView>
       </SafeAreaView>

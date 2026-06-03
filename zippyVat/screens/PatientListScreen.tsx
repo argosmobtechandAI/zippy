@@ -4,9 +4,11 @@ import { ArrowLeft, Search, Filter, Stethoscope, AlertTriangle, CheckCircle2, Ch
 import { useNavigation } from '@react-navigation/native';
 import { apiFunction } from '../api/apiFunction';
 import { getAllHorsesApi, getHorsesByVat } from '../api/api';
+import { Config } from '../api/config';
+
+const getImageUrl = (url: string) => url?.startsWith('/') ? `${Config.BASE_URL}${url}` : url;
 
 export default function PatientListScreen({ navigation }: any) {
-    const [activeTab, setActiveTab] = useState('All');
     const [horses, setHorses] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
@@ -38,20 +40,15 @@ export default function PatientListScreen({ navigation }: any) {
     };
 
 
-    const filterTabs = ['All', 'Fit', 'Unfit', 'Light Work'];
-
     const filteredPatients = useMemo(() => {
         if (horses) {
-
             return horses.filter(h => {
-                const matchesSearch = h.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                return h.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                     h.location.toLowerCase().includes(searchQuery.toLowerCase());
-                console.log(h.healthStatus?.status, activeTab, "healthStatus")
-                const matchesTab = activeTab === 'All' || h.healthStatus?.status?.toLowerCase() === activeTab.toLowerCase();
-                return matchesSearch && matchesTab;
             });
         }
-    }, [horses, searchQuery, activeTab])
+        return [];
+    }, [horses, searchQuery])
 
     return (
         <View className="flex-1 bg-[#F5EDDF]">
@@ -89,29 +86,7 @@ export default function PatientListScreen({ navigation }: any) {
                             value={searchQuery}
                             onChangeText={setSearchQuery}
                         />
-                        <TouchableOpacity>
-                            <Filter color="#8C4A28" size={20} className="ml-2" />
-                        </TouchableOpacity>
                     </View>
-                </View>
-
-                {/* Filter Tabs */}
-                <View className="px-4 mb-6">
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
-                        {filterTabs.map((tab) => (
-                            <TouchableOpacity
-                                key={tab}
-                                onPress={() => setActiveTab(tab)}
-                                className={`px-5 py-2 rounded-full mr-2 ${activeTab === tab ? 'bg-[#8C4A28]' : 'bg-transparent border border-[#8C4A28]/30'
-                                    }`}
-                            >
-                                <Text className={`font-bold text-xs ${activeTab === tab ? 'text-white' : 'text-[#8C4A28]'
-                                    }`}>
-                                    {tab}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-                    </ScrollView>
                 </View>
 
                 {loading ? (
@@ -129,7 +104,7 @@ export default function PatientListScreen({ navigation }: any) {
                                 <View className="w-[70px] h-[70px] rounded-xl mr-4 overflow-hidden bg-[#FAF7F2] items-center justify-center border border-[#8C4A28]/10">
                                     {patient.image || patient.imageUrl ? (
                                         <Image
-                                            source={{ uri: patient.image || patient.imageUrl }}
+                                            source={{ uri: getImageUrl(patient.image || patient.imageUrl) }}
                                             className="w-full h-full"
                                         />
                                     ) : (

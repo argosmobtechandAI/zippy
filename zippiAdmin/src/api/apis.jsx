@@ -49,3 +49,7 @@ export const deleteStableLogoApi = `${baseUrl}/stable/deleteLogo`;
 export const getHelpCenterApi = `${baseUrl}/help-center`;
 export const updateHelpCenterApi = `${baseUrl}/help-center`;
 export const deleteHelpCenterApi = `${baseUrl}/help-center`;
+
+export const getCategoriesApi = `${baseUrl}/categories`;
+export const createCategoryApi = `${baseUrl}/categories`;
+export const deleteCategoryApi = `${baseUrl}/categories`;

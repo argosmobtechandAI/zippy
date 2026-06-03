@@ -13,6 +13,8 @@ import HelpCenter from "../Pages/HelpCenter"
 import BookingRequests from "../pages/bookingRequests"
 import LeaveRequests from "../pages/leaveRequests"
 import AttendanceReport from "../pages/attendanceReport"
+import Categories from "../pages/categories"
+import MedicalRecords from "../pages/medicalRecords"
 
 const ProtectedRoute = ({ children }) => {
     const token = localStorage.getItem('token');
@@ -53,6 +55,8 @@ const AppRoutes = () => {
                 <Route path="leaveRequests" element={<LeaveRequests />} />
                 <Route path="attendanceReport" element={<AttendanceReport />} />
                 <Route path="help-center" element={<HelpCenter />} />
+                <Route path="categories" element={<Categories />} />
+                <Route path="medical-records" element={<MedicalRecords />} />
             </Route>
 
             {/* Catch all redirect */}
