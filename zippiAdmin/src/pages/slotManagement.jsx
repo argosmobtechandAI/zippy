@@ -55,7 +55,7 @@ const SlotManagement = () => {
             if (sessionRes?.success) setSessions(sessionRes.sessions || []);
             if (stableRes?.success) setStables(stableRes.stables || []);
             if (trainerRes?.success) setTrainers(trainerRes.trainers || []);
-            if (userRes?.success) setUsers(userRes.users.filter(u => u.type === 'trainer') || []);
+            if (userRes?.success) setUsers(userRes.users.filter(u => u.type?.toLowerCase() === 'trainer') || []);
             if (horseRes?.success) setHorses(horseRes.horses || []);
         } catch (error) {
             console.error("Error fetching data:", error);
@@ -391,7 +391,14 @@ const SessionModal = ({ sessionToEdit, setShowModal, onSuccess, stables, users, 
                         <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Assigned Trainer</label>
                         <select value={formData.trainerId} onChange={(e) => setFormData({ ...formData, trainerId: e.target.value })} className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]">
                             <option value="">No Trainer Assigned</option>
-                            {trainers.map(t => <option key={t.id} value={t.id}>{getTrainerName(t.userId || t.user_id)}</option>)}
+                            {users.map(u => {
+                                const val = u.trainerId || u.id;
+                                return (
+                                    <option key={val} value={val}>
+                                        {u.name}
+                                    </option>
+                                );
+                            })}
                         </select>
                     </div>
                     <div>
