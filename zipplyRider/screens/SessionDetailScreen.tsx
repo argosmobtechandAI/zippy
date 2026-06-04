@@ -127,6 +127,11 @@ export default function SessionDetailScreen() {
       return;
     }
 
+    if (isDeadlinePassed) {
+      Alert.alert("Cancellation Closed", "You cannot cancel this booking after 8:00 PM of the previous day. Please contact support.");
+      return;
+    }
+
     Alert.alert(
       "Cancel Booking",
       "Are you sure you want to cancel your booking for this session?",
@@ -226,13 +231,13 @@ export default function SessionDetailScreen() {
       <View className="p-4 bg-white border-t border-[#e2e8f0] pb-8">
         {isBooked ? (
           <TouchableOpacity
-            disabled={cancelling}
+            disabled={cancelling || isDeadlinePassed}
             onPress={handleCancelBooking}
-            className="py-4 rounded-xl items-center shadow-sm flex-row justify-center bg-red-600 active:opacity-90"
+            className={`py-4 rounded-xl items-center shadow-sm flex-row justify-center ${isDeadlinePassed ? 'bg-[#94a3b8]' : 'bg-red-600'} active:opacity-90`}
           >
             {cancelling ? <ActivityIndicator color="white" /> : (
               <Text className="text-white font-bold text-sm ml-2">
-                Cancel Booking
+                {isDeadlinePassed ? 'Cancellation Closed' : 'Cancel Booking'}
               </Text>
             )}
           </TouchableOpacity>

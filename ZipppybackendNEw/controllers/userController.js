@@ -58,6 +58,7 @@ export const getAllUsers = async (req, res) => {
             notifications: user.notifications || [],
             riderType: user.rider && user.rider.length > 0 ? user.rider[0].rider_type : null,
             riderWallet: user.rider && user.rider.length > 0 ? (user.rider[0].wallet || 0) : 0,
+            sessionCount: user.rider && user.rider.length > 0 ? (user.rider[0].session_count || 0) : 0,
             code: user.rider && user.rider.length > 0 ? user.rider[0].code : "",
             level: user.rider && user.rider.length > 0 ? user.rider[0].level : "",
             allergies: user.rider && user.rider.length > 0 ? user.rider[0].allergies : "",
@@ -153,6 +154,7 @@ export const getUser = async (req, res) => {
             notifications: rawUser.notifications || [],
             riderType: rawUser.rider && rawUser.rider.length > 0 ? rawUser.rider[0].rider_type : null,
             riderWallet: rawUser.rider && rawUser.rider.length > 0 ? (rawUser.rider[0].wallet || 0) : 0,
+            sessionCount: rawUser.rider && rawUser.rider.length > 0 ? (rawUser.rider[0].session_count || 0) : 0,
             code: rawUser.rider && rawUser.rider.length > 0 ? rawUser.rider[0].code : "",
             level: rawUser.rider && rawUser.rider.length > 0 ? rawUser.rider[0].level : "",
             allergies: rawUser.rider && rawUser.rider.length > 0 ? rawUser.rider[0].allergies : "",
@@ -317,7 +319,7 @@ export const updateUser = async (req, res) => {
     const {
         title, experience, level, medical, instructions, allergies,
         riderType, addHorseId, newTrophy, code, password,
-        parentName, emergencyContact, riderWallet, wallet, profilePicture,
+        parentName, emergencyContact, riderWallet, wallet, sessionCount, profilePicture,
         ...rest
     } = data;
 
@@ -384,6 +386,7 @@ export const updateUser = async (req, res) => {
             if (code !== undefined) riderUpdateData.code = code;
             if (wallet !== undefined) riderUpdateData.wallet = Number(wallet);
             if (riderWallet !== undefined) riderUpdateData.wallet = Number(riderWallet);
+            if (sessionCount !== undefined) riderUpdateData.session_count = Number(sessionCount);
 
             if (Object.keys(riderUpdateData).length > 0) {
                 await supabase.from('rider').update(riderUpdateData).eq('user_id', id);

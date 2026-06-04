@@ -163,7 +163,7 @@ export default function ProfileScreen() {
                     <View className="bg-white/70 border border-brand-brown/5 rounded-[32px] overflow-hidden p-2 shadow-sm">
                         <TouchableOpacity className="flex-row items-center p-4" onPress={handleLogout}>
                             <View className="w-12 h-12 bg-red-50 rounded-2xl items-center justify-center mr-4">
-                                <LogOut color="white" size={20} strokeWidth={2.5} />
+                                <LogOut color="#ef4444" size={20} strokeWidth={2.5} />
                             </View>
                             <View className="flex-1">
                                 <Text className="text-red-500 font-display-reg font-bold text-sm">Sign Out Safely</Text>

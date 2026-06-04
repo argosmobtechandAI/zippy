@@ -6,6 +6,7 @@ const mapToDb = (data) => {
     if (dbData.minThreshold !== undefined) { dbData.min_threshold = dbData.minThreshold; delete dbData.minThreshold; }
     if (dbData.lastUpdated !== undefined) { dbData.last_updated = dbData.lastUpdated; delete dbData.lastUpdated; }
     if (dbData.stableId !== undefined) { delete dbData.stableId; }
+    if (dbData.stable_id !== undefined) { delete dbData.stable_id; }
     return dbData;
 };
 
@@ -28,7 +29,7 @@ export const getInventory = async (req, res) => {
         const inventory = items.map(item => {
             const mappedItem = mapToClient(item);
             if (stables) {
-                const itemStable = stables.find(s => s.id === item.stable_id);
+                const itemStable = stables.find(s => s.stocks && s.stocks.includes(item.id));
                 if (itemStable) {
                     mappedItem.stable = itemStable;
                 }
@@ -106,11 +107,45 @@ export const updateInventoryItem = async (req, res) => {
         }
 
         const dbData = mapToDb(updateData);
+        
+        // Remove stableId from dbData before update just in case
+        delete dbData.stableId;
+        delete dbData.stable_id;
+
         const { data: updated, error } = await supabase.from('inventory').update(dbData).eq('id', id).select();
         if (error || !updated || !updated.length) throw error || new Error('Failed to update inventory item');
 
+        // Handle stable association change if stableId was provided in request
+        if (data.stableId !== undefined) {
+            const { data: allStables } = await supabase.from('stable').select('*');
+            if (allStables) {
+                // Remove from any stable that currently has it (if it's not the new one)
+                for (let s of allStables) {
+                    if (s.stocks && s.stocks.includes(id)) {
+                        if (s.id !== data.stableId) {
+                            const newStocks = s.stocks.filter(itemId => itemId !== id);
+                            await supabase.from('stable').update({ stocks: newStocks }).eq('id', s.id);
+                        }
+                    }
+                }
+                
+                // Add to new stable if not already there
+                if (data.stableId) {
+                    const newStable = allStables.find(s => s.id === data.stableId);
+                    if (newStable) {
+                        const hasStock = newStable.stocks && newStable.stocks.includes(id);
+                        if (!hasStock) {
+                            const newStocks = newStable.stocks ? [...newStable.stocks, id] : [id];
+                            await supabase.from('stable').update({ stocks: newStocks }).eq('id', data.stableId);
+                        }
+                    }
+                }
+            }
+        }
+
         res.status(200).json({ success: true, item: mapToClient(updated[0]) });
     } catch (error) {
+        console.error("Update Inventory Error:", error);
         res.status(500).json({ success: false, message: error.message });
     }
 };

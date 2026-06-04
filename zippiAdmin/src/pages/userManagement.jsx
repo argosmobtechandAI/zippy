@@ -662,6 +662,11 @@ const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave, onUpdateSuc
     const [walletInput, setWalletInput] = useState('');
     const [isSavingWallet, setIsSavingWallet] = useState(false);
 
+    const [isEditingSession, setIsEditingSession] = useState(false);
+    const [isAddingSession, setIsAddingSession] = useState(false);
+    const [sessionInput, setSessionInput] = useState('');
+    const [isSavingSession, setIsSavingSession] = useState(false);
+
     const handleWalletUpdate = async (type) => {
         const amount = parseFloat(walletInput);
         if (isNaN(amount) || (amount < 0 && type === 'set')) {
@@ -696,6 +701,43 @@ const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave, onUpdateSuc
             toast.error("Network error. Please try again.");
         } finally {
             setIsSavingWallet(false);
+        }
+    };
+
+    const handleSessionUpdate = async (type) => {
+        const amount = parseInt(sessionInput);
+        if (isNaN(amount) || (amount < 0 && type === 'set')) {
+            toast.error("Please enter a valid number of sessions");
+            return;
+        }
+        if (isNaN(amount) || (amount <= 0 && type === 'add')) {
+            toast.error("Please enter a valid number to add");
+            return;
+        }
+
+        setIsSavingSession(true);
+        try {
+            const newCount = type === 'add' ? (user.sessionCount || 0) + amount : amount;
+            
+            const res = await apiFunction(`${updateUserApi}/${user.id}`, [], { 
+                sessionCount: newCount 
+            }, "PUT", true);
+
+            if (res && res.success) {
+                toast.success(`Sessions updated to ${newCount}`);
+                setIsEditingSession(false);
+                setIsAddingSession(false);
+                setSessionInput('');
+                if (onUpdateSuccess) {
+                    onUpdateSuccess({ ...user, sessionCount: newCount });
+                }
+            } else {
+                toast.error(res?.message || "Failed to update session count");
+            }
+        } catch (err) {
+            toast.error("Network error. Please try again.");
+        } finally {
+            setIsSavingSession(false);
         }
     };
 
@@ -832,6 +874,118 @@ const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave, onUpdateSuc
                                     className="flex-1 bg-[#964C2E] hover:bg-[#804026] text-white text-[11px] font-black uppercase py-2.5 rounded-xl transition-all disabled:opacity-55 font-bold"
                                 >
                                     {isSavingWallet ? 'Adding...' : 'Add'}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {user.type === 'rider' && !isEditingSession && !isAddingSession && (
+                        <div className="p-5 bg-[#FAF3EC] rounded-2xl border border-[#964C2E]/20 flex flex-col gap-4 shadow-sm">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <h4 className="text-[10px] font-black text-[#964C2E] tracking-widest uppercase mb-1">Rider Sessions</h4>
+                                    <p className="text-[24px] font-black text-[#1e2330]">{user.sessionCount || 0}</p>
+                                </div>
+                                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-[#964C2E] border border-[#964C2E]/10 shadow-sm">
+                                    <Activity className="w-6 h-6" />
+                                </div>
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => {
+                                        setSessionInput((user.sessionCount || 0).toString());
+                                        setIsEditingSession(true);
+                                        setIsAddingSession(false);
+                                    }}
+                                    className="flex-1 bg-[#964C2E] hover:bg-[#804026] text-white text-[11px] font-black uppercase py-2.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 font-bold"
+                                >
+                                    <Edit className="w-3.5 h-3.5" /> Update Sessions
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setSessionInput('');
+                                        setIsAddingSession(true);
+                                        setIsEditingSession(false);
+                                    }}
+                                    className="flex-1 bg-white hover:bg-gray-50 text-[#964C2E] border border-[#964C2E]/20 text-[11px] font-black uppercase py-2.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 font-bold"
+                                >
+                                    <Plus className="w-3.5 h-3.5" /> Add Sessions
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {user.type === 'rider' && isEditingSession && (
+                        <div className="p-5 bg-[#FAF3EC] rounded-2xl border border-[#964C2E]/20 flex flex-col gap-4 shadow-sm animate-in fade-in duration-200">
+                            <div>
+                                <h4 className="text-[10px] font-black text-[#964C2E] tracking-widest uppercase mb-2">Update Session Count</h4>
+                                <div className="relative">
+                                    <input
+                                        type="number"
+                                        value={sessionInput}
+                                        onChange={(e) => setSessionInput(e.target.value)}
+                                        className="w-full bg-white border border-[#964C2E]/20 rounded-xl px-4 py-3 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]"
+                                        placeholder="Enter new session count"
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setIsEditingSession(false)}
+                                    className="flex-1 bg-white text-gray-500 border border-gray-200 hover:bg-gray-50 text-[11px] font-black uppercase py-2.5 rounded-xl transition-all font-bold"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={() => handleSessionUpdate('set')}
+                                    disabled={isSavingSession}
+                                    className="flex-1 bg-[#964C2E] hover:bg-[#804026] text-white text-[11px] font-black uppercase py-2.5 rounded-xl transition-all disabled:opacity-55 font-bold"
+                                >
+                                    {isSavingSession ? 'Saving...' : 'Save'}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {user.type === 'rider' && isAddingSession && (
+                        <div className="p-5 bg-[#FAF3EC] rounded-2xl border border-[#964C2E]/20 flex flex-col gap-4 shadow-sm animate-in fade-in duration-200">
+                            <div>
+                                <h4 className="text-[10px] font-black text-[#964C2E] tracking-widest uppercase mb-2">Add Sessions</h4>
+                                <div className="relative mb-3">
+                                    <input
+                                        type="number"
+                                        value={sessionInput}
+                                        onChange={(e) => setSessionInput(e.target.value)}
+                                        className="w-full bg-white border border-[#964C2E]/20 rounded-xl px-4 py-3 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]"
+                                        placeholder="Enter sessions to add"
+                                    />
+                                </div>
+                                <div className="flex gap-2">
+                                    {['1', '5', '10', '20'].map((amt) => (
+                                        <button
+                                            key={amt}
+                                            type="button"
+                                            onClick={() => setSessionInput(amt)}
+                                            className="flex-1 py-1.5 text-[11px] font-black rounded-lg bg-white border border-gray-200 hover:border-[#964C2E] text-gray-700 hover:text-[#964C2E] transition-all font-bold"
+                                        >
+                                            +{amt}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setIsAddingSession(false)}
+                                    className="flex-1 bg-white text-gray-500 border border-gray-200 hover:bg-gray-50 text-[11px] font-black uppercase py-2.5 rounded-xl transition-all font-bold"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={() => handleSessionUpdate('add')}
+                                    disabled={isSavingSession}
+                                    className="flex-1 bg-[#964C2E] hover:bg-[#804026] text-white text-[11px] font-black uppercase py-2.5 rounded-xl transition-all disabled:opacity-55 font-bold"
+                                >
+                                    {isSavingSession ? 'Adding...' : 'Add'}
                                 </button>
                             </div>
                         </div>

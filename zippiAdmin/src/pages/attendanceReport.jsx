@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
-import { ClipboardList, Search, Calendar, CheckCircle2, XCircle, Clock, Building2, ChevronDown, ChevronUp, User, RefreshCw, AlertCircle, Archive } from 'lucide-react';
+import { ClipboardList, Search, Calendar, CheckCircle2, XCircle, Clock, Building2, ChevronDown, ChevronUp, User, RefreshCw, AlertCircle, Archive, UserCheck, Download } from 'lucide-react';
 import { apiFunction } from '../api/apiFunction';
-import { getAllSessionsApi, getAllStablesApi } from '../api/apis';
+import { getAllSessionsApi, getAllStablesApi, getAllUsersApi, getAllHorsesApi } from '../api/apis';
 
 const statusBadge = (status) => {
     const s = (status || '').toUpperCase();
@@ -36,20 +36,26 @@ const AttendanceReport = () => {
     const [sessions, setSessions] = useState([]);
     const [archivedSessions, setArchivedSessions] = useState([]);
     const [stables, setStables] = useState([]);
+    const [trainers, setTrainers] = useState([]);
+    const [horses, setHorses] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('COMPLETED');
-    const [dateFilter, setDateFilter] = useState('');
+    const [startDateFilter, setStartDateFilter] = useState('');
+    const [endDateFilter, setEndDateFilter] = useState('');
     const [stableFilter, setStableFilter] = useState('ALL');
+    const [trainerFilter, setTrainerFilter] = useState('ALL');
     const [searchQuery, setSearchQuery] = useState('');
     const [expandedSessions, setExpandedSessions] = useState(new Set());
 
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [sessRes, archRes, stabRes] = await Promise.all([
+            const [sessRes, archRes, stabRes, usersRes, horseRes] = await Promise.all([
                 apiFunction(getAllSessionsApi, [], {}, 'GET', true),
                 apiFunction(`${getAllSessionsApi}?includeArchived=true`, [], {}, 'GET', true),
                 apiFunction(getAllStablesApi, [], {}, 'GET', true),
+                apiFunction(getAllUsersApi, [], {}, 'GET', true),
+                apiFunction(getAllHorsesApi, [], {}, 'GET', true),
             ]);
             if (sessRes?.success) setSessions(sessRes.sessions || []);
             // Archived = full list minus non-archived
@@ -58,6 +64,10 @@ const AttendanceReport = () => {
                 setArchivedSessions(all.filter(s => (s.status || '').toUpperCase() === 'ARCHIVED'));
             }
             if (stabRes?.success) setStables(stabRes.stables || stabRes.data || []);
+            if (usersRes?.success) {
+                setTrainers((usersRes.users || []).filter(u => (u.type || '').toLowerCase() === 'trainer'));
+            }
+            if (horseRes?.success) setHorses(horseRes.horses || []);
         } catch (e) {
             console.error('Fetch error', e);
         } finally {
@@ -87,8 +97,12 @@ const AttendanceReport = () => {
                 (activeTab === 'COMPLETED' && status === 'COMPLETED') ||
                 (activeTab === 'IN_PROGRESS' && (status === 'IN_PROGRESS' || status === 'ONGOING' || status === 'SCHEDULED' || status === 'ACTIVE'));
 
-            const matchDate = !dateFilter || s.date === dateFilter;
+            let matchDate = true;
+            if (startDateFilter && (s.date || '') < startDateFilter) matchDate = false;
+            if (endDateFilter && (s.date || '') > endDateFilter) matchDate = false;
+
             const matchStable = stableFilter === 'ALL' || (s.location || '').toLowerCase().includes(stableFilter.toLowerCase());
+            const matchTrainer = trainerFilter === 'ALL' || s.trainerId === trainerFilter;
             const search = searchQuery.toLowerCase();
             const matchSearch =
                 !search ||
@@ -96,9 +110,128 @@ const AttendanceReport = () => {
                 (s.location || '').toLowerCase().includes(search) ||
                 (s.participants || []).some(p => (p.name || '').toLowerCase().includes(search));
 
-            return matchTab && matchDate && matchStable && matchSearch;
+            return matchTab && matchDate && matchStable && matchTrainer && matchSearch;
         }).sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
-    }, [pool, activeTab, dateFilter, stableFilter, searchQuery]);
+    }, [pool, activeTab, startDateFilter, endDateFilter, stableFilter, trainerFilter, searchQuery]);
+
+    const downloadCSV = () => {
+        const headers = ["Session Title", "Date", "Time", "Location", "Trainer Name", "Status", "Rider Name", "Rider Type", "Booking Status", "Attendance", "Individual Remark", "Trainer Remarks"];
+        let csvContent = headers.join(",") + "\n";
+
+        filtered.forEach(session => {
+            const trainerUser = trainers.find(t => t.trainerId === session.trainerId);
+            const trainerName = trainerUser ? trainerUser.name : 'Unassigned';
+            const escapedTitle = `"${(session.title || '').replace(/"/g, '""')}"`;
+            const escapedLocation = `"${(session.location || '').replace(/"/g, '""')}"`;
+            const escapedTrainer = `"${(trainerName || '').replace(/"/g, '""')}"`;
+            const escapedNote = `"${(session.note || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`;
+            const timing = `"${session.timing || session.time || ''}"`;
+            
+            if (!session.participants || session.participants.length === 0) {
+                const row = [
+                    escapedTitle,
+                    `"${session.date || ''}"`,
+                    timing,
+                    escapedLocation,
+                    escapedTrainer,
+                    `"${session.status || ''}"`,
+                    `""`,
+                    `""`,
+                    `""`,
+                    `""`,
+                    `""`,
+                    escapedNote
+                ];
+                csvContent += row.join(",") + "\n";
+            } else {
+                session.participants.forEach(p => {
+                    const row = [
+                        escapedTitle,
+                        `"${session.date || ''}"`,
+                        timing,
+                        escapedLocation,
+                        escapedTrainer,
+                        `"${session.status || ''}"`,
+                        `"${(p.name || '').replace(/"/g, '""')}"`,
+                        `"${(p.type || '').replace(/"/g, '""')}"`,
+                        `"${(p.status || '').replace(/"/g, '""')}"`,
+                        `"${(p.attendance || 'Pending').replace(/"/g, '""')}"`,
+                        `"${(p.remark || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`,
+                        escapedNote
+                    ];
+                    csvContent += row.join(",") + "\n";
+                });
+            }
+        });
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `Attendance_Report_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const handleShareWhatsApp = (session, participants) => {
+        let message = `*Session:* ${session.title || 'Untitled Session'}\n`;
+        message += `*Time:* ${session.timing || session.time || '—'}\n`;
+        message += `*Date:* ${session.date || '—'}\n\n`;
+        message += `*Riders & Horses:*\n`;
+        
+        if (participants.length === 0) {
+            message += `No riders assigned.`;
+        } else {
+            participants.forEach(p => {
+                const assignedHorse = horses.find(h => h.id === p.horse);
+                message += `- ${p.name || 'Unknown'} (🐴 ${assignedHorse ? assignedHorse.name : 'No horse assigned'})\n`;
+            });
+        }
+
+        const encodedMessage = encodeURIComponent(message);
+        window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
+    };
+
+    const handleDownloadSlotCsv = (session, participants) => {
+        const headers = ["Session Title", "Date", "Time", "Location", "Rider Name", "Horse Name", "Attendance", "Individual Remark"];
+        let csvContent = headers.join(",") + "\n";
+
+        const escapedTitle = `"${(session.title || '').replace(/"/g, '""')}"`;
+        const escapedLocation = `"${(session.location || '').replace(/"/g, '""')}"`;
+        const timing = `"${session.timing || session.time || ''}"`;
+        const date = `"${session.date || ''}"`;
+
+        if (participants.length === 0) {
+            const row = [escapedTitle, date, timing, escapedLocation, '""', '""', '""', '""'];
+            csvContent += row.join(",") + "\n";
+        } else {
+            participants.forEach(p => {
+                const assignedHorse = horses.find(h => h.id === p.horse);
+                const horseName = assignedHorse ? assignedHorse.name : '';
+                const row = [
+                    escapedTitle,
+                    date,
+                    timing,
+                    escapedLocation,
+                    `"${(p.name || '').replace(/"/g, '""')}"`,
+                    `"${horseName.replace(/"/g, '""')}"`,
+                    `"${(p.attendance || 'Pending').replace(/"/g, '""')}"`,
+                    `"${(p.remark || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`
+                ];
+                csvContent += row.join(",") + "\n";
+            });
+        }
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `session_${(session.title || 'report').replace(/\s+/g, '_')}_${session.date || 'date'}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
 
     const counts = useMemo(() => {
         const c = { COMPLETED: 0, IN_PROGRESS: 0, ALL: sessions.length, ARCHIVED: archivedSessions.length };
@@ -117,6 +250,8 @@ const AttendanceReport = () => {
         const noshowCount = participants.filter(p => ['noshow', 'no-show', 'absent'].includes((p.attendance || '').toLowerCase())).length;
         const pendingCount = participants.length - presentCount - noshowCount;
         const isArchived = (session.status || '').toUpperCase() === 'ARCHIVED';
+        const trainerUser = trainers.find(t => t.trainerId === session.trainerId);
+        const trainerName = trainerUser ? trainerUser.name : 'Unassigned';
 
         return (
             <div key={session.id} className={`bg-white border rounded-3xl shadow-sm overflow-hidden ${isArchived ? 'border-gray-200 opacity-80' : 'border-[#E6D9CC]'}`}>
@@ -150,6 +285,9 @@ const AttendanceReport = () => {
                             <span className="text-[12px] font-semibold text-gray-500 flex items-center gap-1">
                                 <Building2 className="w-3.5 h-3.5" /> {session.location || '—'}
                             </span>
+                            <span className="text-[12px] font-semibold text-gray-500 flex items-center gap-1">
+                                <UserCheck className="w-3.5 h-3.5" /> {trainerName}
+                            </span>
                         </div>
                     </div>
 
@@ -179,6 +317,20 @@ const AttendanceReport = () => {
                 {/* Expanded Details */}
                 {isExpanded && (
                     <div className="border-t border-[#E6D9CC] bg-[#FBF9F6]">
+                        <div className="px-6 pt-4 flex flex-wrap gap-3">
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); handleShareWhatsApp(session, participants); }}
+                                className="bg-[#25D366] hover:bg-[#128C7E] text-white px-4 py-2 rounded-xl text-[11px] font-black transition-colors flex items-center gap-2 uppercase tracking-wide"
+                            >
+                                Share to WhatsApp
+                            </button>
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); handleDownloadSlotCsv(session, participants); }}
+                                className="bg-[#8C4A28] hover:bg-[#7a4023] text-white px-4 py-2 rounded-xl text-[11px] font-black transition-colors flex items-center gap-2 uppercase tracking-wide"
+                            >
+                                Download Slot CSV
+                            </button>
+                        </div>
                         {session.note && (
                             <div className="px-6 pt-4 pb-3">
                                 <p className="text-[11px] font-black text-[#964C2E] uppercase tracking-widest mb-1">Trainer Remarks</p>
@@ -194,41 +346,55 @@ const AttendanceReport = () => {
                             ) : (
                                 <div className="flex flex-col gap-2">
                                     <div className="grid grid-cols-[1fr_120px_140px_160px] gap-4 px-4 pb-2 border-b border-[#E6D9CC]">
-                                        <span className="text-[10px] font-black text-[#A59588] uppercase tracking-widest">Rider Name</span>
+                                        <span className="text-[10px] font-black text-[#A59588] uppercase tracking-widest">Rider Name & Horse</span>
                                         <span className="text-[10px] font-black text-[#A59588] uppercase tracking-widest">Type</span>
                                         <span className="text-[10px] font-black text-[#A59588] uppercase tracking-widest">Booking Status</span>
                                         <span className="text-[10px] font-black text-[#A59588] uppercase tracking-widest">Attendance</span>
                                     </div>
                                     {participants.map((p, i) => {
                                         const att = attendanceBadge(p.attendance);
+                                        const assignedHorse = horses.find(h => h.id === p.horse);
                                         return (
-                                            <div key={i} className="grid grid-cols-[1fr_120px_140px_160px] gap-4 items-center bg-white border border-[#E6D9CC] rounded-2xl px-4 py-3 shadow-sm">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-full bg-[#F6EDE2] flex items-center justify-center font-black text-[#964C2E] text-xs flex-shrink-0">
-                                                        {(p.name || 'R').charAt(0).toUpperCase()}
+                                            <div key={i} className="bg-white border border-[#E6D9CC] rounded-2xl shadow-sm overflow-hidden">
+                                                <div className="grid grid-cols-[1fr_120px_140px_160px] gap-4 items-center px-4 py-3">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-full bg-[#F6EDE2] flex items-center justify-center font-black text-[#964C2E] text-xs flex-shrink-0">
+                                                            {(p.name || 'R').charAt(0).toUpperCase()}
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-[13px] font-black text-[#1e2330]">{p.name || '—'}</p>
+                                                            {assignedHorse && (
+                                                                <p className="text-[10px] text-[#8C4A28] font-bold mt-0.5">
+                                                                    🐴 {assignedHorse.name}
+                                                                </p>
+                                                            )}
+                                                            <p className="text-[10px] text-gray-400 font-medium">{p.riderId?.slice(0, 8)}...</p>
+                                                        </div>
                                                     </div>
-                                                    <div>
-                                                        <p className="text-[13px] font-black text-[#1e2330]">{p.name || '—'}</p>
-                                                        <p className="text-[10px] text-gray-400 font-medium">{p.riderId?.slice(0, 8)}...</p>
-                                                    </div>
+                                                    <span className={`inline-flex px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider ${
+                                                        p.type === 'Standard' ? 'bg-purple-50 text-purple-600 border border-purple-200' :
+                                                        p.type === 'Premium' ? 'bg-amber-50 text-amber-600 border border-amber-200' :
+                                                        'bg-gray-100 text-gray-500 border border-gray-200'
+                                                    }`}>
+                                                        {p.type || 'Standard'}
+                                                    </span>
+                                                    <span className={`inline-flex px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider ${
+                                                        (p.status || '').toUpperCase() === 'CONFIRMED'
+                                                            ? 'bg-green-50 text-green-700 border border-green-200'
+                                                            : 'bg-amber-50 text-amber-700 border border-amber-200'
+                                                    }`}>
+                                                        {p.status || 'Pending'}
+                                                    </span>
+                                                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black tracking-wider ${att.cls}`}>
+                                                        {att.icon} {att.label}
+                                                    </span>
                                                 </div>
-                                                <span className={`inline-flex px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider ${
-                                                    p.type === 'Standard' ? 'bg-purple-50 text-purple-600 border border-purple-200' :
-                                                    p.type === 'Premium' ? 'bg-amber-50 text-amber-600 border border-amber-200' :
-                                                    'bg-gray-100 text-gray-500 border border-gray-200'
-                                                }`}>
-                                                    {p.type || 'Standard'}
-                                                </span>
-                                                <span className={`inline-flex px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider ${
-                                                    (p.status || '').toUpperCase() === 'CONFIRMED'
-                                                        ? 'bg-green-50 text-green-700 border border-green-200'
-                                                        : 'bg-amber-50 text-amber-700 border border-amber-200'
-                                                }`}>
-                                                    {p.status || 'Pending'}
-                                                </span>
-                                                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black tracking-wider ${att.cls}`}>
-                                                    {att.icon} {att.label}
-                                                </span>
+                                                {p.remark && (
+                                                    <div className="px-4 py-2 bg-[#FBF9F6] border-t border-[#E6D9CC] text-[12px] font-semibold text-[#1e2330]">
+                                                        <span className="text-[#964C2E] font-black text-[10px] uppercase tracking-widest mr-2">Trainer Remark:</span>
+                                                        {p.remark}
+                                                    </div>
+                                                )}
                                             </div>
                                         );
                                     })}
@@ -254,10 +420,16 @@ const AttendanceReport = () => {
                         View all session slots with rider attendance, trainer remarks, and full history of deleted sessions.
                     </p>
                 </div>
-                <button onClick={fetchData} className="bg-white border border-[#964C2E]/20 text-[13px] font-bold text-[#1e2330] px-5 py-3.5 rounded-xl shadow-sm flex items-center gap-2.5 hover:bg-white/80 transition-all">
-                    <RefreshCw className="w-4 h-4 text-[#964C2E]" strokeWidth={2.5} />
-                    Refresh
-                </button>
+                <div className="flex items-center gap-3">
+                    <button onClick={downloadCSV} className="bg-white border border-[#964C2E]/20 text-[13px] font-bold text-[#1e2330] px-5 py-3.5 rounded-xl shadow-sm flex items-center gap-2.5 hover:bg-white/80 transition-all">
+                        <Download className="w-4 h-4 text-[#964C2E]" strokeWidth={2.5} />
+                        Export
+                    </button>
+                    <button onClick={fetchData} className="bg-white border border-[#964C2E]/20 text-[13px] font-bold text-[#1e2330] px-5 py-3.5 rounded-xl shadow-sm flex items-center gap-2.5 hover:bg-white/80 transition-all">
+                        <RefreshCw className="w-4 h-4 text-[#964C2E]" strokeWidth={2.5} />
+                        Refresh
+                    </button>
+                </div>
             </div>
 
             {/* Filters */}
@@ -274,14 +446,24 @@ const AttendanceReport = () => {
                 </div>
                 <div className="bg-[#FBF9F6] border border-[#E6D9CC]/60 px-4 py-3 rounded-2xl flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-[#964C2E]" />
-                    <input
-                        type="date"
-                        value={dateFilter}
-                        onChange={e => setDateFilter(e.target.value)}
-                        className="text-[13px] font-bold text-[#1e2330] outline-none bg-transparent cursor-pointer"
-                    />
-                    {dateFilter && (
-                        <button onClick={() => setDateFilter('')} className="text-gray-400 hover:text-red-500 ml-1 text-xs font-bold">✕</button>
+                    <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest hidden sm:inline">From</span>
+                        <input
+                            type="date"
+                            value={startDateFilter}
+                            onChange={e => setStartDateFilter(e.target.value)}
+                            className="text-[13px] font-bold text-[#1e2330] outline-none bg-transparent cursor-pointer w-[110px]"
+                        />
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest hidden sm:inline mx-1">To</span>
+                        <input
+                            type="date"
+                            value={endDateFilter}
+                            onChange={e => setEndDateFilter(e.target.value)}
+                            className="text-[13px] font-bold text-[#1e2330] outline-none bg-transparent cursor-pointer w-[110px]"
+                        />
+                    </div>
+                    {(startDateFilter || endDateFilter) && (
+                        <button onClick={() => { setStartDateFilter(''); setEndDateFilter(''); }} className="text-gray-400 hover:text-red-500 ml-1 text-xs font-bold flex-shrink-0">✕</button>
                     )}
                 </div>
                 <div className="bg-[#FBF9F6] border border-[#E6D9CC]/60 px-4 py-3 rounded-2xl flex items-center gap-2">
@@ -294,6 +476,19 @@ const AttendanceReport = () => {
                         <option value="ALL">All Stables</option>
                         {stables.map(st => (
                             <option key={st.id} value={st.name}>{st.name}</option>
+                        ))}
+                    </select>
+                </div>
+                <div className="bg-[#FBF9F6] border border-[#E6D9CC]/60 px-4 py-3 rounded-2xl flex items-center gap-2">
+                    <UserCheck className="w-4 h-4 text-[#964C2E]" />
+                    <select
+                        value={trainerFilter}
+                        onChange={e => setTrainerFilter(e.target.value)}
+                        className="text-[13px] font-bold text-[#1e2330] outline-none bg-transparent cursor-pointer"
+                    >
+                        <option value="ALL">All Trainers</option>
+                        {trainers.map(tr => (
+                            <option key={tr.trainerId} value={tr.trainerId}>{tr.name}</option>
                         ))}
                     </select>
                 </div>

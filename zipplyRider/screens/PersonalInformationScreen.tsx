@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, User, Mail, Phone, ShieldAlert } from 'lucide-react-native';
+import { ArrowLeft, User, Mail, Phone, ShieldAlert, ClipboardList, Stethoscope } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSelector, useDispatch } from 'react-redux';
-import { fetchUser } from '../redux/getDataSlice';
+import { fetchUser, fetchRider } from '../redux/getDataSlice';
 import { apiFunction } from '../api/apifunction';
 import { updateUserApi, uploadProfilePictureApi } from '../api/api';
 import { Config } from '../api/config';
@@ -14,13 +14,15 @@ import Toast from 'react-native-toast-message';
 export default function PersonalInformationScreen() {
   const navigation = useNavigation();
   const dispatch = useDispatch<any>();
-  const { user, loading: reduxLoading } = useSelector((state: any) => state.getData);
+  const { user, rider, loading: reduxLoading } = useSelector((state: any) => state.getData);
 
   const [form, setForm] = useState({
     fullName: '',
     email: '',
     phone: '',
     emergencyContact: '',
+    safetyInstructions: '',
+    medicalConditions: '',
   });
   const [loading, setLoading] = useState(false);
 
@@ -31,11 +33,16 @@ export default function PersonalInformationScreen() {
         email: user.email || '',
         phone: user.mobile || '',
         emergencyContact: user.emergencyContact || '',
+        safetyInstructions: rider?.instructions || '',
+        medicalConditions: rider?.medical || '',
       });
     } else {
       dispatch(fetchUser());
     }
-  }, [user]);
+    if (!rider) {
+      dispatch(fetchRider());
+    }
+  }, [user, rider]);
 
   const updateForm = (key: string, value: string) => {
     setForm(prev => ({ ...prev, [key]: value }));
@@ -79,7 +86,9 @@ export default function PersonalInformationScreen() {
         name: form.fullName,
         email: form.email,
         mobile: form.phone,
-        emergencyContact: form.emergencyContact
+        emergencyContact: form.emergencyContact,
+        instructions: form.safetyInstructions,
+        medical: form.medicalConditions
       };
 
       const res = await apiFunction(updateUserApi, [user.id], payload, 'PUT', true);
@@ -90,6 +99,7 @@ export default function PersonalInformationScreen() {
           text2: 'Profile updated successfully'
         });
         dispatch(fetchUser());
+        dispatch(fetchRider());
         navigation.goBack();
       } else {
         Toast.show({
@@ -146,7 +156,7 @@ export default function PersonalInformationScreen() {
             <View className="w-24 h-24 bg-[#eabba4] rounded-full items-center justify-center mb-4 overflow-hidden border-2 border-white shadow">
               {user?.profilePicture ? (
                 <Image 
-                  source={{ uri: `${Config.API_BASE_URL.replace('/api', '')}${user.profilePicture}` }} 
+                  source={{ uri: user.profilePicture.startsWith('http') ? user.profilePicture : `${Config.API_BASE_URL.replace('/api', '')}${user.profilePicture}` }} 
                   className="w-full h-full" 
                   resizeMode="cover"
                 />
@@ -163,6 +173,8 @@ export default function PersonalInformationScreen() {
           {renderInput(Mail, 'Email Address', form.email, 'email', 'email-address')}
           {renderInput(Phone, 'Phone Number', form.phone, 'phone', 'phone-pad')}
           {renderInput(ShieldAlert, 'Emergency Contact', form.emergencyContact, 'emergencyContact')}
+          {renderInput(ClipboardList, 'Safety Instructions', form.safetyInstructions, 'safetyInstructions')}
+          {renderInput(Stethoscope, 'Medical Information', form.medicalConditions, 'medicalConditions')}
 
         </ScrollView>
 

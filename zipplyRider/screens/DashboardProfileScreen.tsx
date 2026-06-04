@@ -1,10 +1,12 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Settings, Check, Info, AlertOctagon, Stethoscope, ClipboardList, Trophy, Medal, Star, Award, Wallet } from 'lucide-react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchRider, fetchUser } from '../redux/getDataSlice';
 import { Config } from '../api/config';
+import { getSessionsByRiderApi } from '../api/api';
+import { apiFunction } from '../api/apiFunction';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 
 const getIconComp = (iconName: string) => {
@@ -21,12 +23,34 @@ export default function DashboardProfileScreen() {
   const { user, rider } = useSelector((state: any) => state.getData);
   const dispatch = useDispatch<any>();
 
+  console.log("Profile Page Data:", { user, rider });
+
   useFocusEffect(
     useCallback(() => {
       dispatch(fetchUser());
       dispatch(fetchRider());
     }, [dispatch])
   );
+
+  const [sessions, setSessions] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchSessions = async () => {
+      if (rider?.id) {
+        const res = await apiFunction(getSessionsByRiderApi(rider.id), [], {}, 'GET');
+        if (res?.success) {
+          setSessions(res.sessions || []);
+        }
+      }
+    };
+    fetchSessions();
+  }, [rider?.id]);
+
+  const sessionsWithRemarks = sessions.filter(session => {
+    if (session.status !== 'COMPLETED') return false;
+    const participantData = session.participants?.find((p: any) => p.riderId === rider?.id);
+    return participantData && participantData.remark && participantData.remark.trim() !== '';
+  }).sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
 
   const essentialDetails = [
     { icon: AlertOctagon, title: 'Emergency Contact', desc: user?.emergencyContact || 'Not Set', color: '#85431E' },
@@ -63,7 +87,7 @@ export default function DashboardProfileScreen() {
           <View style={{ position: 'relative', marginBottom: 20 }}>
             <View style={{ width: 110, height: 110, borderRadius: 55, borderWidth: 5, borderColor: '#fff', shadowColor: '#85431E', shadowOpacity: 0.15, shadowRadius: 16, overflow: 'hidden', backgroundColor: '#fff' }}>
               <Image
-                source={{ uri: user?.profilePicture ? `${Config.API_BASE_URL.replace('/api', '')}${user.profilePicture}` : 'https://images.unsplash.com/photo-1579975002161-0f4db23932e6?auto=format&fit=crop&w=300&q=80' }}
+                source={{ uri: user?.profilePicture ? (user.profilePicture.startsWith('http') ? user.profilePicture : `${Config.API_BASE_URL.replace('/api', '')}${user.profilePicture}`) : 'https://images.unsplash.com/photo-1579975002161-0f4db23932e6?auto=format&fit=crop&w=300&q=80' }}
                 style={{ width: '100%', height: '100%' }}
               />
             </View>
@@ -130,6 +154,35 @@ export default function DashboardProfileScreen() {
               </TouchableOpacity>
             );
           })}
+        </View>
+
+        {/* Trainer Feedback */}
+        <View style={{ paddingHorizontal: 20, marginBottom: 24 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: '#5C2E0E' }}>Trainer Feedback</Text>
+          </View>
+          
+          {sessionsWithRemarks.length === 0 ? (
+            <View style={{ backgroundColor: '#fff', borderRadius: 20, padding: 24, alignItems: 'center', shadowColor: '#85431E', shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 }}>
+              <Text style={{ color: 'rgba(133,67,30,0.5)', fontSize: 13, fontWeight: '600', textAlign: 'center' }}>No feedback received yet.</Text>
+            </View>
+          ) : (
+            sessionsWithRemarks.map((session, idx) => {
+              const participantData = session.participants?.find((p: any) => p.riderId === rider?.id);
+              return (
+                <View key={idx} style={{ backgroundColor: '#fff', borderRadius: 20, padding: 18, marginBottom: 12, shadowColor: '#85431E', shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#5C2E0E' }}>{session.title || 'Training Session'}</Text>
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: 'rgba(133,67,30,0.5)', textTransform: 'uppercase' }}>{session.date}</Text>
+                  </View>
+                  <View style={{ backgroundColor: '#FAF3EC', borderRadius: 12, padding: 12 }}>
+                    <Text style={{ fontSize: 10, fontWeight: '800', color: '#DA7347', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Remark</Text>
+                    <Text style={{ fontSize: 13, color: '#5C2E0E', lineHeight: 18 }}>"{participantData.remark}"</Text>
+                  </View>
+                </View>
+              );
+            })
+          )}
         </View>
 
         {/* Trophies */}

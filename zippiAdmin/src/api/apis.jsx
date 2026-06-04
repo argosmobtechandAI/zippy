@@ -1,4 +1,4 @@
-export const baseUrl = import.meta.env.VITE_API_BASE_URL ? `${import.meta.env.VITE_API_BASE_URL}/api` : "https://api.zippyapp.online/api";
+export const baseUrl = import.meta.env.VITE_API_BASE_URL ? `${import.meta.env.VITE_API_BASE_URL}/api` : "http://localhost:3000/api";
 
 export const getAllUsersApi = `${baseUrl}/users/all`;
 export const getUserApi = `${baseUrl}/users`;

@@ -332,7 +332,7 @@ const SessionModal = ({ sessionToEdit, setShowModal, onSuccess, stables, users, 
         location: sessionToEdit?.location || defaultLocation || "",
         totalSeats: sessionToEdit?.totalSeats || 10,
         trainerId: sessionToEdit?.trainerId || "",
-        horseId: sessionToEdit?.horseId || [],
+        horseId: Array.isArray(sessionToEdit?.horseId) ? sessionToEdit.horseId : (sessionToEdit?.horseId ? [sessionToEdit.horseId] : []),
         status: sessionToEdit?.status || "ACTIVE",
         joiningAmount: sessionToEdit?.joiningAmount ?? sessionToEdit?.joining_amount ?? 0
     });

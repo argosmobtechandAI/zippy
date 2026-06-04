@@ -39,6 +39,7 @@ export const getGlobalStats = async (req, res) => {
     const { data: allTrainers } = await supabase.from('trainers').select('*');
     const { data: users } = await supabase.from('users').select('*').eq('type', 'stableStaff');
     const { data: allHorses } = await supabase.from('horse').select('stable_id');
+    const { data: allInventory } = await supabase.from('inventory').select('stable_id');
 
     const centers = (stables || []).map(s => {
       const trainerCount = allTrainers ? allTrainers.filter(t => t.stable_id === s.id).length : 0;
@@ -49,7 +50,8 @@ export const getGlobalStats = async (req, res) => {
       else if (rev > 30000) status = "NEAR CAPACITY";
       else if (rev < 20000) status = "UNDER REVIEW";
 
-      const horseCount = allHorses ? allHorses.filter((horse) => horse.stable_id === s.id).length : 0;
+      const horseCount = s.horses ? s.horses.length : 0;
+      const stocksCount = s.stocks ? s.stocks.length : 0;
 
       return {
         id: s.id,
@@ -61,7 +63,7 @@ export const getGlobalStats = async (req, res) => {
         horseCount: horseCount,
         trainerCount: trainerCount,
         status: status,
-        stocksCount: s.stocks?.length || 0
+        stocksCount: stocksCount
       };
     });
 
@@ -148,11 +150,14 @@ export const getStableStats = async (req, res) => {
 
     const s = stable[0];
 
-    const { data: horses } = await supabase.from('horse').select('*').eq('stable_id', s.id);
+    let horsesData = [];
+    if (s.horses && s.horses.length > 0) {
+        const { data: fetchedHorses } = await supabase.from('horse').select('*').in('id', s.horses);
+        horsesData = fetchedHorses || [];
+    }
     const { data: sessions } = await supabase.from('sessions').select('*');
     
     const todayStr = new Date().toISOString().split('T')[0];
-    const horsesData = horses || [];
     const sessionsData = sessions || [];
 
     const nearLimitCount = horsesData.filter(h => {

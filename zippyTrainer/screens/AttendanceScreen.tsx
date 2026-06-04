@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, ActivityIndicator, Alert, Platform, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, ActivityIndicator, Alert, Platform, RefreshControl, Modal, Linking } from 'react-native';
+import RNFS from 'react-native-fs';
+import Share from 'react-native-share';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Calendar, MapPin, Clock, CheckCircle2, XCircle, AlertTriangle, CalendarOff, CalendarRange, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiFunction } from '../api/apiFunction';
-import { getSessionsByTrainerApi, getAllTrainersApi, getUserApi, updateAttendanceApi, updateLeaveApi, updateLeaveRequestApi, updateSessionApi } from '../api/api';
+import { getSessionsByTrainerApi, getAllTrainersApi, getUserApi, updateAttendanceApi, updateLeaveApi, updateLeaveRequestApi, updateSessionApi, getAllHorsesApi } from '../api/api';
 import RNDateTimePicker from '@react-native-community/datetimepicker';
 
 const formatTimeWithAMPM = (timeStr: string) => {
@@ -43,9 +45,14 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
   const [activeTab, setActiveTab] = useState("Attendance");
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [attendance, setAttendance] = useState<Record<string, 'present' | 'noshow' | null>>({});
+  const [individualRemarks, setIndividualRemarks] = useState<Record<string, string>>({});
+  const [individualHorses, setIndividualHorses] = useState<Record<string, string>>({});
   const [remarks, setRemarks] = useState("");
   const [userId, setUserId] = useState<string | null>(null);
   const [trainerData, setTrainerData] = useState<any>(null);
+  const [allHorses, setAllHorses] = useState<any[]>([]);
+  const [showHorseModal, setShowHorseModal] = useState(false);
+  const [activeRiderForHorse, setActiveRiderForHorse] = useState<string | null>(null);
   const [showLeaveForm, setShowLeaveForm] = useState(false);
   const [leaveRequests, setLeaveRequests] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -67,11 +74,27 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
   const [selectedAttendanceDate, setSelectedAttendanceDate] = useState<string | null>(new Date().toISOString().split('T')[0]);
   const [showAttendanceDatePicker, setShowAttendanceDatePicker] = useState(false);
 
-  const filteredSessions = sessions.filter(s => {
-    if (!selectedAttendanceDate) return true;
+  const todayStr = new Date().toISOString().split('T')[0];
+  
+  let filteredSessions = sessions.filter(s => {
     const sessionDate = s.date?.includes('T') ? s.date.split('T')[0] : s.date;
-    return sessionDate === selectedAttendanceDate || sessionDate === "daily";
+    
+    if (selectedAttendanceDate) {
+      return sessionDate === selectedAttendanceDate || sessionDate === "daily";
+    } else {
+      if (sessionDate === "daily") return true;
+      if (!sessionDate) return false;
+      return sessionDate >= todayStr;
+    }
   });
+
+  if (!selectedAttendanceDate) {
+    filteredSessions = filteredSessions.sort((a, b) => {
+      if (a.date === "daily") return -1;
+      if (b.date === "daily") return 1;
+      return a.date.localeCompare(b.date);
+    }).slice(0, 9);
+  }
 
   useEffect(() => {
     fetchSessions();
@@ -96,29 +119,47 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
     const session = sessions.find(s => s.id === sessionId);
     if (session) {
       const initialAttendance: Record<string, any> = {};
+      const initialRemarks: Record<string, string> = {};
+      const initialHorses: Record<string, string> = {};
       session.participants?.forEach((p: any) => {
         initialAttendance[p.riderId] = p.status;
+        initialRemarks[p.riderId] = p.remark || '';
+        if (p.horse) initialHorses[p.riderId] = p.horse;
       });
       setAttendance(initialAttendance);
+      setIndividualRemarks(initialRemarks);
+      setIndividualHorses(initialHorses);
       setRemarks(session.note || "");
+    }
+  };
+
+  const fetchHorses = async (tId: string) => {
+    try {
+      const res = await apiFunction(getAllHorsesApi, [], {}, 'GET');
+      if (res?.success) {
+        // Only get horses assigned to this trainer
+        const trainerHorses = res.horses.filter((h: any) => h.trainerId === tId || h.trainer_id === tId);
+        setAllHorses(trainerHorses);
+      }
+    } catch (error) {
+      console.error("Error fetching horses:", error);
     }
   };
 
   const fetchTrainerData = async () => {
     try {
-      const userData = await AsyncStorage.getItem('user');
-      if (userData) {
-        const user = JSON.parse(userData);
-        setUserId(user.id);
-        const res = await apiFunction(getUserApi, [], {}, "GET", true);
-        if (res && res.success) {
-          console.log(res.user, "ress")
+      const uid = await AsyncStorage.getItem('userId');
+      if (uid) {
+        setUserId(uid);
+        const res = await apiFunction(`${getUserApi}/${uid}`, [], {}, 'GET');
+        if (res?.success && res.user) {
           setTrainerData(res.user);
-          setLeaveRequests(res.user.leaveRequests);
+          if (res.user.leaveRequests) setLeaveRequests(res.user.leaveRequests);
+          if (res.user.trainerId) fetchHorses(res.user.trainerId);
         }
       }
     } catch (error) {
-      console.error("Fetch trainer error:", error);
+      console.error("Error fetching trainer data:", error);
     }
   };
 
@@ -218,7 +259,9 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
       // Build updated participants with latest attendance marks
       const updatedParticipants = currentSession.participants.map((p: any) => ({
         ...p,
-        attendance: attendance[p.riderId] || p.attendance || null
+        attendance: attendance[p.riderId] || p.attendance || null,
+        remark: individualRemarks[p.riderId] !== undefined ? individualRemarks[p.riderId] : (p.remark || ''),
+        horse: individualHorses[p.riderId] || p.horse || null
       }));
 
       // apiFunction wraps body as { data: body }, so pass the object directly
@@ -240,6 +283,60 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
       Alert.alert('Error', 'An unexpected error occurred.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleShareWhatsApp = async () => {
+    if (!currentSession) return;
+    
+    try {
+      const headers = ["Session Title", "Date", "Time", "Location", "Rider Name", "Horse Name", "Attendance", "Individual Remark"];
+      let csvContent = headers.join(",") + "\n";
+
+      const escapedTitle = `"${(currentSession.title || '').replace(/"/g, '""')}"`;
+      const escapedLocation = `"${(currentSession.location || '').replace(/"/g, '""')}"`;
+      const timing = `"${currentSession.timing || currentSession.time || ''}"`;
+      const date = `"${currentSession.date || ''}"`;
+
+      if (!currentSession.participants || currentSession.participants.length === 0) {
+        const row = [escapedTitle, date, timing, escapedLocation, '""', '""', '""', '""'];
+        csvContent += row.join(",") + "\n";
+      } else {
+        currentSession.participants.forEach((p: any) => {
+          const horseId = individualHorses[p.riderId] || p.horse;
+          const assignedHorse = allHorses.find((h: any) => h.id === horseId);
+          const horseName = assignedHorse ? assignedHorse.name : '';
+          
+          const row = [
+            escapedTitle,
+            date,
+            timing,
+            escapedLocation,
+            `"${(p.name || '').replace(/"/g, '""')}"`,
+            `"${horseName.replace(/"/g, '""')}"`,
+            `"${(attendance[p.riderId] || p.attendance || 'Pending').replace(/"/g, '""')}"`,
+            `"${(individualRemarks[p.riderId] !== undefined ? individualRemarks[p.riderId] : (p.remark || '')).replace(/"/g, '""').replace(/\n/g, ' ')}"`
+          ];
+          csvContent += row.join(",") + "\n";
+        });
+      }
+
+      const fileName = `session_${(currentSession.title || 'report').replace(/\s+/g, '_')}_${currentSession.date || 'date'}.csv`;
+      const path = `${RNFS.DocumentDirectoryPath}/${fileName}`;
+      await RNFS.writeFile(path, csvContent, 'utf8');
+
+      await Share.open({
+        title: 'Share Session CSV',
+        url: `file://${path}`,
+        type: 'text/csv',
+        social: Share.Social.WHATSAPP
+      });
+
+    } catch (error: any) {
+      if (error.message !== 'User did not share') {
+        console.error("Error sharing CSV:", error);
+        Alert.alert("Share Error", "Could not share the file. Ensure WhatsApp is installed.");
+      }
     }
   };
 
@@ -421,14 +518,16 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
            </ScrollView>
         )}
 
-        {/* Session Details Card */}
-        <View className="bg-white rounded-3xl p-4 shadow-sm border border-[#e2e8f0] mb-6">
-          <View className="flex-row items-center mb-3">
-            <View className="bg-[#facc15]/20 px-2 py-1 rounded">
-              <Text className="text-[#8C4A28] text-[10px] font-bold tracking-widest uppercase">{currentSession?.level || 'STANDARD'}</Text>
-            </View>
-            <Text className="text-[#94a3b8] text-[10px] font-bold ml-2">SESSION DETAILS</Text>
-          </View>
+        {currentSession && (
+          <>
+            {/* Session Details Card */}
+            <View className="bg-white rounded-3xl p-4 shadow-sm border border-[#e2e8f0] mb-6">
+              <View className="flex-row items-center mb-3">
+                <View className="bg-[#facc15]/20 px-2 py-1 rounded">
+                  <Text className="text-[#8C4A28] text-[10px] font-bold tracking-widest uppercase">{currentSession.level || 'STANDARD'}</Text>
+                </View>
+                <Text className="text-[#94a3b8] text-[10px] font-bold ml-2">SESSION DETAILS</Text>
+              </View>
           <Text className="text-[#1a202c] text-xl font-bold mb-3">{currentSession?.title}</Text>
 
           <View className="flex-row items-center mb-2">
@@ -458,34 +557,61 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
 
         <View className="bg-white rounded-3xl p-4 shadow-sm border border-[#e2e8f0] mb-8">
           {currentSession?.participants?.map((rider: any, index: number) => (
-            <View key={rider.riderId} className={`flex-row items-center py-4 ${index !== currentSession.participants.length - 1 ? 'border-b border-[#e2e8f0]' : ''}`}>
-              <Image source={{ uri: rider.image || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop' }} className="w-12 h-12 rounded-full mr-3" />
-              <View className="flex-1">
-                <Text className="text-[#1a202c] font-bold text-[15px] mb-0.5">{rider.name}</Text>
-                <Text className="text-[#94a3b8] text-xs font-semibold">
-                  Role: <Text className="text-[#8C4A28]">{rider.type || 'Rider'}</Text>
-                </Text>
+            <View key={rider.riderId} className={index !== currentSession.participants.length - 1 ? 'border-b border-[#e2e8f0]' : ''}>
+              <View className="flex-row items-center py-4">
+                <Image source={{ uri: rider.image || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop' }} className="w-12 h-12 rounded-full mr-3" />
+                <View className="flex-1">
+                  <Text className="text-[#1a202c] font-bold text-[15px] mb-0.5">{rider.name}</Text>
+                  <Text className="text-[#94a3b8] text-xs font-semibold">
+                    Role: <Text className="text-[#8C4A28]">{rider.type || 'Rider'}</Text>
+                  </Text>
+                </View>
+                <View className="flex-row gap-2">
+                  <TouchableOpacity
+                    className={`px-4 py-2 rounded-lg items-center justify-center border ${(attendance[rider.riderId] === "present" || rider?.attendance?.toLowerCase() === "present")
+                      ? 'bg-[#8C4A28] border-[#8C4A28]'
+                      : 'bg-[#f8fafc] border-[#e2e8f0]'
+                      }`}
+                    onPress={() => handleAttendance(rider.riderId, currentSession.id, 'present')}
+                  >
+                    <Text className={`text-xs font-bold ${(attendance[rider.riderId] === "present" || rider?.attendance?.toLowerCase() === "present") ? 'text-white' : 'text-[#64748b]'
+                      }`}>Present</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    className={`px-4 py-2 rounded-lg items-center justify-center border ${(attendance[rider.riderId] === "noshow" || rider?.attendance?.toLowerCase() === 'noshow')
+                      ? 'bg-red-500 border-red-500'
+                      : 'bg-[#f8fafc] border-[#e2e8f0]'
+                      }`}
+                    onPress={() => handleAttendance(rider.riderId, currentSession.id, 'noshow')}
+                  >
+                    <Text className={`text-xs font-bold ${(attendance[rider.riderId] === "noshow" || rider.attendance?.toLowerCase() === 'noshow') ? 'text-white' : 'text-[#64748b]'
+                      }`}>No-Show</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-              <View className="flex-row gap-2">
-                <TouchableOpacity
-                  className={`px-4 py-2 rounded-lg items-center justify-center border ${(attendance[rider.riderId] === "present" || rider?.attendance?.toLowerCase() === "present")
-                    ? 'bg-[#8C4A28] border-[#8C4A28]'
-                    : 'bg-[#f8fafc] border-[#e2e8f0]'
-                    }`}
-                  onPress={() => handleAttendance(rider.riderId, currentSession.id, 'present')}
+              <View className="pb-4 px-2 mt-[-8px]">
+                <TextInput
+                  className="bg-[#f8fafc] border border-[#e2e8f0] rounded-xl px-4 py-3 text-[#1a202c] text-sm mb-2"
+                  placeholder={`Add a specific remark for ${rider.name}...`}
+                  placeholderTextColor="#94a3b8"
+                  value={individualRemarks[rider.riderId] || ''}
+                  onChangeText={(text) => setIndividualRemarks(prev => ({ ...prev, [rider.riderId]: text }))}
+                  multiline
+                />
+                
+                <TouchableOpacity 
+                  className="bg-[#F6EDE2] border border-[#E6D9CC] rounded-xl px-4 py-2.5 flex-row justify-between items-center"
+                  onPress={() => {
+                    setActiveRiderForHorse(rider.riderId);
+                    setShowHorseModal(true);
+                  }}
                 >
-                  <Text className={`text-xs font-bold ${(attendance[rider.riderId] === "present" || rider?.attendance?.toLowerCase() === "present") ? 'text-white' : 'text-[#64748b]'
-                    }`}>Present</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  className={`px-4 py-2 rounded-lg items-center justify-center border ${(attendance[rider.riderId] === "noshow" || rider?.attendance?.toLowerCase() === 'noshow')
-                    ? 'bg-red-500 border-red-500'
-                    : 'bg-[#f8fafc] border-[#e2e8f0]'
-                    }`}
-                  onPress={() => handleAttendance(rider.riderId, currentSession.id, 'noshow')}
-                >
-                  <Text className={`text-xs font-bold ${(attendance[rider.riderId] === "noshow" || rider.attendance?.toLowerCase() === 'noshow') ? 'text-white' : 'text-[#64748b]'
-                    }`}>No-Show</Text>
+                  <Text className="text-[#8C4A28] font-semibold text-xs">
+                    {individualHorses[rider.riderId] 
+                      ? `Assigned Horse: ${allHorses.find((h: any) => h.id === individualHorses[rider.riderId])?.name || individualHorses[rider.riderId]}` 
+                      : 'Assign a Horse'}
+                  </Text>
+                  <ChevronRight size={16} color="#8C4A28" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -537,12 +663,21 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
             <Text className="text-white font-bold text-lg ml-2">{saving ? 'Saving...' : 'Complete & Save Session'}</Text>
           </TouchableOpacity>
         )}
+        
+        <TouchableOpacity
+          className="w-full py-4 rounded-xl items-center flex-row justify-center mb-3 bg-[#25D366]"
+          onPress={handleShareWhatsApp}
+        >
+          <Text className="text-white font-bold text-lg">Share CSV to WhatsApp</Text>
+        </TouchableOpacity>
 
-        <Text className="text-center text-[#94a3b8] text-xs font-semibold mb-6">
-          {currentSession?.status === 'COMPLETED'
-            ? 'This session has been completed and logged.'
-            : 'Saving will notify riders and update their training logs.'}
-        </Text>
+          <Text className="text-center text-[#94a3b8] text-xs font-semibold mb-6">
+            {currentSession.status === 'COMPLETED'
+              ? 'This session has been completed and logged.'
+              : 'Saving will notify riders and update their training logs.'}
+          </Text>
+          </>
+        )}
 
       </ScrollView>}
 
@@ -758,6 +893,52 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
           </View> */}
         </ScrollView>
       }
+
+      {showHorseModal && (
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={showHorseModal}
+          onRequestClose={() => setShowHorseModal(false)}
+        >
+          <View className="flex-1 bg-black/50 justify-end">
+            <View className="bg-[#F5EDDF] rounded-t-3xl max-h-[80%]">
+              <View className="p-4 border-b border-[#E6D9CC] flex-row justify-between items-center">
+                <Text className="text-lg font-bold text-[#5C2E0E]">Assign Horse</Text>
+                <TouchableOpacity onPress={() => setShowHorseModal(false)}>
+                  <XCircle color="#85431E" size={24} />
+                </TouchableOpacity>
+              </View>
+              <ScrollView className="p-4" contentContainerStyle={{ paddingBottom: 40 }}>
+                {allHorses.length === 0 ? (
+                  <Text className="text-center text-gray-500 my-4">No horses available for this trainer.</Text>
+                ) : (
+                  allHorses.map(horse => (
+                    <TouchableOpacity
+                      key={horse.id}
+                      className="bg-white border border-[#E6D9CC] p-4 rounded-xl mb-3 flex-row items-center shadow-sm"
+                      onPress={() => {
+                        if (activeRiderForHorse) {
+                          setIndividualHorses(prev => ({ ...prev, [activeRiderForHorse]: horse.id }));
+                        }
+                        setShowHorseModal(false);
+                      }}
+                    >
+                      <View className="w-10 h-10 rounded-full bg-[#F6EDE2] items-center justify-center mr-3 border border-[#E6D9CC]">
+                        <Text className="text-[#8C4A28] font-black">{horse.name?.charAt(0)}</Text>
+                      </View>
+                      <Text className="text-[#5C2E0E] font-bold flex-1">{horse.name}</Text>
+                      {activeRiderForHorse && individualHorses[activeRiderForHorse] === horse.id && (
+                        <CheckCircle2 color="#16a34a" size={20} />
+                      )}
+                    </TouchableOpacity>
+                  ))
+                )}
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+      )}
 
     </SafeAreaView>
   );

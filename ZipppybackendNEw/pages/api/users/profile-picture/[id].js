@@ -1,5 +1,6 @@
 import { IncomingForm } from 'formidable';
 import fs from 'fs';
+import path from 'path';
 import { supabase } from '../../../../supabaseClient';
 
 export const config = {
@@ -21,7 +22,15 @@ export default async function handler(req, res) {
     }
 
     try {
-        const form = new IncomingForm({ keepExtensions: true });
+        const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'profile-pictures');
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+        }
+
+        const form = new IncomingForm({ 
+            keepExtensions: true,
+            uploadDir: uploadDir
+        });
 
         form.parse(req, async (err, fields, files) => {
             if (err) {
@@ -37,24 +46,13 @@ export default async function handler(req, res) {
             }
 
             try {
-                const fileBuffer = fs.readFileSync(file.filepath);
                 const ext = file.originalFilename ? file.originalFilename.split('.').pop() : 'jpg';
-                const fileName = `profile-pictures/${id}_${Date.now()}.${ext}`;
+                const fileName = `${id}_${Date.now()}.${ext}`;
+                const newFilePath = path.join(uploadDir, fileName);
 
-                const { error: uploadError } = await supabase.storage
-                    .from('zippy')
-                    .upload(fileName, fileBuffer, {
-                        contentType: file.mimetype || 'image/jpeg',
-                        upsert: true,
-                    });
+                fs.renameSync(file.filepath, newFilePath);
 
-                if (uploadError) {
-                    console.error("Supabase upload error:", uploadError);
-                    return res.status(500).json({ success: false, message: 'Upload failed: ' + uploadError.message });
-                }
-
-                const { data: publicUrlData } = supabase.storage.from('zippy').getPublicUrl(fileName);
-                const url = publicUrlData.publicUrl;
+                const url = `/uploads/profile-pictures/${fileName}`;
 
                 // Save URL to users table
                 const { error: updateError } = await supabase
@@ -67,9 +65,6 @@ export default async function handler(req, res) {
                     return res.status(500).json({ success: false, message: 'Failed to update user record' });
                 }
 
-                // Cleanup
-                if (fs.existsSync(file.filepath)) fs.unlinkSync(file.filepath);
-
                 return res.status(200).json({ success: true, url, message: 'Profile picture updated' });
             } catch (processingErr) {
                 console.error("Upload processing error:", processingErr);
@@ -80,3 +75,4 @@ export default async function handler(req, res) {
         return res.status(500).json({ success: false, message: 'Upload failed: ' + error.message });
     }
 }
+

@@ -6,6 +6,8 @@ import {
 import { useState, useEffect } from 'react';
 import { apiFunction } from '../api/apiFunction';
 import { getAllUsersApi, getGlobalStatsApi, updateStableApi } from '../api/apis';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 const Dashboard = () => {
     const [stats, setStats] = useState({
@@ -33,12 +35,38 @@ const Dashboard = () => {
             setLoading(false);
         }
 
-
-
         fetchStats();
 
     }, []);
 
+    const exportToPDF = () => {
+        const doc = new jsPDF();
+        doc.text("Center Performance Report", 14, 15);
+        
+        const tableColumn = ["Location Name", "Manager", "Stocks Count", "Monthly Revenue", "Horse Count"];
+        const tableRows = [];
+
+        (stats.centers || []).forEach(center => {
+            const centerData = [
+                center.name,
+                center.manager,
+                center.stocksCount,
+                `Rs ${Number(center.monthlyRevenue).toLocaleString()}`,
+                center.horseCount
+            ];
+            tableRows.push(centerData);
+        });
+
+        doc.autoTable({
+            head: [tableColumn],
+            body: tableRows,
+            startY: 20,
+            theme: 'striped',
+            headStyles: { fillColor: [150, 76, 46] }
+        });
+
+        doc.save("center_performance_report.pdf");
+    };
 
     return (
         <div className="p-8 max-w-[1400px] mx-auto h-full overflow-y-auto w-full">
@@ -137,7 +165,7 @@ const Dashboard = () => {
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100/80 mb-8">
                 <div className="p-6 flex justify-between items-center border-b border-gray-100/80">
                     <h3 className="text-lg font-bold text-[#1e2330]">Center Performance</h3>
-                    <button className="px-4 py-2 bg-[#FFF9F6] border border-[#964C2E]/20 rounded-lg flex items-center gap-2 text-[13px] font-bold text-[#964C2E] hover:bg-[#FFF2EB] transition-all">
+                    <button onClick={exportToPDF} className="px-4 py-2 bg-[#FFF9F6] border border-[#964C2E]/20 rounded-lg flex items-center gap-2 text-[13px] font-bold text-[#964C2E] hover:bg-[#FFF2EB] transition-all cursor-pointer">
                         <Download className="w-4 h-4" /> Export Report
                     </button>
                 </div>
@@ -150,8 +178,6 @@ const Dashboard = () => {
                                 <th className="py-4 px-6 text-[11px] font-bold text-[#818C99] tracking-widest uppercase">STOCKS<br />COUNT</th>
                                 <th className="py-4 px-6 text-[11px] font-bold text-[#818C99] tracking-widest uppercase">MONTHLY<br />REVENUE</th>
                                 <th className="py-4 px-6 text-[11px] font-bold text-[#818C99] tracking-widest uppercase">HORSE<br />COUNT</th>
-                                <th className="py-4 px-6 text-[11px] font-bold text-[#818C99] tracking-widest uppercase">STATUS</th>
-                                <th className="py-4 px-8 text-[11px] font-bold text-[#818C99] tracking-widest uppercase items-end text-right">ACTIONS</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -174,24 +200,6 @@ const Dashboard = () => {
                                     <td className="py-4 px-6 font-bold text-[#1e2330]">{center.stocksCount}</td>
                                     <td className="py-4 px-6 font-bold text-[#1e2330]">₹{Number(center.monthlyRevenue).toLocaleString()}</td>
                                     <td className="py-4 px-6 font-semibold text-[#1e2330]">{center.horseCount}</td>
-                                    <td className="py-4 px-6">
-                                        <span className={`inline-flex min-w-[100px] text-center justify-center px-3 py-1 rounded-full text-[9px] font-black tracking-wider uppercase ${center.status === 'PEEK PERFORMANCE' ? 'bg-[#D1FAE5] text-[#065F46]' :
-                                            center.status === 'NEAR CAPACITY' ? 'bg-[#FEF3C7] text-[#92400E]' :
-                                                center.status === 'UNDER REVIEW' ? 'bg-[#FEE2E2] text-[#B91C1C]' :
-                                                    'bg-[#F1F5F9] text-[#475569]'
-                                            }`}>
-                                            {center.status}
-                                        </span>
-                                    </td>
-                                    <td className="py-4 px-8 text-right">
-                                        <button onClick={()=> {
-                                            setSelectedCenter(center)
-                                            setChangeManagerModal(true)
-                                        }} className="text-gray-400 flex flex-col items-center gap-1 cursor-pointer bg-gray-100 p-2 rounded-lg hover:text-gray-600">
-                                            <User className="w-5 h-5" />
-                                            <p className="text-xs font-bold">Change Manager</p>
-                                        </button>
-                                    </td>
                                 </tr>
                             ))}
                         </tbody>

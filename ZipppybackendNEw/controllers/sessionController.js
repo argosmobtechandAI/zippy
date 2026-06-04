@@ -181,6 +181,19 @@ export const cancelBooking = async (req, res) => {
     }
 
     try {
+        const [year, month, day] = date.split('-').map(Number);
+        const slotDate = new Date(year, month - 1, day);
+        const deadline = new Date(slotDate);
+        deadline.setDate(deadline.getDate() - 1);
+        deadline.setHours(20, 0, 0, 0); 
+
+        if (Date.now() > deadline.getTime()) {
+            return res.status(400).json({
+                success: false,
+                message: `Cancellation deadline has passed. You cannot cancel the slot for ${date} after 8:00 PM of the previous day.`
+            });
+        }
+
         const { data: session, error } = await supabase.from('sessions').select('*').eq('id', id).limit(1);
         if (error || !session || !session.length) {
             return res.status(404).json({ success: false, message: 'Session not found' });

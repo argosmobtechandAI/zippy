@@ -242,7 +242,7 @@ export default function HomeScreen() {
                      className="bg-white rounded-[32px] p-4 mr-5 shadow-sm border border-brand-brown/5 w-44"
                   >
                      <Image
-                        source={{ uri: horse.imageUrl || 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?q=80&w=300&auto=format&fit=crop' }}
+                        source={{ uri: (horse.imageUrl && horse.imageUrl.startsWith('/')) ? `${baseURL.replace('/api', '')}${horse.imageUrl}` : (horse.imageUrl || 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?q=80&w=300&auto=format&fit=crop') }}
                         className="w-full h-40 rounded-[24px] mb-4"
                      />
                      <View className="px-1">
