@@ -1,7 +1,7 @@
 import {
     Clock, Calendar, ChevronRight, Ban, Edit,
     CheckCircle2, Circle, MoreVertical, Download,
-    ChevronDown, Info, ShieldAlert, CheckSquare, List, LayoutGrid, ArrowLeft, Plus, Trash2
+    ChevronDown, Info, ShieldAlert, CheckSquare, List, LayoutGrid, ArrowLeft, Plus, Trash2, Copy
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { apiFunction } from '../api/apiFunction';
@@ -117,6 +117,32 @@ const SlotManagement = () => {
         }
     };
 
+    const handleDuplicateSlot = async (slot) => {
+        try {
+            const finalData = {
+                ...slot,
+                title: `${slot.title} (Copy)`,
+                joining_amount: slot.joining_amount !== undefined ? slot.joining_amount : (slot.joiningAmount !== undefined ? slot.joiningAmount : 0),
+                joiningAmount: slot.joiningAmount !== undefined ? slot.joiningAmount : (slot.joining_amount !== undefined ? slot.joining_amount : 0)
+            };
+            
+            // Delete properties that should not be duplicated
+            delete finalData.id;
+            delete finalData.participants;
+
+            const res = await apiFunction(createSessionApi, [], finalData, "POST", true);
+            if (res?.success) {
+                toast.success("Session duplicated successfully");
+                fetchData();
+            } else {
+                toast.error(res?.message || "Failed to duplicate session");
+            }
+        } catch (error) {
+            console.error("Error duplicating session:", error);
+            toast.error("Network error");
+        }
+    };
+
     if (loading) {
         return <div className="p-10 text-center font-bold text-gray-400">Loading data...</div>;
     }
@@ -172,6 +198,7 @@ const SlotManagement = () => {
                                             {slot.status || 'ACTIVE'}
                                         </span>
                                         <div className="flex gap-2">
+                                            <button onClick={() => handleDuplicateSlot(slot)} title="Duplicate Slot" className="text-gray-400 hover:text-blue-500 transition-colors"><Copy className="w-4 h-4" /></button>
                                             <button onClick={() => { setSessionToEdit(slot); setShowSessionModal(true); }} className="text-gray-400 hover:text-[#964C2E]"><Edit className="w-4 h-4" /></button>
                                             <button onClick={() => handleDeleteSlot(slot.id)} className="text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
                                         </div>
@@ -301,12 +328,13 @@ const SessionModal = ({ sessionToEdit, setShowModal, onSuccess, stables, users, 
         title: sessionToEdit?.title || "",
         startTime: sessionToEdit?.timing?.split("-")[0]?.trim() || "09:00",
         endTime: sessionToEdit?.timing?.split("-")[1]?.trim() || "10:30",
-        date: sessionToEdit?.date || "daily",
+        date: sessionToEdit?.date || "",
         location: sessionToEdit?.location || defaultLocation || "",
         totalSeats: sessionToEdit?.totalSeats || 10,
         trainerId: sessionToEdit?.trainerId || "",
         horseId: sessionToEdit?.horseId || [],
-        status: sessionToEdit?.status || "ACTIVE"
+        status: sessionToEdit?.status || "ACTIVE",
+        joiningAmount: sessionToEdit?.joiningAmount ?? sessionToEdit?.joining_amount ?? 0
     });
     const [isDaily, setIsDaily] = useState(sessionToEdit?.date === "daily" || !sessionToEdit);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -337,12 +365,14 @@ const SessionModal = ({ sessionToEdit, setShowModal, onSuccess, stables, users, 
                 title: formData.title,
                 timing,
                 duration,
-                date: isDaily ? "daily" : formData.date,
+                date: isDaily ? "daily" : (formData.date || new Date().toISOString().split('T')[0]),
                 location: formData.location,
                 totalSeats: formData.totalSeats,
                 trainerId: formData.trainerId ? formData.trainerId : null,
                 horseId: formData.horseId,
-                status: formData.status
+                status: formData.status,
+                joiningAmount: parseInt(formData.joiningAmount) || 0,
+                joining_amount: parseInt(formData.joiningAmount) || 0
             };
 
             let res;
@@ -417,15 +447,28 @@ const SessionModal = ({ sessionToEdit, setShowModal, onSuccess, stables, users, 
                             <input type="number" required min="1" value={formData.totalSeats} onChange={(e) => setFormData({ ...formData, totalSeats: parseInt(e.target.value) })} className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]" />
                         </div>
                         <div>
-                            <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Schedule</label>
-                            <div className="flex flex-col gap-2">
-                                <label className="flex items-center gap-2 text-[13px] font-bold">
-                                    <input type="checkbox" checked={isDaily} onChange={(e) => setIsDaily(e.target.checked)} className="w-4 h-4 text-[#964C2E] rounded focus:ring-[#964C2E]" />
-                                    Daily Recurring Session
-                                </label>
-                                {!isDaily && (
-                                    <input type="date" required={!isDaily} value={formData.date !== 'daily' ? formData.date : ''} onChange={(e) => setFormData({ ...formData, date: e.target.value })} className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-3 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]" />
-                                )}
+                            <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Joining Fee (₹)</label>
+                            <input type="number" min="0" value={formData.joiningAmount} onChange={(e) => setFormData({ ...formData, joiningAmount: e.target.value })} className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]" placeholder="0" />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Schedule</label>
+                        <div className="flex flex-col gap-3">
+                            <label className="flex items-center gap-2 text-[13px] font-bold cursor-pointer">
+                                <input type="checkbox" checked={isDaily} onChange={(e) => setIsDaily(e.target.checked)} className="w-4 h-4 text-[#964C2E] rounded focus:ring-[#964C2E]" />
+                                Daily Recurring Session
+                            </label>
+                            <div>
+                                <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Session Date</label>
+                                <input
+                                    type="date"
+                                    required={!isDaily}
+                                    disabled={isDaily}
+                                    value={isDaily ? '' : formData.date}
+                                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                                    className={`w-full border border-gray-100 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:border-[#964C2E] ${isDaily ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-50/50'}`}
+                                />
+                                {isDaily && <p className="text-[11px] text-gray-400 mt-1 px-1">Date not required for daily sessions</p>}
                             </div>
                         </div>
                     </div>
@@ -433,7 +476,17 @@ const SessionModal = ({ sessionToEdit, setShowModal, onSuccess, stables, users, 
                         <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Assigned Trainer</label>
                         <select value={formData.trainerId} onChange={(e) => setFormData({ ...formData, trainerId: e.target.value })} className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]">
                             <option value="">No Trainer Assigned</option>
-                            {trainers.map(t => <option key={t.id} value={t.id}>{getTrainerName(t.userId)}</option>)}
+                            {users.map(u => {
+                                const isAssignedToStable = trainers.some(t => t.userId === u.id);
+                                if (!isAssignedToStable) return null;
+
+                                const val = u.trainerId || u.id;
+                                return (
+                                    <option key={val} value={val}>
+                                        {u.name}
+                                    </option>
+                                );
+                            })}
                         </select>
                     </div>
                     <div>

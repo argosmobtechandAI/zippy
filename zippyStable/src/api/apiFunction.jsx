@@ -15,31 +15,42 @@ export const apiFunction = async (api, params = [], data = {}, method, withAuth)
     }
 
     let response;
+    const url = params.length > 0 ? `${api}/${params.join('/')}` : api;
 
-    switch (method) {
-        case 'GET':
-            response = await axios.get(`${api}/${params.join('/')}`, { headers });
-            break;
-        case 'POST':
-            response = await axios.post(`${api}/${params.join('/')}`, { data }, { headers });
-            break;
+    try {
+        switch (method) {
+            case 'GET':
+                response = await axios.get(url, { headers });
+                break;
+            case 'POST':
+                response = await axios.post(url, { data }, { headers });
+                break;
+            case 'PUT':
+                response = await axios.put(url, { data }, { headers });
+                break;
+            case 'DELETE':
+                response = await axios.delete(url, { headers });
+                break;
+            default:
+                throw new Error('Invalid HTTP method');
+        }
 
-        case 'PUT':
-            response = await axios.put(`${api}/${params.join('/')}`, { data }, { headers });
-            break;
-        case 'DELETE':
-            response = await axios.delete(`${api}/${params.join('/')}`, { headers });
-            break;
-        default:
-            throw new Error('Invalid HTTP method');
+        if (response) {
+            console.log('API Response:', response.data);
+            return response.data;
+        }
+    } catch (error) {
+        console.error('API Function Error:', error);
+        const errorMessage = error.response?.data?.message || error.message || 'An unknown error occurred';
+        const status = error.response?.status;
+        
+        if (status === 401 || errorMessage === 'jwt malformed' || errorMessage === 'jwt expired') {
+            localStorage.removeItem('token');
+            window.location.href = '/login';
+        }
+        
+        return { success: false, message: errorMessage, status };
     }
-
-    if (response) {
-        console.log('API Response:', response.data);
-        return response.data;
-    } else {
-        console.log('API Error:', response);
-        return null;
-    }
+    return null;
 
 }

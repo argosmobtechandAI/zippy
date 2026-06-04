@@ -7,15 +7,17 @@ export const RouteProtector = ({ children }) => {
     const token = localStorage.getItem("token");
     const navigate = useNavigate();
 
+    const isValidToken = token && token !== "undefined" && token !== "null";
+
     useEffect(() => {
-        if (!token) {
+        if (!isValidToken) {
             navigate("/login");
         } else if (!selectedStable) {
             navigate("/choose-stable");
         }
-    }, [token, selectedStable, navigate]);
+    }, [isValidToken, selectedStable, navigate]);
 
-    if (!token || !selectedStable) {
+    if (!isValidToken || !selectedStable) {
         return null;
     }
 

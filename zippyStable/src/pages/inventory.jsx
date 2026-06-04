@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Plus, Activity, CheckCircle2, AlertTriangle, AlertCircle, X, ChevronDown, BellRing, Wrench, Eye, BedDouble, UserPlus, User, Ban, Camera, Info, HeartPulse, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Activity, CheckCircle2, AlertTriangle, AlertCircle, X, ChevronDown, BellRing, Wrench, Eye, BedDouble, UserPlus, User, Ban, Camera, Info, HeartPulse, ChevronLeft, ChevronRight, Trash2, Pencil } from 'lucide-react';
 import { apiFunction } from '../api/apiFunction';
 import { getStableStatsApi, getAllStablesApi, getAllHorsesApi, createHorseApi, getHorsesByStableApi, getAllUsersApi, getAllVatsApi, assignVetApi, baseUrl } from '../api/apis';
 import { useSelector } from 'react-redux';
+import { toast } from 'react-hot-toast';
 
 const Inventory = () => {
     const [stats, setStats] = useState({
@@ -70,7 +71,7 @@ const Inventory = () => {
         console.log(id, vats)
         const vat = vats.find(v => v.id === id);
         console.log(vat)
-        const user = allUsers.find(u => u.id === vat?.userId);
+        const user = allUsers.find(u => u.id === (vat?.userId || vat?.user_id));
         return user ? user.name : '';
     }
 
@@ -94,7 +95,7 @@ const Inventory = () => {
     const handleAssignVet = async (horseId, userId) => {
 
         try {
-            const vatId = vats.find(v => v.userId === userId)?.id;
+            const vatId = vats.find(v => (v.userId || v.user_id) === userId)?.id;
             const res = await apiFunction(assignVetApi, [horseId], { vatId }, "PUT", true);
             if (res && res.success) {
                 const updatedHorses = horses.map(h => h.id === horseId ? { ...h, vatId } : h);
@@ -142,6 +143,22 @@ const Inventory = () => {
             setFilteredHorses(horses);
         } else {
             setFilteredHorses(horses.filter(h => h.title === category));
+        }
+    };
+
+    const handleDeleteHorse = async (id) => {
+        if (!window.confirm("Are you sure you want to delete this horse?")) return;
+        try {
+            const res = await apiFunction(`${baseUrl}/horse/${id}`, [], {}, "DELETE", true);
+            if (res && res.success) {
+                toast.success("Horse deleted successfully");
+                fetchAllData();
+            } else {
+                toast.error("Failed to delete horse");
+            }
+        } catch (err) {
+            console.error("Delete horse failed:", err);
+            toast.error("Network error");
         }
     };
 
@@ -270,7 +287,7 @@ const Inventory = () => {
                                 <div key={horse.id || idx} className="grid grid-cols-[250px_1fr_120px_200px_1fr_180px] gap-4 items-center py-6 px-8 border-b border-gray-100 hover:bg-[#FAFAFA]/50 transition-colors">
                                     <div className="flex items-center gap-4">
                                         <div className="w-[50px] h-[50px] rounded-full overflow-hidden border border-gray-200 shadow-sm flex-shrink-0">
-                                            <img src={horse.imageUrl || "https://images.unsplash.com/photo-1553531580-6520e78089c8?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80"} alt={horse.name} className="w-full h-full object-cover" />
+                                            <img src={(horse.imageUrl && horse.imageUrl.trim()) ? horse.imageUrl : "https://images.unsplash.com/photo-1553531580-6520e78089c8?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80"} alt={horse.name} className="w-full h-full object-cover" onError={e => { e.target.src = "https://images.unsplash.com/photo-1553531580-6520e78089c8?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80"; }} />
                                         </div>
                                         <div>
                                             <h4 className="text-[15px] font-black text-[#1e2330] leading-tight mb-1">{horse.name}</h4>
@@ -331,7 +348,8 @@ const Inventory = () => {
                                             <UserPlus className="w-3.5 h-3.5" /> Assign Vet
                                         </button>
 
-                                        <button onClick={() => { setHorseToEdit(horse); setShowAddModal(true); }} className="p-2 hover:bg-[#964C2E]/10 rounded-lg text-gray-400 hover:text-[#964C2E] transition-all"><Plus className="w-5 h-5 rotate-45" /></button>
+                                        <button onClick={() => { setHorseToEdit(horse); setShowAddModal(true); }} className="p-2 hover:bg-[#964C2E]/10 rounded-lg text-gray-400 hover:text-[#964C2E] transition-all"><Pencil className="w-5 h-5" /></button>
+                                        <button onClick={() => handleDeleteHorse(horse.id)} className="p-2 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-500 transition-all"><Trash2 className="w-5 h-5" /></button>
                                     </div>
                                 </div>
                             );
@@ -444,7 +462,9 @@ const HorseModal = ({ horseToEdit, setShowModal, onSuccess, trainers, selectedSt
                 age: parseInt(formData.age) || 0,
                 trainerId: formData.trainerId || null,
                 shoeStatus: formData.shoeStatus || "Regular",
-                stableId: horseToEdit ? horseToEdit.stableId : selectedStable // crucial to attach horse to the stable
+                stableId: horseToEdit ? horseToEdit.stableId : selectedStable, // crucial to attach horse to the stable
+                diet: formData.diet || "Standard Alfalfa Mix",
+                location: formData.location || "Stable Facility"
             };
 
             let res;
@@ -568,7 +588,10 @@ const HorseModal = ({ horseToEdit, setShowModal, onSuccess, trainers, selectedSt
                                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Trainer ID</label>
                                     <select value={formData.trainerId} onChange={e => setFormData({ ...formData, trainerId: e.target.value })} className="w-full bg-white border border-gray-100 rounded-2xl px-6 py-5 text-sm font-bold text-[#1e2330] focus:outline-none focus:border-[#964C2E]/30 transition-all shadow-sm appearance-none">
                                         <option value="">No Trainer</option>
-                                        {trainers?.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                        {trainers?.map(t => {
+                                            const val = t.id;
+                                            return <option key={val} value={val}>{t.name}</option>;
+                                        })}
                                     </select>
                                 </div>
                             </div>

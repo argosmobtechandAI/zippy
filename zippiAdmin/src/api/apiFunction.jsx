@@ -42,7 +42,15 @@ export const apiFunction = async (api, params = [], data = {}, method, withAuth)
     } catch (error) {
         console.error('API Function Error:', error);
         const errorMessage = error.response?.data?.message || error.message || 'An unknown error occurred';
-        return { success: false, message: errorMessage };
+        const status = error.response?.status;
+        
+        if (status === 401 || errorMessage === 'Invalid token' || errorMessage === 'jwt malformed' || errorMessage === 'jwt expired') {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/login';
+        }
+
+        return { success: false, message: errorMessage, status };
     }
     return null;
 

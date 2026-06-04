@@ -185,8 +185,8 @@ export const createUser = async (req, res) => {
     const { data } = req.body;
 
     try {
-        const { name, mobile, email, dob, type, age, code, weight, password, parentName, title, riderType, experience, emergencyContact, allergies, medical, level, instructions, status } = data;
-        console.log("DESTRUCTURED REGISTRATION DATA:", { name, mobile, email, type, code, parentName, emergencyContact, riderType });
+        const { name, mobile, email, dob, type, age, code, weight, password, parentName, title, riderType, experience, emergencyContact, allergies, medical, level, instructions, status, stableId } = data;
+        console.log("DESTRUCTURED REGISTRATION DATA:", { name, mobile, email, type, code, parentName, emergencyContact, riderType, stableId });
 
         const finalParentName = parentName !== undefined ? parentName : data.parent_name;
         const finalEmergencyContact = emergencyContact !== undefined ? emergencyContact : data.emergency_contact;
@@ -241,7 +241,7 @@ export const createUser = async (req, res) => {
 
         if (type === "trainer") {
             const { data: newTrainer, error: trainerError } = await supabase.from('trainers').insert({ 
-                user_id: newUser[0].id, title, experience 
+                user_id: newUser[0].id, title, experience, stable_id: stableId || null
             }).select();
             if (trainerError || !newTrainer) {
                 return res.status(400).json({ message: 'Error creating trainer', success: false, detail: trainerError });
@@ -825,7 +825,13 @@ export const getAllTrainers = async (req, res) => {
         const { data: trainers, error } = await supabase.from('trainers').select('*');
         if (error) throw error;
         
-        return res.status(200).json({ trainers: trainers || [], message: 'Trainers fetched successfully', success: true });
+        const mappedTrainers = trainers.map(t => ({
+            ...t,
+            userId: t.user_id,
+            stableId: t.stable_id
+        }));
+        
+        return res.status(200).json({ trainers: mappedTrainers || [], message: 'Trainers fetched successfully', success: true });
     } catch (error) {
         return res.status(500).json({ message: `Error: ${error.message}`, success: false });
     }

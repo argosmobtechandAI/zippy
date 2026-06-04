@@ -132,9 +132,10 @@ const StableManagement = () => {
 
                                     <div className="h-[260px] w-full overflow-hidden relative">
                                         <img
-                                            src={horse.imageUrl || "https://images.unsplash.com/photo-1553531580-6520e78089c8?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80"}
+                                            src={(horse.imageUrl && horse.imageUrl.trim()) ? horse.imageUrl : "https://images.unsplash.com/photo-1553531580-6520e78089c8?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80"}
                                             alt={horse.name}
                                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
+                                            onError={e => { e.target.src = "https://images.unsplash.com/photo-1553531580-6520e78089c8?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80"; }}
                                         />
                                         {/* Overlay Gradient */}
                                         <div className="absolute inset-0 bg-gradient-to-t from-[#1e2330]/90 via-transparent to-transparent opacity-80 group-hover:opacity-100 transition-opacity"></div>
@@ -235,7 +236,8 @@ const StableManagement = () => {
                         {/* Hero Header */}
                         <div className="h-[350px] w-full relative overflow-hidden">
                             <img
-                                src={selectedHorse.imageUrl || "https://images.unsplash.com/photo-1553531580-6520e78089c8?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80"}
+                                src={(selectedHorse.imageUrl && selectedHorse.imageUrl.trim()) ? selectedHorse.imageUrl : "https://images.unsplash.com/photo-1553531580-6520e78089c8?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80"}
+                                onError={e => { e.target.src = "https://images.unsplash.com/photo-1553531580-6520e78089c8?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80"; }}
                                 alt={selectedHorse.name}
                                 className="w-full h-full object-cover"
                             />

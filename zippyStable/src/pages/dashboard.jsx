@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ChevronRight, Download, Plus, Wheat, Pencil, Trash2, ChevronLeft } from 'lucide-react';
 import { apiFunction } from '../api/apiFunction';
-import { getStableStatsApi, getAllStablesApi, inventoryApi } from '../api/apis';
+import { getStableStatsApi, getAllStablesApi, inventoryApi, getInventoryByStableApi } from '../api/apis';
 import { useSelector } from 'react-redux';
 
 const Dashboard = () => {
@@ -56,7 +56,7 @@ const Dashboard = () => {
             try {
                 if(selectedStable){
 
-                    const inventoryRes = await apiFunction(inventoryApi, [selectedStable], {}, "GET", true);
+                    const inventoryRes = await apiFunction(getInventoryByStableApi, [selectedStable], {}, "GET", true);
                  
                     if (inventoryRes && inventoryRes.success) {
                         const mappedItems = (inventoryRes.items || []).map(item => ({

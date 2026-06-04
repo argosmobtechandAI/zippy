@@ -317,20 +317,22 @@ const Inventory = () => {
                     item={editingItem} 
                     onClose={() => setShowModal(false)} 
                     onSuccess={() => { setShowModal(false); fetchData(); }} 
+                    allStables={allStables}
                 />
             )}
         </div>
     );
 };
 
-const InventoryModal = ({ item, onClose, onSuccess }) => {
+const InventoryModal = ({ item, onClose, onSuccess, allStables }) => {
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         name: item?.name || "",
         category: item?.category || "Feed",
         currentStock: item?.currentStock || "",
         unit: item?.unit || "",
-        minThreshold: item?.minThreshold || 10
+        minThreshold: item?.minThreshold || 10,
+        stableId: item?.stable?.id || ""
     });
 
     const categories = ["Feed", "Medicines", "Equipment", "Consumables"];
@@ -409,6 +411,21 @@ const InventoryModal = ({ item, onClose, onSuccess }) => {
                                         placeholder="e.g., Bales, Vials" 
                                     />
                                 </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Stable</label>
+                                <select 
+                                    required 
+                                    value={formData.stableId} 
+                                    onChange={e => setFormData({...formData, stableId: e.target.value})}
+                                    className="w-full bg-white border border-gray-100 rounded-2xl px-6 py-4 text-sm font-bold text-[#1e2330] focus:outline-none focus:border-[#964C2E]/30 transition-all appearance-none"
+                                >
+                                    <option value="" disabled>Select a Stable</option>
+                                    {allStables?.map(stable => (
+                                        <option key={stable.id} value={stable.id}>{stable.name}</option>
+                                    ))}
+                                </select>
                             </div>
 
                             <div className="grid grid-cols-2 gap-6">

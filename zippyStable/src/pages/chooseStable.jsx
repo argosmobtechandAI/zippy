@@ -11,9 +11,30 @@ const ChooseStable = () => {
     const navigate = useNavigate();
     const [stables, setStables] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [userName, setUserName] = useState('');
     const dispatch = useDispatch();
 
     useEffect(() => {
+        const token = localStorage.getItem('token');
+        const userStr = localStorage.getItem('user');
+        const isValidToken = token && token !== "undefined" && token !== "null";
+        
+        if (!isValidToken) {
+            navigate('/login');
+            return;
+        }
+
+        if (userStr) {
+            try {
+                const userObj = JSON.parse(userStr);
+                if (userObj && userObj.name) {
+                    setUserName(userObj.name);
+                }
+            } catch (e) {
+                console.error("Failed to parse user data", e);
+            }
+        }
+
         const fetchData = async () => {
             setIsLoading(true);
             try {
@@ -43,7 +64,20 @@ const ChooseStable = () => {
     };
 
     return (
-        <div className="min-h-screen w-full bg-[#fcfaf8] flex flex-col items-center justify-center p-6 bg-[radial-gradient(circle_at_top_right,_#F9EFE5_0%,_transparent_40%),radial-gradient(circle_at_bottom_left,_#F9EFE5_0%,_transparent_40%)]">
+        <div className="min-h-screen w-full bg-[#fcfaf8] flex flex-col items-center justify-center p-6 bg-[radial-gradient(circle_at_top_right,_#F9EFE5_0%,_transparent_40%),radial-gradient(circle_at_bottom_left,_#F9EFE5_0%,_transparent_40%)] relative">
+            
+            {userName && (
+                <div className="absolute top-8 left-8 flex items-center gap-4 bg-white/50 backdrop-blur-md px-6 py-3 rounded-full border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] z-20 hidden md:flex">
+                    <div className="w-10 h-10 rounded-full bg-[#FAF0EB] flex items-center justify-center text-[#964C2E] font-black text-lg border border-[#EACDBA]/50">
+                        {userName.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                        <p className="text-gray-400 text-[10px] font-black tracking-widest uppercase leading-tight">Welcome back</p>
+                        <h3 className="text-[#1e2330] text-[15px] font-black leading-tight">{userName}</h3>
+                    </div>
+                </div>
+            )}
+
             <div className="w-full max-w-4xl bg-white rounded-[40px] shadow-[0_32px_64px_-16px_rgba(150,76,46,0.15)] border border-[#F9EFE5] overflow-hidden flex flex-col p-10 md:p-14">
 
                 <div className="flex flex-col items-center mb-10">

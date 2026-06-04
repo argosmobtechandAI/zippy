@@ -24,6 +24,9 @@ const Login = () => {
             console.log(res)
             if (res && res.success) {
                 localStorage.setItem('token', res.token);
+                if (res.user) {
+                    localStorage.setItem('user', JSON.stringify(res.user));
+                }
                 toast.success('Welcome back to Zippy!');
                 navigate('/choose-stable');
             } else {

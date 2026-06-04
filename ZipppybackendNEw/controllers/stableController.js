@@ -24,6 +24,7 @@ export const createStable = async (req, res) => {
     const { data } = req.body;
     try {
         const dbData = mapToDb(data);
+        if (dbData.horses) delete dbData.horses;
         const { data: newStable, error } = await supabase
             .from('stable')
             .insert(dbData)
@@ -66,10 +67,21 @@ export const updateStable = async (req, res) => {
 
     try {
         const dbData = mapToDb(data);
+        if (dbData.horses !== undefined) delete dbData.horses;
+        
         const { data: updatedStable, error } = await supabase.from('stable').update(dbData).eq('id', id).select();
         if (error || !updatedStable || updatedStable.length === 0) {
             return res.status(404).json({ success: false, message: error ? error.message : 'Stable not found' });
         }
+        
+        // Unassign all horses currently assigned to this stable
+        await supabase.from('horse').update({ stable_id: null }).eq('stable_id', id);
+
+        // Assign the new horses
+        if (data.horses && data.horses.length > 0) {
+            await supabase.from('horse').update({ stable_id: id }).in('id', data.horses);
+        }
+
         return res.status(200).json({ success: true, stable: mapToClient(updatedStable[0]) });
     } catch (error) {
         return res.status(500).json({ success: false, message: `Error: ${error.message}` });

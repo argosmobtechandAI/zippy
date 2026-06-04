@@ -4,7 +4,8 @@ import { supabase } from '../supabaseClient.js';
 const mapToClient = (data) => {
     if (!data) return null;
     const clientData = { ...data };
-    if (clientData.horse_id !== undefined) { clientData.horseId = clientData.horse_id; delete clientData.horse_id; }
+    if (clientData.horse !== undefined) { clientData.horseId = clientData.horse; delete clientData.horse; }
+    if (clientData.horse_id !== undefined) { clientData.horseId = clientData.horseId || clientData.horse_id; delete clientData.horse_id; }
     if (clientData.trainers !== undefined) { clientData.trainerId = clientData.trainers; delete clientData.trainers; }
     if (clientData.total_seats !== undefined) { clientData.totalSeats = clientData.total_seats; delete clientData.total_seats; }
     if (clientData.batchs_id !== undefined) { clientData.batchsId = clientData.batchs_id; delete clientData.batchs_id; }
@@ -15,17 +16,28 @@ const mapToClient = (data) => {
 // Helper to map frontend camelCase to DB snake_case
 const mapToDb = (data) => {
     const dbData = { ...data };
-    if (dbData.horseId !== undefined) { dbData.horse_id = dbData.horseId; delete dbData.horseId; }
+    if (dbData.horseId !== undefined) {
+        // DB 'horse' column is a single UUID - take first element if array
+        const horseVal = Array.isArray(dbData.horseId) ? (dbData.horseId[0] || null) : dbData.horseId;
+        dbData.horse = horseVal;
+        delete dbData.horseId;
+    }
+    if (dbData.horse_id !== undefined) {
+        const horseVal = Array.isArray(dbData.horse_id) ? (dbData.horse_id[0] || null) : dbData.horse_id;
+        dbData.horse = dbData.horse || horseVal;
+        delete dbData.horse_id;
+    }
     if (dbData.trainerId !== undefined) { dbData.trainers = dbData.trainerId; delete dbData.trainerId; }
     if (dbData.totalSeats !== undefined) { dbData.total_seats = dbData.totalSeats; delete dbData.totalSeats; }
     if (dbData.batchsId !== undefined) { dbData.batchs_id = dbData.batchsId; delete dbData.batchsId; }
     if (dbData.joiningAmount !== undefined) { dbData.joining_amount = dbData.joiningAmount; delete dbData.joiningAmount; }
+    if (dbData.joining_amount === undefined && data.joining_amount !== undefined) { dbData.joining_amount = data.joining_amount; }
     return dbData;
 };
 
 // Allowed columns in the sessions table (DB snake_case)
 const SESSION_ALLOWED_COLS = [
-    'title', 'timing', 'date', 'trainers', 'horse_id', 'horse', 'participants',
+    'title', 'timing', 'date', 'trainers', 'horse', 'participants',
     'duration', 'location', 'total_seats', 'note', 'status', 'joining_amount'
 ];
 

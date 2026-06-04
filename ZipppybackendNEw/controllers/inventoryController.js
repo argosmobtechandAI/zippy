@@ -5,7 +5,7 @@ const mapToDb = (data) => {
     if (dbData.currentStock !== undefined) { dbData.current_stock = dbData.currentStock; delete dbData.currentStock; }
     if (dbData.minThreshold !== undefined) { dbData.min_threshold = dbData.minThreshold; delete dbData.minThreshold; }
     if (dbData.lastUpdated !== undefined) { dbData.last_updated = dbData.lastUpdated; delete dbData.lastUpdated; }
-    if (dbData.stableId !== undefined) { dbData.stable_id = dbData.stableId; delete dbData.stableId; }
+    if (dbData.stableId !== undefined) { delete dbData.stableId; }
     return dbData;
 };
 
@@ -15,7 +15,6 @@ const mapToClient = (data) => {
     if (clientData.current_stock !== undefined) { clientData.currentStock = clientData.current_stock; delete clientData.current_stock; }
     if (clientData.min_threshold !== undefined) { clientData.minThreshold = clientData.min_threshold; delete clientData.min_threshold; }
     if (clientData.last_updated !== undefined) { clientData.lastUpdated = clientData.last_updated; delete clientData.last_updated; }
-    if (clientData.stable_id !== undefined) { clientData.stableId = clientData.stable_id; delete clientData.stable_id; }
     return clientData;
 };
 
@@ -45,8 +44,16 @@ export const getInventory = async (req, res) => {
 export const getInventoryByStableId = async (req, res) => {
     try {
         const { stableId } = req.params;
-        const { data: items, error } = await supabase.from('inventory').select('*').eq('stable_id', stableId);
+        const { data: stable, error: stableError } = await supabase.from('stable').select('stocks').eq('id', stableId).single();
+        
+        if (stableError && stableError.code !== 'PGRST116') throw stableError;
+        if (!stable || !stable.stocks || stable.stocks.length === 0) {
+            return res.status(200).json({ success: true, items: [] });
+        }
+
+        const { data: items, error } = await supabase.from('inventory').select('*').in('id', stable.stocks);
         if (error) throw error;
+
         res.status(200).json({ success: true, items: items.map(mapToClient) });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });

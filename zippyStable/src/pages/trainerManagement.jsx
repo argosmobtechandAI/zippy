@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Search, MapPin, Tag, ExternalLink, Star, ChevronLeft, ChevronRight, Activity, X } from 'lucide-react';
+import { Search, MapPin, Tag, ExternalLink, Star, ChevronLeft, ChevronRight, Activity, X, Plus, Pencil, Trash2 } from 'lucide-react';
 import { apiFunction } from '../api/apiFunction';
-import { getAllUsersApi, getAllTrainersApi, getAllStablesApi, updateTrainerApi, getUserApi } from '../api/apis';
+import { getAllUsersApi, getAllTrainersApi, getAllStablesApi, updateTrainerApi, getUserApi, createUserApi, updateUserApi, deleteUserApi } from '../api/apis';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 
-const TrainerCard = ({ user, trainers, stables, onUpdateCenterClick, navigate }) => {
+const TrainerCard = ({ user, trainers, stables, onUpdateCenterClick, onEditClick, onDeleteClick, navigate }) => {
     const trainer = trainers.find((trainer) => trainer.userId === user.id);
 
     return (
@@ -48,7 +48,7 @@ const TrainerCard = ({ user, trainers, stables, onUpdateCenterClick, navigate })
                 </div>
             </div>
 
-            <div className="mt-auto grid grid-cols-1 gap-3">
+            <div className="mt-auto flex flex-col gap-3">
                 <button
                     onClick={(e) => {
                         e.stopPropagation();
@@ -56,10 +56,14 @@ const TrainerCard = ({ user, trainers, stables, onUpdateCenterClick, navigate })
                             onUpdateCenterClick();
                         }
                     }}
-                    className="py-4 rounded-xl border border-[#964C2E]/20 text-[#964C2E] text-[12px] font-black uppercase tracking-wider hover:bg-[#F9EEE5] transition-all"
+                    className="w-full py-3 rounded-xl border border-[#964C2E]/20 text-[#964C2E] text-[12px] font-black uppercase tracking-wider hover:bg-[#F9EEE5] transition-all"
                 >
                     {trainer?.stableId ? 'Update Center / Role' : 'Assign Center'}
                 </button>
+                <div className="flex gap-2">
+                    <button onClick={(e) => { e.stopPropagation(); if (typeof onEditClick === 'function') onEditClick(); }} className="flex-1 flex items-center justify-center py-3 rounded-xl border border-[#964C2E]/20 text-[#964C2E] hover:bg-[#F9EEE5] transition-all"><Pencil className="w-4 h-4"/></button>
+                    <button onClick={(e) => { e.stopPropagation(); if (typeof onDeleteClick === 'function') onDeleteClick(); }} className="flex-1 flex items-center justify-center py-3 rounded-xl border border-red-200 text-red-500 hover:bg-red-50 transition-all"><Trash2 className="w-4 h-4"/></button>
+                </div>
             </div>
         </div>
     );
@@ -158,6 +162,77 @@ const UpdateCenterModal = ({ user, trainer, stables, onClose, onSuccess }) => {
     );
 };
 
+const TrainerModal = ({ user, onClose, onSuccess, selectedStable }) => {
+    const [formData, setFormData] = useState({
+        name: user?.name || '',
+        email: user?.email || '',
+        mobile: user?.mobile || '',
+        title: user?.title || 'Trainer',
+        experience: user?.experience || 'N/A',
+        password: '',
+        type: 'trainer',
+        stableId: selectedStable
+    });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        try {
+            if (user?.id) {
+                const res = await apiFunction(`${updateUserApi}/${user.id}`, [], formData, "PUT", true);
+                if (res && res.success) {
+                    toast.success("Trainer updated successfully");
+                    onSuccess();
+                    onClose();
+                } else {
+                    toast.error(res?.message || "Failed to update trainer");
+                }
+            } else {
+                const res = await apiFunction(createUserApi, [], formData, "POST", true);
+                if (res && res.success) {
+                    toast.success("Trainer created successfully");
+                    onSuccess();
+                    onClose();
+                } else {
+                    toast.error(res?.message || "Failed to create trainer");
+                }
+            }
+        } catch (err) {
+            toast.error("Network error");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] animate-in fade-in duration-200">
+            <div className="bg-white rounded-[32px] p-10 w-[500px] shadow-2xl border border-gray-100 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+                <div className="flex justify-between items-start mb-8">
+                    <div>
+                        <h3 className="text-[22px] font-black text-[#1e2330]">{user ? 'Edit' : 'Add'} Trainer</h3>
+                        <p className="text-[13px] font-bold text-gray-400 mt-1">{user ? 'Update trainer details' : 'Add a new trainer to the system'}</p>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-gray-50 rounded-xl transition-all"><X className="w-6 h-6 text-gray-400" /></button>
+                </div>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div><label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-1 block px-1">FULL NAME</label><input required type="text" className="w-full bg-gray-50/50 border border-gray-100 rounded-2xl p-4 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E]" value={formData.name} onChange={e=>setFormData({...formData, name: e.target.value})} /></div>
+                    <div><label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-1 block px-1">EMAIL ADDRESS</label><input required type="email" className="w-full bg-gray-50/50 border border-gray-100 rounded-2xl p-4 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E]" value={formData.email} onChange={e=>setFormData({...formData, email: e.target.value})} /></div>
+                    <div><label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-1 block px-1">MOBILE NUMBER</label><input required type="text" className="w-full bg-gray-50/50 border border-gray-100 rounded-2xl p-4 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E]" value={formData.mobile} onChange={e=>setFormData({...formData, mobile: e.target.value})} /></div>
+                    <div><label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-1 block px-1">SPECIALIZATION (TITLE)</label><input required type="text" className="w-full bg-gray-50/50 border border-gray-100 rounded-2xl p-4 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E]" value={formData.title} onChange={e=>setFormData({...formData, title: e.target.value})} /></div>
+                    <div><label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-1 block px-1">EXPERIENCE</label><input required type="text" className="w-full bg-gray-50/50 border border-gray-100 rounded-2xl p-4 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E]" value={formData.experience} onChange={e=>setFormData({...formData, experience: e.target.value})} /></div>
+                    {!user && (
+                        <div><label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-1 block px-1">TEMPORARY PASSWORD</label><input required type="password" className="w-full bg-gray-50/50 border border-gray-100 rounded-2xl p-4 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E]" value={formData.password} onChange={e=>setFormData({...formData, password: e.target.value})} /></div>
+                    )}
+                    <button disabled={isSubmitting} type="submit" className="w-full mt-4 bg-[#964C2E] text-white py-4 rounded-[20px] font-black text-[14px] uppercase tracking-wider shadow-xl hover:bg-[#7D3F25] transition-all active:scale-[0.98] disabled:opacity-50">
+                        {isSubmitting ? 'Saving...' : 'Save Trainer'}
+                    </button>
+                </form>
+            </div>
+        </div>
+    );
+};
+
 const TrainerManagement = () => {
     const [users, setUsers] = useState([]);
 
@@ -167,7 +242,24 @@ const TrainerManagement = () => {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
     const [updateCenterModal, setUpdateCenterModal] = useState(null);
+    const [trainerModal, setTrainerModal] = useState({ isOpen: false, user: null });
     const navigate = useNavigate();
+
+    const handleDeleteTrainer = async (id) => {
+        if (!window.confirm("Are you sure you want to delete this trainer? This action cannot be undone.")) return;
+        try {
+            const res = await apiFunction(`${deleteUserApi}/${id}`, [], {}, "DELETE", true);
+            if (res && res.success) {
+                toast.success("Trainer deleted successfully");
+                fetchUsers();
+                fetchTrainers();
+            } else {
+                toast.error("Failed to delete trainer");
+            }
+        } catch (err) {
+            toast.error("Network error");
+        }
+    };
 
     console.log(selectedStable, "fkw")
 
@@ -220,11 +312,18 @@ const TrainerManagement = () => {
 
     return (
         <div className="w-full min-h-full flex flex-col bg-[#F9EEE5] p-10 font-sans max-w-[1400px] mx-auto pb-20">
-            <div className="flex justify-between items-end mb-10">
+            <div className="flex justify-between items-start mb-10">
                 <div>
                     <h1 className="text-[34px] font-black text-[#1e2330] leading-none mb-3 tracking-tight">Trainer Directory</h1>
                     <p className="text-[14px] font-semibold text-gray-500">Manage trainers, assignments, and roles across the stable network.</p>
                 </div>
+                <button
+                    onClick={() => setTrainerModal({ isOpen: true, user: null })}
+                    className="bg-[#964C2E] text-white text-[13px] font-bold px-6 py-3.5 rounded-xl shadow-md flex items-center gap-2.5 hover:bg-[#7D3F25] transition-all"
+                >
+                    <Plus className="w-4 h-4 bg-transparent border border-white rounded-[4px] p-0.5" strokeWidth={3} />
+                    Add Trainer
+                </button>
             </div>
 
             <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
@@ -255,11 +354,25 @@ const TrainerManagement = () => {
                             trainers={trainers}
                             stables={stables}
                             onUpdateCenterClick={() => setUpdateCenterModal({ user, trainer: trainers.find(t => t.userId === user.id) })}
+                            onEditClick={() => setTrainerModal({ isOpen: true, user })}
+                            onDeleteClick={() => handleDeleteTrainer(user.id)}
                             navigate={navigate}
                         />
                     ))
                 )}
             </div>
+
+            {trainerModal.isOpen && (
+                <TrainerModal
+                    user={trainerModal.user}
+                    selectedStable={selectedStable}
+                    onClose={() => setTrainerModal({ isOpen: false, user: null })}
+                    onSuccess={() => {
+                        fetchUsers();
+                        fetchTrainers();
+                    }}
+                />
+            )}
 
             {updateCenterModal && (
                 <UpdateCenterModal
