@@ -72,7 +72,7 @@ const Sidebar = () => {
             </nav>
 
             {/* Bottom Section */}
-            <div className="p-6 pt-0 border-t border-white/10">
+            <div className="p-6 pt-4 border-t border-white/10 shrink-0">
                 <div className="flex items-center justify-between mb-2">
                    <p className="text-[11px] font-bold text-brand-orange uppercase tracking-tighter">System Admin</p>
                 </div>

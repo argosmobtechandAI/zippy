@@ -207,7 +207,7 @@ export default function ScheduleScreen() {
          if (res && res.success) {
             Alert.alert("Success", "Session created successfully!");
             setShowAddModal(false);
-            fetchSessions();
+            await fetchSessions(true);
          } else {
             Alert.alert("Error", res?.message || "Failed to create session");
          }

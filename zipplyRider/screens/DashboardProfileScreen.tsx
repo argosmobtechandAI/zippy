@@ -119,7 +119,7 @@ export default function DashboardProfileScreen() {
           {essentialDetails.map((item, idx) => {
             const IconComp = item.icon;
             return (
-              <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 20, padding: 16, marginBottom: 12, shadowColor: '#85431E', shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 }}>
+              <TouchableOpacity key={idx} onPress={() => navigation.navigate('PersonalInformation')} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 20, padding: 16, marginBottom: 12, shadowColor: '#85431E', shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 }}>
                 <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: `${item.color}15`, alignItems: 'center', justifyContent: 'center', marginRight: 14, flexShrink: 0 }}>
                   <IconComp color={item.color} size={22} strokeWidth={2.5} />
                 </View>
@@ -127,7 +127,7 @@ export default function DashboardProfileScreen() {
                   <Text style={{ fontSize: 13, fontWeight: '700', color: '#5C2E0E', marginBottom: 3 }}>{item.title}</Text>
                   <Text style={{ fontSize: 12, color: 'rgba(133,67,30,0.5)', lineHeight: 18 }}>{item.desc}</Text>
                 </View>
-              </View>
+              </TouchableOpacity>
             );
           })}
         </View>

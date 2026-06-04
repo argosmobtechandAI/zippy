@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Settings, User, Award, Calendar, ChevronRight, LogOut, ShieldCheck } from 'lucide-react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -133,7 +133,7 @@ export default function ProfileScreen() {
                             <ChevronRight color="#85431E" size={18} opacity={0.3} />
                         </TouchableOpacity>
 
-                        <TouchableOpacity className="flex-row items-center p-4 border-b border-brand-brown/5">
+                        <TouchableOpacity onPress={() => Alert.alert("Certifications", "• BHS Stage 4\n• Expert Rating")} className="flex-row items-center p-4 border-b border-brand-brown/5">
                             <View className="w-12 h-12 bg-brand-beige rounded-2xl items-center justify-center mr-4">
                                 <Award color="#85431E" size={22} strokeWidth={2.5} />
                             </View>

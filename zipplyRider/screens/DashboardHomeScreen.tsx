@@ -333,7 +333,7 @@ export default function DashboardHomeScreen() {
 
           <TouchableOpacity
             className="flex-1 bg-white rounded-3xl p-6 ml-3 items-center justify-center shadow-sm h-32"
-            onPress={() => navigation.navigate('DashboardProfile')}
+            onPress={() => navigation.navigate('Profile')}
           >
             <View className="mb-2">
               <User color="#8C4A28" size={32} />
