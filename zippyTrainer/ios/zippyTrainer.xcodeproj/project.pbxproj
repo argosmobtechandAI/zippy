@@ -12,6 +12,26 @@
 		18A02C823216EB045C6933A4 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
+		037D96EFD58C478CA8AACF29 /* GTUltra-Black.otf in Resources */ = {isa = PBXBuildFile; fileRef = F9845E733DF641DCA603AAD2 /* GTUltra-Black.otf */; };
+		6D7595AE5A234B9684B770E5 /* GTUltra-BlackItalic.otf in Resources */ = {isa = PBXBuildFile; fileRef = AE84C82558E54EA2B4A05A69 /* GTUltra-BlackItalic.otf */; };
+		6FA421D7F013400EAC610907 /* GTUltra-Bold.otf in Resources */ = {isa = PBXBuildFile; fileRef = C25D8C9BAC764725AE594A45 /* GTUltra-Bold.otf */; };
+		45ECB7D3C30D445995352DB7 /* GTUltra-BoldItalic.otf in Resources */ = {isa = PBXBuildFile; fileRef = 14486684B9A34815A25AD21E /* GTUltra-BoldItalic.otf */; };
+		FF7ACA64885B4DD1BF925092 /* GTUltra-Light.otf in Resources */ = {isa = PBXBuildFile; fileRef = AD4F77B7E45248F095227CF9 /* GTUltra-Light.otf */; };
+		2AEE43D8F48147C0A0DCA2AC /* GTUltra-LightItalic.otf in Resources */ = {isa = PBXBuildFile; fileRef = A858029E6C634683AB9395F0 /* GTUltra-LightItalic.otf */; };
+		34FB9837856E4E1989861E21 /* GTUltra-Regular.otf in Resources */ = {isa = PBXBuildFile; fileRef = 3862987B60B744E0B47C7375 /* GTUltra-Regular.otf */; };
+		5CEF2B07C67747BC8F740648 /* GTUltra-RegularItalic.otf in Resources */ = {isa = PBXBuildFile; fileRef = 7AA0D46D8F064BA7A9DBAF79 /* GTUltra-RegularItalic.otf */; };
+		AC2A675786F44E0BB80201B7 /* GTUltra-Thin.otf in Resources */ = {isa = PBXBuildFile; fileRef = 489522BAF8354350B0FAEBEE /* GTUltra-Thin.otf */; };
+		A0BA49E6C5FA488E8EE65408 /* GTUltra-ThinItalic.otf in Resources */ = {isa = PBXBuildFile; fileRef = A7EACDFBFA0A4F98BAFA6E9D /* GTUltra-ThinItalic.otf */; };
+		81CB85CC031540AA9DCA1658 /* GTUltra-Ultra.otf in Resources */ = {isa = PBXBuildFile; fileRef = DEFBB8C9513E435187389666 /* GTUltra-Ultra.otf */; };
+		3136868496FD4579A1C04870 /* GTUltraFine-Black.otf in Resources */ = {isa = PBXBuildFile; fileRef = 9B7318F9284642ECBFBB1E15 /* GTUltraFine-Black.otf */; };
+		E27B7A14D57D4286A13F4034 /* GTUltraFine-BlackItalic.otf in Resources */ = {isa = PBXBuildFile; fileRef = 09FE2BCF87FA46EE9E50F687 /* GTUltraFine-BlackItalic.otf */; };
+		D0460201747B44CD8A133F39 /* GTUltraFine-Bold.otf in Resources */ = {isa = PBXBuildFile; fileRef = 6126C54353334E159A316AB1 /* GTUltraFine-Bold.otf */; };
+		C581F3059F54425F9D983CEC /* GTUltraFine-BoldItalic.otf in Resources */ = {isa = PBXBuildFile; fileRef = 5400DB710F794374B489636A /* GTUltraFine-BoldItalic.otf */; };
+		B59144794FEA430CAE62D8B6 /* GTUltraFine-Light.otf in Resources */ = {isa = PBXBuildFile; fileRef = 3803CC1A20C445088BE552BE /* GTUltraFine-Light.otf */; };
+		1F4D59AE007B49F399242E06 /* GTUltraFine-LightItalic.otf in Resources */ = {isa = PBXBuildFile; fileRef = 2FD25D0543C94E85A6D08EDA /* GTUltraFine-LightItalic.otf */; };
+		4B53B1AC82D64404B23BB928 /* GTUltraFine-Regular.otf in Resources */ = {isa = PBXBuildFile; fileRef = C2488384779547A4BC34456F /* GTUltraFine-Regular.otf */; };
+		B829B11A5407427DAE591386 /* GTUltraFine-RegularItalic.otf in Resources */ = {isa = PBXBuildFile; fileRef = 9423F2784F5E456990A2F40D /* GTUltraFine-RegularItalic.otf */; };
+		86494EB82133410383B4A901 /* GTUltraFine-Thin.otf in Resources */ = {isa = PBXBuildFile; fileRef = A9D853A179E044CAA8C5C555 /* GTUltraFine-Thin.otf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -25,6 +45,26 @@
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = zippyTrainer/AppDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = zippyTrainer/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
+		F9845E733DF641DCA603AAD2 /* GTUltra-Black.otf */ = {isa = PBXFileReference; name = "GTUltra-Black.otf"; path = "../assets/fonts/GTUltra-Black.otf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		AE84C82558E54EA2B4A05A69 /* GTUltra-BlackItalic.otf */ = {isa = PBXFileReference; name = "GTUltra-BlackItalic.otf"; path = "../assets/fonts/GTUltra-BlackItalic.otf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		C25D8C9BAC764725AE594A45 /* GTUltra-Bold.otf */ = {isa = PBXFileReference; name = "GTUltra-Bold.otf"; path = "../assets/fonts/GTUltra-Bold.otf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		14486684B9A34815A25AD21E /* GTUltra-BoldItalic.otf */ = {isa = PBXFileReference; name = "GTUltra-BoldItalic.otf"; path = "../assets/fonts/GTUltra-BoldItalic.otf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		AD4F77B7E45248F095227CF9 /* GTUltra-Light.otf */ = {isa = PBXFileReference; name = "GTUltra-Light.otf"; path = "../assets/fonts/GTUltra-Light.otf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		A858029E6C634683AB9395F0 /* GTUltra-LightItalic.otf */ = {isa = PBXFileReference; name = "GTUltra-LightItalic.otf"; path = "../assets/fonts/GTUltra-LightItalic.otf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		3862987B60B744E0B47C7375 /* GTUltra-Regular.otf */ = {isa = PBXFileReference; name = "GTUltra-Regular.otf"; path = "../assets/fonts/GTUltra-Regular.otf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		7AA0D46D8F064BA7A9DBAF79 /* GTUltra-RegularItalic.otf */ = {isa = PBXFileReference; name = "GTUltra-RegularItalic.otf"; path = "../assets/fonts/GTUltra-RegularItalic.otf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		489522BAF8354350B0FAEBEE /* GTUltra-Thin.otf */ = {isa = PBXFileReference; name = "GTUltra-Thin.otf"; path = "../assets/fonts/GTUltra-Thin.otf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		A7EACDFBFA0A4F98BAFA6E9D /* GTUltra-ThinItalic.otf */ = {isa = PBXFileReference; name = "GTUltra-ThinItalic.otf"; path = "../assets/fonts/GTUltra-ThinItalic.otf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		DEFBB8C9513E435187389666 /* GTUltra-Ultra.otf */ = {isa = PBXFileReference; name = "GTUltra-Ultra.otf"; path = "../assets/fonts/GTUltra-Ultra.otf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		9B7318F9284642ECBFBB1E15 /* GTUltraFine-Black.otf */ = {isa = PBXFileReference; name = "GTUltraFine-Black.otf"; path = "../assets/fonts/GTUltraFine-Black.otf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		09FE2BCF87FA46EE9E50F687 /* GTUltraFine-BlackItalic.otf */ = {isa = PBXFileReference; name = "GTUltraFine-BlackItalic.otf"; path = "../assets/fonts/GTUltraFine-BlackItalic.otf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		6126C54353334E159A316AB1 /* GTUltraFine-Bold.otf */ = {isa = PBXFileReference; name = "GTUltraFine-Bold.otf"; path = "../assets/fonts/GTUltraFine-Bold.otf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		5400DB710F794374B489636A /* GTUltraFine-BoldItalic.otf */ = {isa = PBXFileReference; name = "GTUltraFine-BoldItalic.otf"; path = "../assets/fonts/GTUltraFine-BoldItalic.otf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		3803CC1A20C445088BE552BE /* GTUltraFine-Light.otf */ = {isa = PBXFileReference; name = "GTUltraFine-Light.otf"; path = "../assets/fonts/GTUltraFine-Light.otf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		2FD25D0543C94E85A6D08EDA /* GTUltraFine-LightItalic.otf */ = {isa = PBXFileReference; name = "GTUltraFine-LightItalic.otf"; path = "../assets/fonts/GTUltraFine-LightItalic.otf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		C2488384779547A4BC34456F /* GTUltraFine-Regular.otf */ = {isa = PBXFileReference; name = "GTUltraFine-Regular.otf"; path = "../assets/fonts/GTUltraFine-Regular.otf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		9423F2784F5E456990A2F40D /* GTUltraFine-RegularItalic.otf */ = {isa = PBXFileReference; name = "GTUltraFine-RegularItalic.otf"; path = "../assets/fonts/GTUltraFine-RegularItalic.otf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		A9D853A179E044CAA8C5C555 /* GTUltraFine-Thin.otf */ = {isa = PBXFileReference; name = "GTUltraFine-Thin.otf"; path = "../assets/fonts/GTUltraFine-Thin.otf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -75,6 +115,7 @@
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
 				BBD78D7AC51CEA395F1C20DB /* Pods */,
+				D4E9CDDA7D6D44CD9BCCCF02 /* Resources */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -97,6 +138,34 @@
 			);
 			path = Pods;
 			sourceTree = "<group>";
+		};
+		D4E9CDDA7D6D44CD9BCCCF02 /* Resources */ = {
+			isa = "PBXGroup";
+			children = (
+				F9845E733DF641DCA603AAD2 /* GTUltra-Black.otf */,
+				AE84C82558E54EA2B4A05A69 /* GTUltra-BlackItalic.otf */,
+				C25D8C9BAC764725AE594A45 /* GTUltra-Bold.otf */,
+				14486684B9A34815A25AD21E /* GTUltra-BoldItalic.otf */,
+				AD4F77B7E45248F095227CF9 /* GTUltra-Light.otf */,
+				A858029E6C634683AB9395F0 /* GTUltra-LightItalic.otf */,
+				3862987B60B744E0B47C7375 /* GTUltra-Regular.otf */,
+				7AA0D46D8F064BA7A9DBAF79 /* GTUltra-RegularItalic.otf */,
+				489522BAF8354350B0FAEBEE /* GTUltra-Thin.otf */,
+				A7EACDFBFA0A4F98BAFA6E9D /* GTUltra-ThinItalic.otf */,
+				DEFBB8C9513E435187389666 /* GTUltra-Ultra.otf */,
+				9B7318F9284642ECBFBB1E15 /* GTUltraFine-Black.otf */,
+				09FE2BCF87FA46EE9E50F687 /* GTUltraFine-BlackItalic.otf */,
+				6126C54353334E159A316AB1 /* GTUltraFine-Bold.otf */,
+				5400DB710F794374B489636A /* GTUltraFine-BoldItalic.otf */,
+				3803CC1A20C445088BE552BE /* GTUltraFine-Light.otf */,
+				2FD25D0543C94E85A6D08EDA /* GTUltraFine-LightItalic.otf */,
+				C2488384779547A4BC34456F /* GTUltraFine-Regular.otf */,
+				9423F2784F5E456990A2F40D /* GTUltraFine-RegularItalic.otf */,
+				A9D853A179E044CAA8C5C555 /* GTUltraFine-Thin.otf */,
+			);
+			name = Resources;
+			sourceTree = "<group>";
+			path = "";
 		};
 /* End PBXGroup section */
 
@@ -161,6 +230,26 @@
 				81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				18A02C823216EB045C6933A4 /* PrivacyInfo.xcprivacy in Resources */,
+				037D96EFD58C478CA8AACF29 /* GTUltra-Black.otf in Resources */,
+				6D7595AE5A234B9684B770E5 /* GTUltra-BlackItalic.otf in Resources */,
+				6FA421D7F013400EAC610907 /* GTUltra-Bold.otf in Resources */,
+				45ECB7D3C30D445995352DB7 /* GTUltra-BoldItalic.otf in Resources */,
+				FF7ACA64885B4DD1BF925092 /* GTUltra-Light.otf in Resources */,
+				2AEE43D8F48147C0A0DCA2AC /* GTUltra-LightItalic.otf in Resources */,
+				34FB9837856E4E1989861E21 /* GTUltra-Regular.otf in Resources */,
+				5CEF2B07C67747BC8F740648 /* GTUltra-RegularItalic.otf in Resources */,
+				AC2A675786F44E0BB80201B7 /* GTUltra-Thin.otf in Resources */,
+				A0BA49E6C5FA488E8EE65408 /* GTUltra-ThinItalic.otf in Resources */,
+				81CB85CC031540AA9DCA1658 /* GTUltra-Ultra.otf in Resources */,
+				3136868496FD4579A1C04870 /* GTUltraFine-Black.otf in Resources */,
+				E27B7A14D57D4286A13F4034 /* GTUltraFine-BlackItalic.otf in Resources */,
+				D0460201747B44CD8A133F39 /* GTUltraFine-Bold.otf in Resources */,
+				C581F3059F54425F9D983CEC /* GTUltraFine-BoldItalic.otf in Resources */,
+				B59144794FEA430CAE62D8B6 /* GTUltraFine-Light.otf in Resources */,
+				1F4D59AE007B49F399242E06 /* GTUltraFine-LightItalic.otf in Resources */,
+				4B53B1AC82D64404B23BB928 /* GTUltraFine-Regular.otf in Resources */,
+				B829B11A5407427DAE591386 /* GTUltraFine-RegularItalic.otf in Resources */,
+				86494EB82133410383B4A901 /* GTUltraFine-Thin.otf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

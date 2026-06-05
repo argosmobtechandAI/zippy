@@ -14,6 +14,7 @@ import DeclarationScreen from '../screens/declarationScreen'
 import NotificationScreen from '../screens/notificationScreen'
 import PrivacySecurityScreen from '../screens/PrivacySecurityScreen'
 import HelpCenterScreen from '../screens/HelpCenterScreen'
+import FeedbackListScreen from '../screens/FeedbackListScreen'
 
 const Stack = createNativeStackNavigator()
 
@@ -27,6 +28,7 @@ const WelcomStack = () => {
             <Stack.Screen name="Success" component={SuccessScreen} />
             <Stack.Screen name="SessionDetail" component={SessionDetailScreen} />
             <Stack.Screen name="Trophies" component={TrophiesScreen} />
+            <Stack.Screen name="FeedbackList" component={FeedbackListScreen} />
             <Stack.Screen name="Notification" component={NotificationScreen} />
             <Stack.Screen name="Settings" component={SettingsScreen} />
             <Stack.Screen name="PrivacySecurity" component={PrivacySecurityScreen} />

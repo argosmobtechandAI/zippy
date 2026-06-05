@@ -1,0 +1,85 @@
+{
+  "migIndex": 1,
+  "data": [
+    {
+      "path": "assets/fonts/GTUltra-Black.otf",
+      "sha1": "7a031cfe07dde1e0970ea48980db5f6774b3ec14"
+    },
+    {
+      "path": "assets/fonts/GTUltra-BlackItalic.otf",
+      "sha1": "6597ea46d615cad8d2eea5005c212fe4ff3ba4ce"
+    },
+    {
+      "path": "assets/fonts/GTUltra-Bold.otf",
+      "sha1": "aeca57f10096b14240c8e12acd44f11c90b5ee61"
+    },
+    {
+      "path": "assets/fonts/GTUltra-BoldItalic.otf",
+      "sha1": "42abec640a1ec2f883b33dea8aa28e40b866603b"
+    },
+    {
+      "path": "assets/fonts/GTUltra-Light.otf",
+      "sha1": "d515e7ca928529d3a7d52155a0266319f1513cd1"
+    },
+    {
+      "path": "assets/fonts/GTUltra-LightItalic.otf",
+      "sha1": "e3f548247120e1b3465574f3770f68fd624da1a2"
+    },
+    {
+      "path": "assets/fonts/GTUltra-Regular.otf",
+      "sha1": "37f8aeb2480f9e761eaa2480022db3267fe9a2bd"
+    },
+    {
+      "path": "assets/fonts/GTUltra-RegularItalic.otf",
+      "sha1": "751c7f91378b3d1c5f64e455783250519f83458e"
+    },
+    {
+      "path": "assets/fonts/GTUltra-Thin.otf",
+      "sha1": "9a4eeb63495ce3725552372e793b694515b2a5b6"
+    },
+    {
+      "path": "assets/fonts/GTUltra-ThinItalic.otf",
+      "sha1": "c4b22a2277b60169077b0a11fe54627408dc838e"
+    },
+    {
+      "path": "assets/fonts/GTUltra-Ultra.otf",
+      "sha1": "a09f2f3a377dace6f894a0f8bb5729e30e49b513"
+    },
+    {
+      "path": "assets/fonts/GTUltraFine-Black.otf",
+      "sha1": "b8ff3525005256e2950092d06fd4fefbf927aae6"
+    },
+    {
+      "path": "assets/fonts/GTUltraFine-BlackItalic.otf",
+      "sha1": "4bb7764eec31657927a301379f756379978b437a"
+    },
+    {
+      "path": "assets/fonts/GTUltraFine-Bold.otf",
+      "sha1": "c20c48076c272781dabbfefafec7b663760e5412"
+    },
+    {
+      "path": "assets/fonts/GTUltraFine-BoldItalic.otf",
+      "sha1": "d32fcfa46f3c66d685b780fa14d69ad8545f901a"
+    },
+    {
+      "path": "assets/fonts/GTUltraFine-Light.otf",
+      "sha1": "3490c9956e44474f92a7bbf4ab470e3308a7a536"
+    },
+    {
+      "path": "assets/fonts/GTUltraFine-LightItalic.otf",
+      "sha1": "f14860d407135bfb56372eb9f7a8953e93157317"
+    },
+    {
+      "path": "assets/fonts/GTUltraFine-Regular.otf",
+      "sha1": "4571fbc66ba4bb49d33130532d055f8b95467e07"
+    },
+    {
+      "path": "assets/fonts/GTUltraFine-RegularItalic.otf",
+      "sha1": "8e75468c8612a8b20ad685bdbf607174d46966b9"
+    },
+    {
+      "path": "assets/fonts/GTUltraFine-Thin.otf",
+      "sha1": "105b00fe74c6c82aefa80365364393061667b13d"
+    }
+  ]
+}

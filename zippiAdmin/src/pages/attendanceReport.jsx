@@ -368,7 +368,11 @@ const AttendanceReport = () => {
                                                                     🐴 {assignedHorse.name}
                                                                 </p>
                                                             )}
-                                                            <p className="text-[10px] text-gray-400 font-medium">{p.riderId?.slice(0, 8)}...</p>
+                                                            {p.remark && (
+                                                                <p className="text-[10px] text-gray-500 font-medium mt-1">
+                                                                    <span className="font-bold">Remark:</span> {p.remark}
+                                                                </p>
+                                                            )}
                                                         </div>
                                                     </div>
                                                     <span className={`inline-flex px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider ${
@@ -389,12 +393,6 @@ const AttendanceReport = () => {
                                                         {att.icon} {att.label}
                                                     </span>
                                                 </div>
-                                                {p.remark && (
-                                                    <div className="px-4 py-2 bg-[#FBF9F6] border-t border-[#E6D9CC] text-[12px] font-semibold text-[#1e2330]">
-                                                        <span className="text-[#964C2E] font-black text-[10px] uppercase tracking-widest mr-2">Trainer Remark:</span>
-                                                        {p.remark}
-                                                    </div>
-                                                )}
                                             </div>
                                         );
                                     })}

@@ -6,7 +6,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchRider, fetchUser } from '../redux/getDataSlice';
 import { Config } from '../api/config';
 import { getSessionsByRiderApi } from '../api/api';
-import { apiFunction } from '../api/apiFunction';
+import { apiFunction } from '../api/apifunction';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 
 const getIconComp = (iconName: string) => {
@@ -160,6 +160,11 @@ export default function DashboardProfileScreen() {
         <View style={{ paddingHorizontal: 20, marginBottom: 24 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <Text style={{ fontSize: 18, fontWeight: '700', color: '#5C2E0E' }}>Trainer Feedback</Text>
+            {sessionsWithRemarks.length > 0 && (
+              <TouchableOpacity onPress={() => navigation.navigate('FeedbackList', { sessionsWithRemarks, riderId: rider?.id })}>
+                <Text style={{ fontSize: 13, fontWeight: '700', color: '#DA7347' }}>View All</Text>
+              </TouchableOpacity>
+            )}
           </View>
           
           {sessionsWithRemarks.length === 0 ? (
@@ -167,7 +172,7 @@ export default function DashboardProfileScreen() {
               <Text style={{ color: 'rgba(133,67,30,0.5)', fontSize: 13, fontWeight: '600', textAlign: 'center' }}>No feedback received yet.</Text>
             </View>
           ) : (
-            sessionsWithRemarks.map((session, idx) => {
+            sessionsWithRemarks.slice(0, 2).map((session, idx) => {
               const participantData = session.participants?.find((p: any) => p.riderId === rider?.id);
               return (
                 <View key={idx} style={{ backgroundColor: '#fff', borderRadius: 20, padding: 18, marginBottom: 12, shadowColor: '#85431E', shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 }}>

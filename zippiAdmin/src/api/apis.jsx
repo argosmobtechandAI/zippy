@@ -23,6 +23,7 @@ export const createSessionApi = `${baseUrl}/session`;
 export const updateSessionApi = `${baseUrl}/session`;
 export const approveSessionApi = `${baseUrl}/session/updateStatus`
 export const deleteSessionApi = `${baseUrl}/session`;
+export const cancelFullSessionApi = `${baseUrl}/session/cancelFullSession`;
 
 export const getAllHorsesApi = `${baseUrl}/horse`;
 export const createHorseApi = `${baseUrl}/horse`;

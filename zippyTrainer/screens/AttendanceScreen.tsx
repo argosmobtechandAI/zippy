@@ -133,12 +133,18 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
     }
   };
 
-  const fetchHorses = async (tId: string) => {
+  const fetchHorses = async (tId: string, uId: string) => {
     try {
-      const res = await apiFunction(getAllHorsesApi, [], {}, 'GET');
+      const res = await apiFunction(getAllHorsesApi, [], {}, 'GET', true);
       if (res?.success) {
         // Only get horses assigned to this trainer
-        const trainerHorses = res.horses.filter((h: any) => h.trainerId === tId || h.trainer_id === tId);
+        console.log('Total horses fetched:', res.horses?.length);
+        const trainerHorses = res.horses.filter((h: any) => {
+           const match = h.trainerId === tId || h.trainer_id === tId || h.trainerId === uId || h.trainer_id === uId;
+           if (match) console.log('Found assigned horse:', h.name, h.trainerId, h.trainer_id);
+           return match;
+        });
+        console.log('Filtered trainer horses count:', trainerHorses.length, 'for tId:', tId, 'uId:', uId);
         setAllHorses(trainerHorses);
       }
     } catch (error) {
@@ -148,14 +154,25 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
 
   const fetchTrainerData = async () => {
     try {
-      const uid = await AsyncStorage.getItem('userId');
-      if (uid) {
+      const userStr = await AsyncStorage.getItem('user');
+      if (userStr) {
+        const parsedUser = JSON.parse(userStr);
+        const uid = parsedUser.id;
         setUserId(uid);
-        const res = await apiFunction(`${getUserApi}/${uid}`, [], {}, 'GET');
+        const res = await apiFunction(getUserApi, [], {}, 'GET', true);
+        const currentUserId = res?.success && res?.user ? res.user.id : uid;
+        
         if (res?.success && res.user) {
           setTrainerData(res.user);
           if (res.user.leaveRequests) setLeaveRequests(res.user.leaveRequests);
-          if (res.user.trainerId) fetchHorses(res.user.trainerId);
+        }
+        
+        const trainerRes = await apiFunction(getAllTrainersApi, [], {}, 'GET', true);
+        const foundTrainer = trainerRes?.success ? trainerRes.trainers?.find((t: any) => (t.userId || t.user_id) === currentUserId) : null;
+        if (foundTrainer) {
+          fetchHorses(foundTrainer.id, currentUserId);
+        } else {
+          fetchHorses('', currentUserId);
         }
       }
     } catch (error) {
@@ -163,8 +180,8 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
     }
   };
 
-  const fetchSessions = async () => {
-    setLoading(true);
+  const fetchSessions = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const userData = await AsyncStorage.getItem('user');
       if (!userData) {
@@ -205,7 +222,7 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
     } catch (error) {
       console.error('Fetch sessions error:', error);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -248,6 +265,36 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
       // Revert on failure
       setAttendance(prev => ({ ...prev, [riderId]: null }));
       Alert.alert('Error', res?.message || 'Failed to update attendance. Please try again.');
+    }
+  };
+
+  const handleAssignHorseImmediate = async (riderId: string, horseId: string) => {
+    if (!selectedSessionId || !currentSession) return;
+    
+    setIndividualHorses(prev => ({ ...prev, [riderId]: horseId }));
+    setShowHorseModal(false);
+
+    const updatedParticipants = currentSession.participants.map((p: any) => ({
+      ...p,
+      horse: p.riderId === riderId ? horseId : (individualHorses[p.riderId] || p.horse || null)
+    }));
+
+    try {
+      const res = await apiFunction(
+        updateSessionApi,
+        [selectedSessionId],
+        { participants: updatedParticipants },
+        'PUT',
+        true
+      );
+      if (res?.success) {
+        fetchSessions(true);
+      } else {
+        Alert.alert("Error", res?.message || "Failed to save assigned horse.");
+      }
+    } catch (error) {
+      console.error("Assign horse error:", error);
+      Alert.alert("Error", "Failed to assign horse to database.");
     }
   };
 
@@ -552,12 +599,12 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
         {/* Rider List */}
         <View className="flex-row justify-between items-center mb-4">
           <Text className="text-lg font-bold text-[#1a202c]">Rider List</Text>
-          <Text className="text-[#64748b] text-sm font-semibold">{currentSession?.participants?.length || 0} Registered</Text>
+          <Text className="text-[#64748b] text-sm font-semibold">{(currentSession?.participants?.filter((p: any) => p.status?.toUpperCase() === 'CONFIRMED') || []).length} Registered</Text>
         </View>
 
         <View className="bg-white rounded-3xl p-4 shadow-sm border border-[#e2e8f0] mb-8">
-          {currentSession?.participants?.map((rider: any, index: number) => (
-            <View key={rider.riderId} className={index !== currentSession.participants.length - 1 ? 'border-b border-[#e2e8f0]' : ''}>
+          {(currentSession?.participants?.filter((p: any) => p.status?.toUpperCase() === 'CONFIRMED') || []).map((rider: any, index: number, arr: any[]) => (
+            <View key={rider.riderId} className={index !== arr.length - 1 ? 'border-b border-[#e2e8f0]' : ''}>
               <View className="flex-row items-center py-4">
                 <Image source={{ uri: rider.image || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop' }} className="w-12 h-12 rounded-full mr-3" />
                 <View className="flex-1">
@@ -919,9 +966,10 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
                       className="bg-white border border-[#E6D9CC] p-4 rounded-xl mb-3 flex-row items-center shadow-sm"
                       onPress={() => {
                         if (activeRiderForHorse) {
-                          setIndividualHorses(prev => ({ ...prev, [activeRiderForHorse]: horse.id }));
+                          handleAssignHorseImmediate(activeRiderForHorse, horse.id);
+                        } else {
+                          setShowHorseModal(false);
                         }
-                        setShowHorseModal(false);
                       }}
                     >
                       <View className="w-10 h-10 rounded-full bg-[#F6EDE2] items-center justify-center mr-3 border border-[#E6D9CC]">

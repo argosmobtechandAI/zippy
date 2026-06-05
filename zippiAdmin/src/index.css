@@ -37,6 +37,8 @@
 }
 
 @theme {
+  --font-sans: "GTUltraFine", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "GTUltra", ui-serif, Georgia, serif;
   --font-display: "GTUltra", ui-sans-serif, system-ui, sans-serif;
   --font-body: "GTUltraFine", ui-sans-serif, system-ui, sans-serif;
   

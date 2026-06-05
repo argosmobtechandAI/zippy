@@ -700,3 +700,98 @@ export const updateAttendance = async (req, res) => {
         res.status(500).json({ success: false, message: `Error: ${error.message}` });
     }
 };
+
+export const cancelFullSession = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const { data: session, error } = await supabase.from('sessions').select('*').eq('id', id).limit(1);
+        if (error || !session || !session.length) {
+            return res.status(404).json({ success: false, message: 'Session not found' });
+        }
+
+        const currentSession = session[0];
+        if (currentSession.status === 'CANCELLED') {
+            return res.status(400).json({ success: false, message: 'Session is already cancelled.' });
+        }
+
+        const participants = currentSession.participants || [];
+        
+        // 1. Refund riders and update their sessions array
+        for (const p of participants) {
+            if (p.riderId) {
+                const { data: riderData, error: rErr } = await supabase.from('rider').select('*').eq('id', p.riderId).limit(1);
+                if (!rErr && riderData && riderData.length) {
+                    const rider = riderData[0];
+                    const newSessionCount = (rider.session_count || rider.sessionCount || 0) + 1;
+                    const joinedSessions = rider.joined_sessions || rider.joinedSessions || [];
+                    const pendingSessions = rider.pending_sessions || rider.pendingSessions || [];
+                    
+                    const updatedJoinedSessions = joinedSessions.filter(sid => sid !== id);
+                    const updatedPendingSessions = pendingSessions.filter(sid => sid !== id);
+
+                    await supabase.from('rider').update({
+                        session_count: newSessionCount,
+                        joined_sessions: updatedJoinedSessions,
+                        pending_sessions: updatedPendingSessions
+                    }).eq('id', p.riderId);
+
+                    // Send notification to rider
+                    const userId = rider.user_id;
+                    const { data: userData } = await supabase.from('users').select('notifications').eq('id', userId).limit(1);
+                    if (userData && userData.length) {
+                        const riderNotif = {
+                            id: Math.random().toString(36).substr(2, 9),
+                            title: "⚠️ Session Cancelled",
+                            desc: `The session "${currentSession.title || 'Training Session'}" on ${currentSession.date} has been cancelled by the admin. Your session credit has been refunded.`,
+                            type: "booking",
+                            time: "Just Now",
+                            unread: true,
+                            date: new Date().toISOString()
+                        };
+                        const notifs = userData[0].notifications || [];
+                        await supabase.from('users').update({ notifications: [...notifs, riderNotif] }).eq('id', userId);
+                    }
+                }
+            }
+        }
+
+        // 2. Notify Trainer
+        const trainerRowId = currentSession.trainers;
+        if (trainerRowId) {
+            const { data: trainerRow } = await supabase.from('trainers').select('user_id').eq('id', trainerRowId).limit(1);
+            if (trainerRow && trainerRow.length > 0) {
+                const trainerUserId = trainerRow[0].user_id;
+                const { data: trainerUser } = await supabase.from('users').select('notifications').eq('id', trainerUserId).limit(1);
+                if (trainerUser && trainerUser.length) {
+                    const tNotifs = trainerUser[0].notifications || [];
+                    const trainerNotif = {
+                        id: Math.random().toString(36).substr(2, 9),
+                        title: "⚠️ Session Cancelled",
+                        desc: `Admin has cancelled your session "${currentSession.title || 'Training Session'}" on ${currentSession.date}.`,
+                        time: "Just Now",
+                        type: "booking",
+                        unread: true,
+                        date: new Date().toISOString()
+                    };
+                    await supabase.from('users').update({ notifications: [...tNotifs, trainerNotif] }).eq('id', trainerUserId);
+                }
+            }
+        }
+
+        // 3. Update session status
+        const { data: updatedSession, error: updateError } = await supabase
+            .from('sessions')
+            .update({ status: 'CANCELLED' })
+            .eq('id', id)
+            .select();
+
+        if (updateError || !updatedSession || !updatedSession.length) {
+            return res.status(500).json({ success: false, message: 'Failed to update session status' });
+        }
+
+        return res.status(200).json({ success: true, message: "Session successfully cancelled and refunded.", session: mapToClient(updatedSession[0]) });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: `Error: ${error.message}` });
+    }
+};

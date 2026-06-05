@@ -28,7 +28,7 @@ export const updateLeaveApi = `${baseURL}/users/leave`;
 export const uploadProfilePictureApi = (id) => `${baseURL}/users/profile-picture/${id}`;
 export const createSessionApi = `${baseURL}/session`;
 export const deleteSessionApi = `${baseURL}/session`;
-export const approveSessionApi = (sessionId, riderId) => `${baseURL}/session/approve/${sessionId}/${riderId}`;
+export const approveSessionApi = (sessionId, riderId) => `${baseURL}/session/updateStatus/${sessionId}/${riderId}`;
 export const updateTrainerApi = `${baseURL}/trainer`;
 export const getAllStablesApi = `${baseURL}/stable/all`;
 export const uploadToVPSApi = `${baseURL}/upload-local`;

@@ -8,10 +8,10 @@ import { apiFunction } from '../api/apiFunction';
 import {
     getAllSessionsApi, createSessionApi, updateSessionApi, deleteSessionApi,
     getAllUsersApi, getAllStablesApi, getAllHorsesApi, getAllTrainersApi,
-    approveSessionApi
+    approveSessionApi, cancelFullSessionApi
 } from '../api/apis';
 import toast from 'react-hot-toast';
-import { X } from 'lucide-react';
+import { X, XCircle } from 'lucide-react';
 
 const formatWithDay = (dateStr) => {
     if (!dateStr || dateStr === 'N/A' || dateStr === 'daily') return dateStr;
@@ -77,6 +77,22 @@ const SlotManagement = () => {
             fetchData();
         } else {
             toast.error("Failed to delete session");
+        }
+    };
+
+    const handleCancelSession = async (id) => {
+        if (!window.confirm("Are you sure you want to CANCEL this session? All booked riders will be refunded and notified.")) return;
+        
+        try {
+            const res = await apiFunction(`${cancelFullSessionApi}/${id}`, [], {}, "PUT", true);
+            if (res?.success) {
+                toast.success("Session successfully cancelled and refunded.");
+                fetchData();
+            } else {
+                toast.error(res?.message || "Failed to cancel session");
+            }
+        } catch (error) {
+            toast.error("Network error");
         }
     };
 
@@ -178,13 +194,16 @@ const SlotManagement = () => {
                         const slotHorses = horses.filter(h => slot.horseId?.includes(h.id));
 
                         return (
-                            <div key={slot.id} className={`border-2 rounded-2xl p-6 shadow-sm flex flex-col justify-between min-h-[320px] transition-all ${slot.status === 'BLOCKED' ? 'bg-[#FEE2E2] border-[#EF4444]' : 'bg-white border-[#E6D9CC]'}`}>
+                            <div key={slot.id} className={`border-2 rounded-2xl p-6 shadow-sm flex flex-col justify-between min-h-[320px] transition-all ${slot.status === 'BLOCKED' ? 'bg-[#FEE2E2] border-[#EF4444]' : slot.status === 'CANCELLED' ? 'bg-gray-100 border-gray-300 opacity-70' : 'bg-white border-[#E6D9CC]'}`}>
                                 <div>
                                     <div className="flex justify-between items-start mb-4">
-                                        <span className={`inline-block text-[10px] font-black text-white px-3 py-1 tracking-wider uppercase rounded-full shadow-sm ${slot.status === 'BLOCKED' ? 'bg-[#EF4444]' : 'bg-[#22C55E]'}`}>
+                                        <span className={`inline-block text-[10px] font-black text-white px-3 py-1 tracking-wider uppercase rounded-full shadow-sm ${slot.status === 'BLOCKED' ? 'bg-[#EF4444]' : slot.status === 'CANCELLED' ? 'bg-gray-500' : 'bg-[#22C55E]'}`}>
                                             {slot.status || 'ACTIVE'}
                                         </span>
                                         <div className="flex gap-2.5">
+                                            {slot.status !== 'CANCELLED' && (
+                                                <button onClick={() => handleCancelSession(slot.id)} title="Cancel Session & Refund" className="text-gray-400 hover:text-orange-500 transition-colors"><XCircle className="w-4 h-4" /></button>
+                                            )}
                                             <button onClick={() => handleDuplicateSlot(slot)} title="Duplicate Slot" className="text-gray-400 hover:text-blue-500 transition-colors"><Copy className="w-4 h-4" /></button>
                                             <button onClick={() => { setSessionToEdit(slot); setShowSessionModal(true); }} title="Edit Slot" className="text-gray-400 hover:text-[#964C2E] transition-colors"><Edit className="w-4 h-4" /></button>
                                             <button onClick={() => handleDeleteSlot(slot.id)} title="Delete Slot" className="text-gray-400 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>

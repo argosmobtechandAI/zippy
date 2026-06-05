@@ -1,7 +1,7 @@
 import { CheckCircle2, ChevronRight, Clock, Calendar, XCircle } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { apiFunction } from '../api/apiFunction';
-import { getAllSessionsApi, approveSessionApi } from '../api/apis';
+import { getAllSessionsApi, approveSessionApi, getAllUsersApi, getAllTrainersApi } from '../api/apis';
 import toast from 'react-hot-toast';
 
 const formatWithDay = (dateStr) => {
@@ -38,14 +38,23 @@ const BookingRequests = () => {
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('PENDING');
     const [selectedDate, setSelectedDate] = useState('All');
+    const [trainers, setTrainers] = useState([]);
+    const [users, setUsers] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
     const ITEMS_PER_PAGE = 20;
 
     const fetchSessions = async () => {
         setLoading(true);
         try {
-            const res = await apiFunction(getAllSessionsApi, [], {}, 'GET', true);
-            if (res?.success) setSessions(res.sessions || []);
+            const [sessionRes, trainerRes, userRes] = await Promise.all([
+                apiFunction(getAllSessionsApi, [], {}, 'GET', true),
+                apiFunction(getAllTrainersApi, [], {}, 'GET', true),
+                apiFunction(getAllUsersApi, [], {}, 'GET', true)
+            ]);
+            
+            if (sessionRes?.success) setSessions(sessionRes.sessions || []);
+            if (trainerRes?.success) setTrainers(trainerRes.trainers || []);
+            if (userRes?.success) setUsers(userRes.users.filter(u => u.type?.toLowerCase() === 'trainer') || []);
         } catch {
             toast.error('Failed to load booking requests');
         } finally {
@@ -190,9 +199,10 @@ const BookingRequests = () => {
 
             {/* Table */}
             <div>
-                <div className="grid grid-cols-[200px_1fr_1fr_140px_120px_80px_160px] gap-4 mb-4 border-b border-[#E6D9CC] pb-4 px-2">
+                <div className="grid grid-cols-[180px_1fr_120px_100px_110px_100px_60px_160px] gap-4 mb-4 border-b border-[#E6D9CC] pb-4 px-2">
                     <div className="text-[11px] font-bold text-[#A59588] tracking-widest uppercase">RIDER NAME</div>
                     <div className="text-[11px] font-bold text-[#A59588] tracking-widest uppercase">SLOT</div>
+                    <div className="text-[11px] font-bold text-[#A59588] tracking-widest uppercase">TRAINER</div>
                     <div className="text-[11px] font-bold text-[#A59588] tracking-widest uppercase">TIMING</div>
                     <div className="text-[11px] font-bold text-[#A59588] tracking-widest uppercase text-center">DATE</div>
                     <div className="text-[11px] font-bold text-[#A59588] tracking-widest uppercase text-center">STATUS</div>
@@ -212,8 +222,13 @@ const BookingRequests = () => {
                         paginatedParticipants.map((p, idx) => {
                             const status = p.status?.toUpperCase() || 'PENDING';
                             const isPending = status === 'PENDING';
+                            
+                            const trainer = trainers?.find(item => item.id === p.session?.trainerId);
+                            const tUser = users?.find(item => item.id === (trainer?.userId || trainer?.user_id));
+                            const trainerName = tUser?.name || trainer?.name || "Unassigned";
+
                             return (
-                                <div key={idx} className="grid grid-cols-[200px_1fr_1fr_140px_120px_80px_160px] gap-4 items-center bg-white border border-[#E6D9CC] rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow">
+                                <div key={idx} className="grid grid-cols-[180px_1fr_120px_100px_110px_100px_60px_160px] gap-4 items-center bg-white border border-[#E6D9CC] rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow">
                                     <div className="flex items-center gap-3 pl-2">
                                         <div className="w-[38px] h-[38px] rounded-full bg-[#F6EDE2] overflow-hidden border-2 border-white shadow-sm flex items-center justify-center font-black text-[#964C2E] text-sm flex-shrink-0">
                                             {p.name?.charAt(0)?.toUpperCase() || 'U'}
@@ -221,6 +236,7 @@ const BookingRequests = () => {
                                         <h4 className="text-[13px] font-black text-[#1e2330] truncate">{p.name}</h4>
                                     </div>
                                     <div className="text-[13px] font-bold text-[#1e2330] truncate">{p.session?.title}</div>
+                                    <div className="text-[12px] font-bold text-[#964C2E] truncate">{trainerName}</div>
                                     <div className="text-[13px] font-semibold text-gray-500">{p.session?.timing}</div>
                                     <div className="text-[12px] font-bold text-gray-500 text-center">{formatWithDay(p.date || p.session?.date || 'N/A')}</div>
                                     <div className="flex justify-center">

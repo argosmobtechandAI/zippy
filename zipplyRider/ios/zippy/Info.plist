@@ -58,5 +58,28 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<key>UIAppFonts</key>
+	<array>
+		<string>GTUltra-Black.otf</string>
+		<string>GTUltra-BlackItalic.otf</string>
+		<string>GTUltra-Bold.otf</string>
+		<string>GTUltra-BoldItalic.otf</string>
+		<string>GTUltra-Light.otf</string>
+		<string>GTUltra-LightItalic.otf</string>
+		<string>GTUltra-Regular.otf</string>
+		<string>GTUltra-RegularItalic.otf</string>
+		<string>GTUltra-Thin.otf</string>
+		<string>GTUltra-ThinItalic.otf</string>
+		<string>GTUltra-Ultra.otf</string>
+		<string>GTUltraFine-Black.otf</string>
+		<string>GTUltraFine-BlackItalic.otf</string>
+		<string>GTUltraFine-Bold.otf</string>
+		<string>GTUltraFine-BoldItalic.otf</string>
+		<string>GTUltraFine-Light.otf</string>
+		<string>GTUltraFine-LightItalic.otf</string>
+		<string>GTUltraFine-Regular.otf</string>
+		<string>GTUltraFine-RegularItalic.otf</string>
+		<string>GTUltraFine-Thin.otf</string>
+	</array>
 </dict>
 </plist>

@@ -7,7 +7,7 @@ import { useDispatch } from 'react-redux';
 import { resetData } from '../redux/getDataSlice';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSelector } from 'react-redux';
-import { apiFunction } from '../api/apiFunction';
+import { apiFunction } from '../api/apifunction';
 import { deleteUserApi } from '../api/api';
 
 export default function SettingsScreen() {
