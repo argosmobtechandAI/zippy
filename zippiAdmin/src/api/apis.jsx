@@ -1,5 +1,5 @@
-export const baseUrl = import.meta.env.VITE_API_BASE_URL ? `${import.meta.env.VITE_API_BASE_URL}/api` : "http://localhost:3000/api";
-
+export const baseUrl = import.meta.env.VITE_API_BASE_URL ? `${import.meta.env.VITE_API_BASE_URL}/api` : "https://api.zippyapp.online/api";
+// export const baseUrl = "http://localhost:3000/api";
 export const getAllUsersApi = `${baseUrl}/users/all`;
 export const getUserApi = `${baseUrl}/users`;
 export const createUserApi = `${baseUrl}/users`;
@@ -43,6 +43,7 @@ export const deleteInventoryApi = `${baseUrl}/inventory`;
 export const seedInventoryApi = `${baseUrl}/inventory/seed`;
 export const getAllTrainersApi = `${baseUrl}/users/trainers`;
 export const plansApi = `${baseUrl}/plan`;
+export const assignPlanApi = `${baseUrl}/plan/assign`;
 export const revenueStatsApi = `${baseUrl}/revenue/stats`;
 export const updateTrainerApi = `${baseUrl}/trainer`;
 export const uploadFileApi = `${baseUrl}/stable/uploadFile`;

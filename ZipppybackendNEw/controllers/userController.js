@@ -64,6 +64,8 @@ export const getAllUsers = async (req, res) => {
             allergies: user.rider && user.rider.length > 0 ? user.rider[0].allergies : "",
             medical: user.rider && user.rider.length > 0 ? user.rider[0].medical : "",
             instructions: user.rider && user.rider.length > 0 ? user.rider[0].instructions : "",
+            plan: user.rider && user.rider.length > 0 ? (user.rider[0].plan || null) : null,
+            planEndDate: user.rider && user.rider.length > 0 ? (user.rider[0].plan_end_date || null) : null,
             title: user.trainers && user.trainers.length > 0 ? user.trainers[0].title : "",
             experience: user.trainers && user.trainers.length > 0 ? user.trainers[0].experience : ""
         }));
@@ -540,12 +542,30 @@ export const updateLeave = async (req, res) => {
 export const deleteUser = async (req, res) => {
     const { id } = req.params;
     try {
-        const { data: deletedUser, error } = await supabase.from('users').delete().eq('id', id).select();
-        if (error || !deletedUser || deletedUser.length === 0) {
+        // First check if user exists
+        const { data: existingUser, error: fetchError } = await supabase
+            .from('users')
+            .select('id, name')
+            .eq('id', id)
+            .limit(1);
+
+        if (fetchError) throw fetchError;
+
+        if (!existingUser || existingUser.length === 0) {
             return res.status(404).json({ message: 'User not found', success: false });
         }
-        return res.status(200).json({ user: deletedUser[0], message: 'User deleted successfully', success: true });
+
+        // Delete the user
+        const { error: deleteError } = await supabase
+            .from('users')
+            .delete()
+            .eq('id', id);
+
+        if (deleteError) throw deleteError;
+
+        return res.status(200).json({ message: 'User deleted successfully', success: true });
     } catch (error) {
+        console.error('DELETE USER ERROR:', error);
         return res.status(500).json({ message: `Error: ${error.message}`, success: false });
     }
 };

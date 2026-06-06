@@ -2,14 +2,14 @@ import {
     ChevronRight, Zap, Edit2, MoreVertical, Star,
     ChevronLeft, MoreHorizontal, UserCheck, Activity, Award, X, BellRing, Send, Megaphone, Search,
     Edit,
-    Delete,
+    Trash2,
     Plus,
-    Download, Wallet
+    Download, Wallet, AlertTriangle, CreditCard, Calendar, CheckCircle2, Clock, Shield
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFunction } from '../api/apiFunction';
-import { createUserApi, getAllUsersApi, notifyUserApi, notifyAllUsersApi, updateUserApi, updateUserLeaveApi, getAllTrainersApi, updateTrainerApi, getAllStablesApi, deleteStableLogoApi, uploadFileApi, deleteUserApi } from '../api/apis';
+import { createUserApi, getAllUsersApi, notifyUserApi, notifyAllUsersApi, updateUserApi, updateUserLeaveApi, getAllTrainersApi, updateTrainerApi, getAllStablesApi, deleteStableLogoApi, uploadFileApi, deleteUserApi, plansApi, assignPlanApi } from '../api/apis';
 import toast from 'react-hot-toast';
 import axios from 'axios';
 
@@ -39,8 +39,9 @@ const TrainerCard = ({ user, trainers, stables, onNotify, onEdit, onStatusUpdate
                     </div>
                 </div>
                 <div className="flex items-center gap-1 text-gray-400">
-                    <button onClick={(e) => { e.stopPropagation(); onNotify(); }} className="p-1.5 hover:bg-[#F9EFE5] hover:text-[#964C2E] rounded-lg transition-colors"><BellRing className="w-4 h-4" /></button>
+                    <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="p-1.5 hover:bg-red-50 hover:text-red-500 rounded-lg transition-colors" title="Delete User"><Trash2 className="w-4 h-4" /></button>
                     <button onClick={(e) => { e.stopPropagation(); onEdit(); }} className="p-1.5 hover:bg-gray-50 rounded-lg transition-colors"><Edit2 className="w-4 h-4" /></button>
+                    <button onClick={(e) => { e.stopPropagation(); onNotify(); }} className="p-1.5 hover:bg-[#F9EFE5] hover:text-[#964C2E] rounded-lg transition-colors"><BellRing className="w-4 h-4" /></button>
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
@@ -51,7 +52,6 @@ const TrainerCard = ({ user, trainers, stables, onNotify, onEdit, onStatusUpdate
                     >
                         <Activity className="w-4 h-4" />
                     </button>
-                    <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="p-1.5 hover:bg-red-50 hover:text-red-500 rounded-lg transition-colors" title="Delete User"><Delete className="w-4 h-4" /></button>
                 </div>
             </div>
 
@@ -118,6 +118,7 @@ const UserManagement = () => {
     const [editingUser, setEditingUser] = useState(null)
     const [viewUser, setViewUser] = useState(null)
     const [updateCenterModal, setUpdateCenterModal] = useState(null)
+    const [deleteModal, setDeleteModal] = useState(null) // { id, name }
     const [searchQuery, setSearchQuery] = useState("")
     const [users, setUsers] = useState([])
     const [trainers, setTrainers] = useState([])
@@ -185,19 +186,23 @@ const UserManagement = () => {
         }
     }
 
-    const handleDeleteUser = async (userId) => {
-        if (window.confirm("Are you sure you want to delete this user?")) {
-            try {
-                const res = await apiFunction(`${deleteUserApi}/${userId}`, [], {}, "DELETE", true);
-                if (res && res.success) {
-                    toast.success("User deleted successfully");
-                    fetchUsers();
-                } else {
-                    toast.error(res?.message || "Failed to delete user");
-                }
-            } catch (error) {
-                toast.error("Network error");
+    const handleDeleteUser = (userId, userName) => {
+        setDeleteModal({ id: userId, name: userName });
+    }
+
+    const confirmDeleteUser = async () => {
+        if (!deleteModal) return;
+        try {
+            const res = await apiFunction(`${deleteUserApi}/${deleteModal.id}`, [], {}, "DELETE", true);
+            if (res && res.success) {
+                toast.success("User deleted successfully");
+                setDeleteModal(null);
+                fetchUsers();
+            } else {
+                toast.error(res?.message || "Failed to delete user");
             }
+        } catch (error) {
+            toast.error("Network error");
         }
     }
 
@@ -417,7 +422,7 @@ const UserManagement = () => {
                                     onNotify={() => setNotifyModal(user)}
                                     onEdit={() => { setEditingUser(user); setCreateModal(true); }}
                                     onStatusUpdate={(status) => handleStatusUpdate(user.id, status)}
-                                    onDelete={() => handleDeleteUser(user.id)}
+                                    onDelete={() => handleDeleteUser(user.id, user.name)}
                                     onUpdateCenterClick={() => setUpdateCenterModal({ user, trainer: trainers.find(t => (t.userId || t.user_id) === user.id) })}
                                     navigate={navigate}
                                 />
@@ -443,12 +448,12 @@ const UserManagement = () => {
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    setNotifyModal(user);
+                                                    handleDeleteUser(user.id, user.name);
                                                 }}
-                                                className="p-1.5 hover:bg-[#F9EFE5] hover:text-[#964C2E] rounded-lg transition-colors"
-                                                title="Send Notification"
+                                                className="p-1.5 hover:bg-red-50 hover:text-red-500 rounded-lg transition-colors"
+                                                title="Delete User"
                                             >
-                                                <BellRing className="w-4 h-4" />
+                                                <Trash2 className="w-4 h-4" />
                                             </button>
                                             <button
                                                 onClick={(e) => {
@@ -464,6 +469,16 @@ const UserManagement = () => {
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
+                                                    setNotifyModal(user);
+                                                }}
+                                                className="p-1.5 hover:bg-[#F9EFE5] hover:text-[#964C2E] rounded-lg transition-colors"
+                                                title="Send Notification"
+                                            >
+                                                <BellRing className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
                                                     const nextStatus = user.status === 'INACTIVE' ? 'ACTIVE' : 'INACTIVE';
                                                     handleStatusUpdate(user.id, nextStatus);
                                                 }}
@@ -471,16 +486,6 @@ const UserManagement = () => {
                                                 title="Toggle Status"
                                             >
                                                 <Activity className="w-4 h-4" />
-                                            </button>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleDeleteUser(user.id);
-                                                }}
-                                                className="p-1.5 hover:bg-red-50 hover:text-red-500 rounded-lg transition-colors"
-                                                title="Delete User"
-                                            >
-                                                <Delete className="w-4 h-4" />
                                             </button>
                                         </div>
                                     </div>
@@ -651,6 +656,14 @@ const UserManagement = () => {
                     }}
                 />
             )}
+
+            {deleteModal && (
+                <DeleteConfirmModal
+                    userName={deleteModal.name}
+                    onCancel={() => setDeleteModal(null)}
+                    onConfirm={confirmDeleteUser}
+                />
+            )}
         </div>
     );
 };
@@ -667,6 +680,48 @@ const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave, onUpdateSuc
     const [sessionInput, setSessionInput] = useState('');
     const [isSavingSession, setIsSavingSession] = useState(false);
 
+    // Plan assignment state
+    const [plans, setPlans] = useState([]);
+    const [showAssignPlan, setShowAssignPlan] = useState(false);
+    const [selectedPlanId, setSelectedPlanId] = useState('');
+    const [planStartDate, setPlanStartDate] = useState(new Date().toISOString().split('T')[0]);
+    const [isAssigningPlan, setIsAssigningPlan] = useState(false);
+    const [localUser, setLocalUser] = useState(user);
+
+    useEffect(() => {
+        setLocalUser(user);
+    }, [user]);
+
+    useEffect(() => {
+        if (localUser.type === 'rider') {
+            apiFunction(plansApi, [], {}, 'GET', true).then(res => {
+                if (res && res.success) setPlans(res.plans || []);
+            });
+        }
+    }, [localUser.type]);
+
+    const handleAssignPlan = async () => {
+        if (!selectedPlanId) { toast.error('Please select a plan'); return; }
+        setIsAssigningPlan(true);
+        try {
+            const res = await apiFunction(assignPlanApi, [], { userId: localUser.id, planId: selectedPlanId, startDate: planStartDate }, 'POST', true);
+            if (res && res.success) {
+                toast.success(res.message || 'Plan assigned successfully');
+                const updated = { ...localUser, plan: res.plan, planEndDate: res.planEndDate, sessionCount: res.plan?.sessions_count || localUser.sessionCount };
+                setLocalUser(updated);
+                if (onUpdateSuccess) onUpdateSuccess(updated);
+                setShowAssignPlan(false);
+                setSelectedPlanId('');
+            } else {
+                toast.error(res?.message || 'Failed to assign plan');
+            }
+        } catch (err) {
+            toast.error('Network error');
+        } finally {
+            setIsAssigningPlan(false);
+        }
+    };
+
     const handleWalletUpdate = async (type) => {
         const amount = parseFloat(walletInput);
         if (isNaN(amount) || (amount < 0 && type === 'set')) {
@@ -680,9 +735,9 @@ const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave, onUpdateSuc
 
         setIsSavingWallet(true);
         try {
-            const newBalance = type === 'add' ? (user.riderWallet || 0) + amount : amount;
+            const newBalance = type === 'add' ? (localUser.riderWallet || 0) + amount : amount;
             
-            const res = await apiFunction(`${updateUserApi}/${user.id}`, [], { 
+            const res = await apiFunction(`${updateUserApi}/${localUser.id}`, [], { 
                 riderWallet: newBalance 
             }, "PUT", true);
 
@@ -691,9 +746,9 @@ const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave, onUpdateSuc
                 setIsEditingWallet(false);
                 setIsAddingWallet(false);
                 setWalletInput('');
-                if (onUpdateSuccess) {
-                    onUpdateSuccess({ ...user, riderWallet: newBalance });
-                }
+                const updated = { ...localUser, riderWallet: newBalance };
+                setLocalUser(updated);
+                if (onUpdateSuccess) onUpdateSuccess(updated);
             } else {
                 toast.error(res?.message || "Failed to update wallet balance");
             }
@@ -717,9 +772,9 @@ const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave, onUpdateSuc
 
         setIsSavingSession(true);
         try {
-            const newCount = type === 'add' ? (user.sessionCount || 0) + amount : amount;
+            const newCount = type === 'add' ? (localUser.sessionCount || 0) + amount : amount;
             
-            const res = await apiFunction(`${updateUserApi}/${user.id}`, [], { 
+            const res = await apiFunction(`${updateUserApi}/${localUser.id}`, [], { 
                 sessionCount: newCount 
             }, "PUT", true);
 
@@ -728,9 +783,9 @@ const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave, onUpdateSuc
                 setIsEditingSession(false);
                 setIsAddingSession(false);
                 setSessionInput('');
-                if (onUpdateSuccess) {
-                    onUpdateSuccess({ ...user, sessionCount: newCount });
-                }
+                const updated = { ...localUser, sessionCount: newCount };
+                setLocalUser(updated);
+                if (onUpdateSuccess) onUpdateSuccess(updated);
             } else {
                 toast.error(res?.message || "Failed to update session count");
             }
@@ -753,11 +808,11 @@ const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave, onUpdateSuc
 
                 <div className="flex flex-col items-center mb-10 text-center">
                     <div className="w-24 h-24 rounded-3xl bg-[#E5ECE5] flex items-center justify-center text-3xl font-black text-gray-500 mb-4">
-                        {user.name && user.name.charAt(0)}
+                        {localUser.name && localUser.name.charAt(0)}
                     </div>
-                    <h3 className="text-2xl font-black text-[#1e2330] mb-1">{user.name}</h3>
+                    <h3 className="text-2xl font-black text-[#1e2330] mb-1">{localUser.name}</h3>
                     <span className="bg-[#FAE9DB] text-[#964C2E] text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-md mb-2">
-                        {user.type}
+                        {localUser.type}
                     </span>
                     <div className="flex items-center gap-1.5 text-[12px] font-bold text-[#059669]">
                         <span className="w-2 h-2 rounded-full bg-[#059669]"></span> Active Account
@@ -765,12 +820,12 @@ const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave, onUpdateSuc
                 </div>
 
                 <div className="space-y-6">
-                    {user.type === 'rider' && !isEditingWallet && !isAddingWallet && (
+                    {localUser.type === 'rider' && !isEditingWallet && !isAddingWallet && (
                         <div className="p-5 bg-[#FAF3EC] rounded-2xl border border-[#964C2E]/20 flex flex-col gap-4 shadow-sm">
                             <div className="flex justify-between items-center">
                                 <div>
                                     <h4 className="text-[10px] font-black text-[#964C2E] tracking-widest uppercase mb-1">Rider Wallet Balance</h4>
-                                    <p className="text-[24px] font-black text-[#1e2330]">₹{(user.riderWallet || 0).toLocaleString()}</p>
+                                    <p className="text-[24px] font-black text-[#1e2330]">₹{(localUser.riderWallet || 0).toLocaleString()}</p>
                                 </div>
                                 <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-[#964C2E] border border-[#964C2E]/10 shadow-sm">
                                     <Wallet className="w-6 h-6" />
@@ -779,7 +834,7 @@ const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave, onUpdateSuc
                             <div className="flex gap-2">
                                 <button
                                     onClick={() => {
-                                        setWalletInput((user.riderWallet || 0).toString());
+                                        setWalletInput((localUser.riderWallet || 0).toString());
                                         setIsEditingWallet(true);
                                         setIsAddingWallet(false);
                                     }}
@@ -879,12 +934,12 @@ const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave, onUpdateSuc
                         </div>
                     )}
 
-                    {user.type === 'rider' && !isEditingSession && !isAddingSession && (
+                    {localUser.type === 'rider' && !isEditingSession && !isAddingSession && (
                         <div className="p-5 bg-[#FAF3EC] rounded-2xl border border-[#964C2E]/20 flex flex-col gap-4 shadow-sm">
                             <div className="flex justify-between items-center">
                                 <div>
                                     <h4 className="text-[10px] font-black text-[#964C2E] tracking-widest uppercase mb-1">Rider Sessions</h4>
-                                    <p className="text-[24px] font-black text-[#1e2330]">{user.sessionCount || 0}</p>
+                                    <p className="text-[24px] font-black text-[#1e2330]">{localUser.sessionCount || 0}</p>
                                 </div>
                                 <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-[#964C2E] border border-[#964C2E]/10 shadow-sm">
                                     <Activity className="w-6 h-6" />
@@ -893,7 +948,7 @@ const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave, onUpdateSuc
                             <div className="flex gap-2">
                                 <button
                                     onClick={() => {
-                                        setSessionInput((user.sessionCount || 0).toString());
+                                        setSessionInput((localUser.sessionCount || 0).toString());
                                         setIsEditingSession(true);
                                         setIsAddingSession(false);
                                     }}
@@ -915,7 +970,7 @@ const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave, onUpdateSuc
                         </div>
                     )}
 
-                    {user.type === 'rider' && isEditingSession && (
+                    {localUser.type === 'rider' && isEditingSession && (
                         <div className="p-5 bg-[#FAF3EC] rounded-2xl border border-[#964C2E]/20 flex flex-col gap-4 shadow-sm animate-in fade-in duration-200">
                             <div>
                                 <h4 className="text-[10px] font-black text-[#964C2E] tracking-widest uppercase mb-2">Update Session Count</h4>
@@ -947,7 +1002,7 @@ const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave, onUpdateSuc
                         </div>
                     )}
 
-                    {user.type === 'rider' && isAddingSession && (
+                    {localUser.type === 'rider' && isAddingSession && (
                         <div className="p-5 bg-[#FAF3EC] rounded-2xl border border-[#964C2E]/20 flex flex-col gap-4 shadow-sm animate-in fade-in duration-200">
                             <div>
                                 <h4 className="text-[10px] font-black text-[#964C2E] tracking-widest uppercase mb-2">Add Sessions</h4>
@@ -990,16 +1045,136 @@ const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave, onUpdateSuc
                             </div>
                         </div>
                     )}
+
+                    {/* ── Membership Card ───────────────────────────── */}
+                    {localUser.type === 'rider' && (() => {
+                        const hasPlan = localUser.plan && (localUser.plan.name || localUser.plan.id);
+                        const endDate = localUser.planEndDate ? new Date(localUser.planEndDate) : null;
+                        const today = new Date();
+                        const isExpired = endDate && endDate < today;
+                        const daysLeft = endDate ? Math.ceil((endDate - today) / (1000 * 60 * 60 * 24)) : null;
+                        return (
+                            <div className="rounded-2xl border overflow-hidden" style={{ borderColor: hasPlan ? (isExpired ? '#fca5a5' : '#86efac') : '#e5e7eb' }}>
+                                {/* Header */}
+                                <div className="px-5 py-4 flex items-center justify-between" style={{ background: hasPlan ? (isExpired ? 'linear-gradient(135deg,#fef2f2,#fff7f7)' : 'linear-gradient(135deg,#f0fdf4,#f7fef9)') : '#f8f9fa' }}>
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: hasPlan ? (isExpired ? '#fecaca' : '#bbf7d0') : '#e5e7eb' }}>
+                                            <Shield className="w-5 h-5" style={{ color: hasPlan ? (isExpired ? '#dc2626' : '#16a34a') : '#9ca3af' }} />
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-black tracking-widest uppercase" style={{ color: hasPlan ? (isExpired ? '#dc2626' : '#16a34a') : '#9ca3af' }}>Membership Plan</p>
+                                            <p className="text-[15px] font-black text-[#1e2330]">{hasPlan ? localUser.plan.name : 'No Active Plan'}</p>
+                                        </div>
+                                    </div>
+                                    {hasPlan && (
+                                        <span className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full" style={{ background: isExpired ? '#fecaca' : '#bbf7d0', color: isExpired ? '#dc2626' : '#15803d' }}>
+                                            {isExpired ? 'EXPIRED' : 'ACTIVE'}
+                                        </span>
+                                    )}
+                                </div>
+
+                                {/* Body */}
+                                <div className="px-5 py-4 bg-white space-y-3">
+                                    {hasPlan && (
+                                        <div className="grid grid-cols-3 gap-3">
+                                            <div className="bg-[#F8F9FA] rounded-xl p-3 border border-gray-100">
+                                                <p className="text-[9px] font-black text-gray-400 tracking-widest uppercase mb-1">Sessions</p>
+                                                <p className="text-[16px] font-black text-[#964C2E]">{localUser.plan.sessions_count || '--'}</p>
+                                            </div>
+                                            <div className="bg-[#F8F9FA] rounded-xl p-3 border border-gray-100">
+                                                <p className="text-[9px] font-black text-gray-400 tracking-widest uppercase mb-1">Validity</p>
+                                                <p className="text-[13px] font-black text-[#1e2330]">{localUser.plan.validity ? `${localUser.plan.validity} mo` : '--'}</p>
+                                            </div>
+                                            <div className="bg-[#F8F9FA] rounded-xl p-3 border border-gray-100">
+                                                <p className="text-[9px] font-black text-gray-400 tracking-widest uppercase mb-1">Amount</p>
+                                                <p className="text-[13px] font-black text-[#1e2330]">₹{localUser.plan.amount || '--'}</p>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {endDate && (
+                                        <div className="flex items-center gap-2 p-3 rounded-xl" style={{ background: isExpired ? '#fef2f2' : daysLeft <= 7 ? '#fffbeb' : '#f0fdf4', border: `1px solid ${isExpired ? '#fca5a5' : daysLeft <= 7 ? '#fde68a' : '#86efac'}` }}>
+                                            <Calendar className="w-4 h-4 flex-shrink-0" style={{ color: isExpired ? '#dc2626' : daysLeft <= 7 ? '#d97706' : '#16a34a' }} />
+                                            <div>
+                                                <p className="text-[10px] font-black" style={{ color: isExpired ? '#dc2626' : daysLeft <= 7 ? '#92400e' : '#14532d' }}>
+                                                    {isExpired ? 'EXPIRED ON' : 'VALID UNTIL'}
+                                                </p>
+                                                <p className="text-[12px] font-bold text-[#1e2330]">
+                                                    {endDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                    {!isExpired && daysLeft !== null && <span className="ml-1.5 text-[10px] font-black" style={{ color: daysLeft <= 7 ? '#d97706' : '#16a34a' }}>({daysLeft}d left)</span>}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Assign / Renew Plan */}
+                                    {!showAssignPlan ? (
+                                        <button
+                                            onClick={() => setShowAssignPlan(true)}
+                                            className="w-full py-2.5 rounded-xl border-2 border-dashed border-[#964C2E]/30 text-[#964C2E] text-[11px] font-black uppercase tracking-wider hover:bg-[#FAF3EC] transition-all flex items-center justify-center gap-2"
+                                        >
+                                            <CreditCard className="w-4 h-4" />
+                                            {hasPlan ? 'Change / Renew Plan' : 'Assign Plan'}
+                                        </button>
+                                    ) : (
+                                        <div className="space-y-3 pt-2 border-t border-gray-100">
+                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Select Plan to Assign</p>
+                                            <select
+                                                value={selectedPlanId}
+                                                onChange={(e) => setSelectedPlanId(e.target.value)}
+                                                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-[13px] font-bold focus:outline-none focus:border-[#964C2E] transition-all"
+                                            >
+                                                <option value="">Choose a plan...</option>
+                                                {plans.map(p => (
+                                                    <option key={p.id} value={p.id}>
+                                                        {p.name} — {p.sessions_count} sessions / {p.validity} mo — ₹{p.amount}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <div>
+                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Start Date</p>
+                                                <input
+                                                    type="date"
+                                                    value={planStartDate}
+                                                    onChange={(e) => setPlanStartDate(e.target.value)}
+                                                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-[13px] font-bold focus:outline-none focus:border-[#964C2E] transition-all"
+                                                />
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => { setShowAssignPlan(false); setSelectedPlanId(''); }}
+                                                    className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-500 text-[11px] font-black uppercase hover:bg-gray-50 transition-all"
+                                                >
+                                                    Cancel
+                                                </button>
+                                                <button
+                                                    onClick={handleAssignPlan}
+                                                    disabled={isAssigningPlan || !selectedPlanId}
+                                                    className="flex-1 py-2.5 rounded-xl bg-[#964C2E] hover:bg-[#7D3F25] text-white text-[11px] font-black uppercase shadow-md shadow-[#964C2E]/20 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
+                                                >
+                                                    {isAssigningPlan ? (
+                                                        <><svg className="animate-spin w-3.5 h-3.5" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>Assigning...</>
+                                                    ) : (
+                                                        <><CheckCircle2 className="w-3.5 h-3.5" />Assign Plan</>
+                                                    )}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })()}
                     <div className="p-5 bg-[#F8F9FA] rounded-2xl border border-gray-100">
                         <h4 className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-4">CONTACT INFORMATION</h4>
                         <div className="space-y-4">
                             <div>
                                 <p className="text-[11px] font-bold text-gray-400 mb-0.5">EMAIL ADDRESS</p>
-                                <p className="text-[14px] font-bold text-[#1e2330]">{user.email}</p>
+                                <p className="text-[14px] font-bold text-[#1e2330]">{localUser.email}</p>
                             </div>
                             <div>
                                 <p className="text-[11px] font-bold text-gray-400 mb-0.5">MOBILE NUMBER</p>
-                                <p className="text-[14px] font-bold text-[#1e2330]">{user.mobile}</p>
+                                <p className="text-[14px] font-bold text-[#1e2330]">{localUser.mobile}</p>
                             </div>
                         </div>
                     </div>
@@ -1009,15 +1184,15 @@ const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave, onUpdateSuc
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <p className="text-[11px] font-bold text-gray-400 mb-0.5">AGE</p>
-                                <p className="text-[14px] font-bold text-[#1e2330]">{user.age || '--'} Years</p>
+                                <p className="text-[14px] font-bold text-[#1e2330]">{localUser.age || '--'} Years</p>
                             </div>
                             <div>
                                 <p className="text-[11px] font-bold text-gray-400 mb-0.5">WEIGHT</p>
-                                <p className="text-[14px] font-bold text-[#1e2330]">{user.weight || '--'} KG</p>
+                                <p className="text-[14px] font-bold text-[#1e2330]">{localUser.weight || '--'} KG</p>
                             </div>
                             <div>
                                 <p className="text-[11px] font-bold text-gray-400 mb-0.5">DOB</p>
-                                <p className="text-[14px] font-bold text-[#1e2330]">{user.dob || '--'}</p>
+                                <p className="text-[14px] font-bold text-[#1e2330]">{localUser.dob || '--'}</p>
                             </div>
                         </div>
                     </div>
@@ -1576,6 +1751,111 @@ const UpdateCenterModal = ({ user, trainer, stables, onClose, onSuccess }) => {
                         {isSubmitting ? 'Saving...' : 'Save Changes'}
                     </button>
                 </form>
+            </div>
+        </div>
+    );
+};
+
+// ─── Delete Confirm Modal ─────────────────────────────────────────────────────
+const DeleteConfirmModal = ({ userName, onCancel, onConfirm }) => {
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const handleConfirm = async () => {
+        setIsDeleting(true);
+        await onConfirm();
+        setIsDeleting(false);
+    };
+
+    return (
+        <div
+            className="fixed inset-0 z-[200] flex items-center justify-center"
+            style={{ background: 'rgba(10,10,20,0.55)', backdropFilter: 'blur(6px)' }}
+            onClick={onCancel}
+        >
+            <div
+                className="relative bg-white rounded-[28px] shadow-2xl w-[420px] p-8 flex flex-col items-center"
+                style={{
+                    boxShadow: '0 32px 80px rgba(150,76,46,0.18), 0 2px 20px rgba(0,0,0,0.10)',
+                    animation: 'deleteModalIn 0.22s cubic-bezier(.22,1,.36,1)'
+                }}
+                onClick={(e) => e.stopPropagation()}
+            >
+                <style>{`
+                    @keyframes deleteModalIn {
+                        from { opacity: 0; transform: scale(0.88) translateY(24px); }
+                        to   { opacity: 1; transform: scale(1) translateY(0); }
+                    }
+                    @keyframes deleteIconPulse {
+                        0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.18); }
+                        50%       { box-shadow: 0 0 0 12px rgba(239,68,68,0.07); }
+                    }
+                `}</style>
+
+                {/* Close button */}
+                <button
+                    onClick={onCancel}
+                    className="absolute top-5 right-5 p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                    <X className="w-5 h-5" />
+                </button>
+
+                {/* Icon */}
+                <div
+                    className="w-[72px] h-[72px] rounded-[20px] bg-red-50 border border-red-100 flex items-center justify-center mb-5"
+                    style={{ animation: 'deleteIconPulse 2s ease-in-out infinite' }}
+                >
+                    <AlertTriangle className="w-8 h-8 text-red-500" strokeWidth={2} />
+                </div>
+
+                {/* Title */}
+                <h2 className="text-[22px] font-black text-[#1e2330] mb-2 text-center leading-snug">
+                    Delete User?
+                </h2>
+
+                {/* Body */}
+                <p className="text-[14px] font-semibold text-gray-500 text-center leading-relaxed mb-1">
+                    You are about to permanently delete
+                </p>
+                <p className="text-[16px] font-black text-[#964C2E] text-center mb-1">
+                    &ldquo;{userName}&rdquo;
+                </p>
+                <p className="text-[13px] font-semibold text-gray-400 text-center mb-7">
+                    This action <span className="text-red-500 font-bold">cannot be undone</span>. All associated data will be permanently removed.
+                </p>
+
+                {/* Divider */}
+                <div className="w-full h-px bg-gray-100 mb-6" />
+
+                {/* Actions */}
+                <div className="flex gap-3 w-full">
+                    <button
+                        onClick={onCancel}
+                        disabled={isDeleting}
+                        className="flex-1 py-3.5 rounded-2xl border-2 border-gray-200 text-[#1e2330] text-[14px] font-black hover:bg-gray-50 transition-all active:scale-95 disabled:opacity-50"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={handleConfirm}
+                        disabled={isDeleting}
+                        className="flex-1 py-3.5 rounded-2xl bg-red-500 hover:bg-red-600 text-white text-[14px] font-black shadow-lg shadow-red-500/20 transition-all active:scale-95 disabled:opacity-60 flex items-center justify-center gap-2"
+                    >
+                        {isDeleting ? (
+                            <>
+                                <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                                </svg>
+                                Deleting...
+                            </>
+                        ) : (
+                            <>
+                                <Trash2 className="w-4 h-4" />
+                                Yes, Delete
+                            </>
+                        )}
+                    </button>
+                </div>
             </div>
         </div>
     );

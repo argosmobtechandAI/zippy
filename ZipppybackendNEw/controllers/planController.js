@@ -187,3 +187,63 @@ export const verifyRazorPayOrder = async (req, res) => {
         res.status(500).json({ success: false, message: `Error: ${error.message}` });
     }
 };
+
+export const assignPlanToRider = async (req, res) => {
+    const { data } = req.body;
+    const { userId, planId, startDate } = data;
+
+    try {
+        // Fetch plan
+        const { data: plan, error: planError } = await supabase.from('plan').select('*').eq('id', planId).limit(1);
+        if (planError || !plan || !plan.length) {
+            return res.status(404).json({ success: false, message: 'Plan not found' });
+        }
+
+        // Fetch user
+        const { data: user, error: userError } = await supabase.from('users').select('*').eq('id', userId).limit(1);
+        if (userError || !user || !user.length) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        const selectedPlan = plan[0];
+        const validityMonths = Number(selectedPlan.validity) || 1;
+        const start = startDate ? new Date(startDate) : new Date();
+        const endDate = addMonths(start, validityMonths);
+        const endDateStr = endDate.toISOString().split('T')[0];
+
+        // Update rider record with plan info + session count
+        const { error: riderUpdateError } = await supabase
+            .from('rider')
+            .update({
+                plan: selectedPlan,
+                plan_end_date: endDateStr,
+                session_count: selectedPlan.sessions_count
+            })
+            .eq('user_id', userId);
+
+        if (riderUpdateError) throw riderUpdateError;
+
+        // Create revenue record (free admin assignment - amount 0)
+        await supabase.from('revenue').insert({
+            amount: 0,
+            type: 'plan',
+            date: new Date().toISOString(),
+            purchaserId: userId,
+            purchaseType: 'admin_assign',
+            planId: planId,
+            plan_key: `admin_${Date.now()}`,
+            status: 'Active',
+            end_date: endDateStr
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: `Plan "${selectedPlan.name}" assigned successfully`,
+            planEndDate: endDateStr,
+            plan: selectedPlan
+        });
+    } catch (error) {
+        console.error('ASSIGN PLAN ERROR:', error);
+        return res.status(500).json({ success: false, message: `Error: ${error.message}` });
+    }
+};
