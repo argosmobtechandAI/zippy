@@ -60,6 +60,13 @@ export default function DashboardProfileScreen() {
 
   const walletBalance = (rider?.wallet || user?.riderWallet || 0).toLocaleString();
 
+  const getInitials = (name: string) => {
+    if (!name) return 'U';
+    const words = name.trim().split(/\s+/);
+    if (words.length === 1) return words[0].substring(0, 1).toUpperCase();
+    return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F5EDDF' }}>
 
@@ -85,11 +92,17 @@ export default function DashboardProfileScreen() {
         {/* Avatar + Name Hero */}
         <View style={{ alignItems: 'center', paddingTop: 16, paddingBottom: 32, paddingHorizontal: 24 }}>
           <View style={{ position: 'relative', marginBottom: 20 }}>
-            <View style={{ width: 110, height: 110, borderRadius: 55, borderWidth: 5, borderColor: '#fff', shadowColor: '#85431E', shadowOpacity: 0.15, shadowRadius: 16, overflow: 'hidden', backgroundColor: '#fff' }}>
-              <Image
-                source={{ uri: user?.profilePicture ? (user.profilePicture.startsWith('http') ? user.profilePicture : `${Config.API_BASE_URL.replace('/api', '')}${user.profilePicture}`) : 'https://images.unsplash.com/photo-1579975002161-0f4db23932e6?auto=format&fit=crop&w=300&q=80' }}
-                style={{ width: '100%', height: '100%' }}
-              />
+            <View style={{ width: 110, height: 110, borderRadius: 55, borderWidth: 5, borderColor: '#fff', shadowColor: '#85431E', shadowOpacity: 0.15, shadowRadius: 16, overflow: 'hidden', backgroundColor: '#FAEDDD', alignItems: 'center', justifyContent: 'center' }}>
+              {user?.profilePicture ? (
+                <Image
+                  source={{ uri: user.profilePicture.startsWith('http') ? user.profilePicture : `${Config.API_BASE_URL.replace('/api', '')}${user.profilePicture}` }}
+                  style={{ width: '100%', height: '100%' }}
+                />
+              ) : (
+                <Text style={{ fontSize: 40, fontWeight: '800', color: '#85431E', letterSpacing: 2 }}>
+                  {getInitials(user?.name)}
+                </Text>
+              )}
             </View>
             <View style={{ position: 'absolute', bottom: 2, right: 2, width: 34, height: 34, borderRadius: 17, backgroundColor: '#DA7347', borderWidth: 3, borderColor: '#fff', alignItems: 'center', justifyContent: 'center' }}>
               <Check color="white" size={16} strokeWidth={3} />
@@ -107,22 +120,22 @@ export default function DashboardProfileScreen() {
           </Text>
         </View>
 
-        {/* Wallet Card – read only */}
+        {/* Total Rides Card – replacing wallet */}
         <View style={{ marginHorizontal: 20, marginBottom: 20, backgroundColor: '#5C2E0E', borderRadius: 24, padding: 20 }}>
-          <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 10, fontWeight: '700', letterSpacing: 2.5, textTransform: 'uppercase', marginBottom: 6 }}>Your Wallet Balance</Text>
+          <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 10, fontWeight: '700', letterSpacing: 2.5, textTransform: 'uppercase', marginBottom: 6 }}>Total Rides Left</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', marginRight: 14 }}>
-              <Wallet color="#DA7347" size={22} />
+              <Star color="#DA7347" size={22} />
             </View>
-            <Text style={{ fontSize: 36, fontWeight: '800', color: '#fff', letterSpacing: -0.5 }}>₹{walletBalance}</Text>
+            <Text style={{ fontSize: 36, fontWeight: '800', color: '#fff', letterSpacing: -0.5 }}>{rider?.session_count ?? rider?.sessionCount ?? 0}</Text>
           </View>
-          <Text style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, marginTop: 10 }}>Contact your center admin to top up your wallet.</Text>
+          <Text style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, marginTop: 10 }}>Contact your center admin to renew your plan.</Text>
         </View>
 
         {/* Stats Row */}
         <View style={{ flexDirection: 'row', paddingHorizontal: 20, marginBottom: 24, gap: 10 }}>
           {[
-            { label: 'Total Rides', value: rider?.session_count ?? rider?.sessionCount ?? 0 },
+            { label: 'Wallet', value: `₹${walletBalance}` },
             { label: 'Trophies', value: rider?.trophies?.length || 0 },
             { label: 'Safety Score', value: `${rider?.safetyBriefing?.length || 100}%` },
           ].map((stat, i) => (

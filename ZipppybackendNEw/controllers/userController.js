@@ -555,6 +555,11 @@ export const deleteUser = async (req, res) => {
             return res.status(404).json({ message: 'User not found', success: false });
         }
 
+        // Delete related role records to prevent foreign key violations
+        await supabase.from('rider').delete().eq('user_id', id);
+        await supabase.from('trainers').delete().eq('user_id', id);
+        await supabase.from('vet').delete().eq('user_id', id);
+
         // Delete the user
         const { error: deleteError } = await supabase
             .from('users')

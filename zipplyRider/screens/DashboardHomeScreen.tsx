@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, RefreshControl } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, RefreshControl, Image } from 'react-native';
+import { Config } from '../api/config';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Leaf, Bell, AlertTriangle, Calendar, Clock, Activity, Plus, User } from 'lucide-react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -131,6 +132,13 @@ export default function DashboardHomeScreen() {
     return notifs.filter((n: any) => n.unread).length;
   }, [user?.notifications]);
 
+  const getInitials = (name: string) => {
+    if (!name) return 'U';
+    const words = name.trim().split(/\s+/);
+    if (words.length === 1) return words[0].substring(0, 1).toUpperCase();
+    return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-[#F5EDDF]">
       <ScrollView 
@@ -149,8 +157,17 @@ export default function DashboardHomeScreen() {
 
         {/* Header */}
         <View className="flex-row justify-between items-start mb-8">
-          <View className="w-16 h-16 bg-[#e0ebd5] rounded-xl items-center justify-center">
-            <Leaf color="#2c5f43" size={32} />
+          <View className="w-16 h-16 bg-[#FAEDDD] rounded-xl items-center justify-center overflow-hidden shadow-sm border-2 border-white">
+            {user?.profilePicture ? (
+              <Image
+                source={{ uri: user.profilePicture.startsWith('http') ? user.profilePicture : `${Config.API_BASE_URL.replace('/api', '')}${user.profilePicture}` }}
+                style={{ width: '100%', height: '100%' }}
+              />
+            ) : (
+              <Text className="text-2xl font-bold text-[#8C4A28] tracking-wider">
+                {getInitials(user?.name)}
+              </Text>
+            )}
           </View>
           <TouchableOpacity onPress={() => navigation.navigate("Notification")} className="p-2 relative pt-2">
             <Bell color="#8C4A28" size={28} />
@@ -233,18 +250,18 @@ export default function DashboardHomeScreen() {
                 </View>
                 <View className="h-[1px] bg-[#f1f5f9] mb-4" />
                 <View className="flex-row justify-between items-center">
-                  <View className="flex-row items-center flex-1">
+                  <View className="flex-row items-center flex-1 pr-2">
                     <View className="w-10 h-10 bg-[#FAEDDD] rounded-full mr-3 items-center justify-center">
                       <Activity color="#8C4A28" size={20} />
                     </View>
-                    <View>
+                    <View className="flex-1">
                       <Text className="text-[#94a3b8] text-[8px] font-bold tracking-widest uppercase mb-1">Session</Text>
-                      <Text className="text-[#8C4A28] font-bold text-sm">{ride.title}</Text>
+                      <Text className="text-[#8C4A28] font-bold text-sm" numberOfLines={2}>{ride.title}</Text>
                     </View>
                   </View>
                   <View className="items-end flex-1 pl-4 border-l border-[#f1f5f9]">
                     <Text className="text-[#94a3b8] text-[8px] font-bold tracking-widest uppercase mb-1">Location</Text>
-                    <Text className="text-[#8C4A28] font-bold text-sm">{ride.location}</Text>
+                    <Text className="text-[#8C4A28] font-bold text-sm text-right" numberOfLines={2}>{ride.location}</Text>
                   </View>
                 </View>
               </TouchableOpacity>
@@ -295,18 +312,18 @@ export default function DashboardHomeScreen() {
                 </View>
                 <View className="h-[1px] bg-[#f1f5f9] mb-4" />
                 <View className="flex-row justify-between items-center">
-                  <View className="flex-row items-center flex-1">
+                  <View className="flex-row items-center flex-1 pr-2">
                     <View className="w-10 h-10 bg-[#FAEDDD] rounded-full mr-3 items-center justify-center">
                       <Activity color="#8C4A28" size={20} />
                     </View>
-                    <View>
+                    <View className="flex-1">
                       <Text className="text-[#94a3b8] text-[8px] font-bold tracking-widest uppercase mb-1">Session</Text>
-                      <Text className="text-[#8C4A28] font-bold text-sm">{ride.title}</Text>
+                      <Text className="text-[#8C4A28] font-bold text-sm" numberOfLines={2}>{ride.title}</Text>
                     </View>
                   </View>
                   <View className="items-end flex-1 pl-4 border-l border-[#f1f5f9]">
                     <Text className="text-[#94a3b8] text-[8px] font-bold tracking-widest uppercase mb-1">Location</Text>
-                    <Text className="text-[#8C4A28] font-bold text-sm">{ride.location}</Text>
+                    <Text className="text-[#8C4A28] font-bold text-sm text-right" numberOfLines={2}>{ride.location}</Text>
                   </View>
                 </View>
               </TouchableOpacity>

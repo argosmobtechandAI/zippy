@@ -1,4 +1,4 @@
-export const baseUrl = "http://localhost:3000/api";
+export const baseUrl = "https://api.zippyapp.online/api";
 
 export const loginApi = `${baseUrl}/users/login`;
 export const logoutApi = `${baseUrl}/auth/logout`;

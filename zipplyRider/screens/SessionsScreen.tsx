@@ -100,11 +100,29 @@ export default function SessionsScreen() {
     }
   };
 
+  const parseTimeFromTitleOrTiming = (session: any) => {
+    const title = (session.title || '').toLowerCase();
+    let isPM = title.includes('pm') || title.includes('evening') || title.includes('afternoon');
+    let isAM = title.includes('am') || title.includes('morning');
+    
+    const timing = session.timing || '';
+    const startStr = timing.split('-')[0]?.trim(); 
+    let [hours, minutes] = (startStr || "00:00").split(':').map(Number);
+    
+    if (isNaN(hours)) hours = 0;
+    if (isNaN(minutes)) minutes = 0;
+    
+    if (isPM && hours < 12) hours += 12;
+    else if (isAM && hours === 12) hours = 0;
+    
+    return hours * 60 + minutes;
+  };
+
   const filteredSessions = sessions.filter(s => {
     if (!s.date) return false;
     if (s.date === "daily") return true;
     return s.date === selectedDate;
-  });
+  }).sort((a, b) => parseTimeFromTitleOrTiming(a) - parseTimeFromTitleOrTiming(b));
 
   return (
     <SafeAreaView className="flex-1 bg-[#F5EDDF]">

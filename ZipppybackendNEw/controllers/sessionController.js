@@ -32,6 +32,11 @@ const mapToDb = (data) => {
     if (dbData.batchsId !== undefined) { dbData.batchs_id = dbData.batchsId; delete dbData.batchsId; }
     if (dbData.joiningAmount !== undefined) { dbData.joining_amount = dbData.joiningAmount; delete dbData.joiningAmount; }
     if (dbData.joining_amount === undefined && data.joining_amount !== undefined) { dbData.joining_amount = data.joining_amount; }
+    
+    // Prevent NOT NULL constraint violations by removing null values
+    if (dbData.horse === null) delete dbData.horse;
+    if (dbData.trainers === null) delete dbData.trainers;
+    
     return dbData;
 };
 

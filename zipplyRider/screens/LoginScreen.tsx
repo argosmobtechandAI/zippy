@@ -173,7 +173,7 @@ export default function LoginScreen() {
               </View>
 
               <Text className="text-[#1a202c] font-semibold text-xs mb-2">Password</Text>
-              <View className="flex-row items-center border border-[#e2e8f0] rounded-xl px-4 py-3 mb-6 bg-[#f8fafc]">
+              <View className="flex-row items-center border border-[#e2e8f0] rounded-xl px-4 py-3 mb-2 bg-[#f8fafc]">
                 <View className="mr-2 opacity-50">
                   <Lock color="#94a3b8" size={20} />
                 </View>
@@ -189,6 +189,13 @@ export default function LoginScreen() {
                   {showPassword ? <EyeOff color="#94a3b8" size={20} /> : <Eye color="#94a3b8" size={20} />}
                 </TouchableOpacity>
               </View>
+
+              <TouchableOpacity 
+                onPress={() => navigation.navigate("ForgotPassword")}
+                className="self-end mb-6"
+              >
+                <Text className="text-[#8C4A28] font-semibold text-xs">Forgot Password?</Text>
+              </TouchableOpacity>
 
               <TouchableOpacity
                 className="w-full bg-[#8C4A28] py-4 rounded-xl items-center flex-row justify-center mb-4"

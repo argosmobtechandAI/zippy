@@ -113,7 +113,7 @@ const Revenue = () => {
         const payload = {
 
             name: planForm.name,
-            sessions_count: Number(planForm.sessionsCount),
+            sessions_count: 0,
             validity: planForm.validity,
             amount: Number(planForm.amount),
             level: planForm.level,
@@ -636,17 +636,7 @@ const Revenue = () => {
                                         placeholder="e.g. Beginner, Intermediate"
                                     />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Number of Sessions</label>
-                                    <input
-                                        type="number"
-                                        required
-                                        value={planForm.sessionsCount}
-                                        onChange={e => setPlanForm({ ...planForm, sessionsCount: e.target.value })}
-                                        className="w-full bg-[#F3F1EF] rounded-xl py-3 px-4 outline-none text-sm focus:bg-white focus:ring-2 focus:ring-[#964C2E] transition-all"
-                                        placeholder="e.g. 8"
-                                    />
-                                </div>
+
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-2">Validity(in Months)</label>
                                     <input
