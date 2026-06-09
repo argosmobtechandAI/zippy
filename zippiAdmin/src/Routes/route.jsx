@@ -15,6 +15,7 @@ import LeaveRequests from "../pages/leaveRequests"
 import AttendanceReport from "../pages/attendanceReport"
 import Categories from "../pages/categories"
 import MedicalRecords from "../pages/medicalRecords"
+import Marketing from "../pages/Marketing"
 
 const ProtectedRoute = ({ children }) => {
     const token = localStorage.getItem('token');
@@ -57,6 +58,7 @@ const AppRoutes = () => {
                 <Route path="help-center" element={<HelpCenter />} />
                 <Route path="categories" element={<Categories />} />
                 <Route path="medical-records" element={<MedicalRecords />} />
+                <Route path="marketing" element={<Marketing />} />
             </Route>
 
             {/* Catch all redirect */}

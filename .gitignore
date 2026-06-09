@@ -8,3 +8,7 @@
 **/dist/
 **/build/
 **/*.log
+
+# Firebase Secrets
+serviceAccountKey.json
+google-services.json

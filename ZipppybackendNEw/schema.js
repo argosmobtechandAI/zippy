@@ -15,6 +15,7 @@ export const userTable = pgTable("users", {
   parentName: varchar("parent_name", { length: 255 }),
   emergencyContact: varchar("emergency_contact", { length: 20 }),
   status: varchar("status", { length: 20 }).default("ACTIVE"),
+  fcmToken: varchar("fcm_token", { length: 255 }),
   notifications: jsonb("notifications").default([]),
   createdAt: varchar("created_at", { length: 50 }).default(new Date().toISOString()),
   profilePicture: varchar("profile_picture", { length: 255 }),
@@ -93,6 +94,7 @@ export const riderTable = pgTable("rider", {
   riderType: varchar("rider_type", { length: 50 }).default("Regular"),
   code: varchar("code", { length: 50 }).notNull().unique(),
   planEndDate: varchar("plan_end_date", { length: 50 }).default(""),
+  stableId: uuid("stable_id").references(() => stableTable.id),
 });
 
 export const planTable = pgTable("plan", {
@@ -179,5 +181,14 @@ export const helpCenterTable = pgTable("help_center", {
   subject: varchar("subject", { length: 255 }).notNull(),
   message: varchar("message", { length: 2000 }).notNull(),
   status: varchar("status", { length: 50 }).default("Open"),
+  createdAt: varchar("created_at", { length: 50 }).default(new Date().toISOString()),
+});
+
+export const broadcastNotificationsTable = pgTable("broadcast_notifications", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  title: varchar("title", { length: 255 }).notNull(),
+  desc: varchar("desc", { length: 2000 }).notNull(),
+  targetType: varchar("target_type", { length: 50 }),
+  image: varchar("image", { length: 255 }),
   createdAt: varchar("created_at", { length: 50 }).default(new Date().toISOString()),
 });

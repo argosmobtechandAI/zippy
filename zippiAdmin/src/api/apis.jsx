@@ -1,5 +1,5 @@
-export const baseUrl = import.meta.env.VITE_API_BASE_URL ? `${import.meta.env.VITE_API_BASE_URL}/api` : "https://api.zippyapp.online/api";
-// export const baseUrl = "http://localhost:3000/api";
+// export const baseUrl = import.meta.env.VITE_API_BASE_URL ? `${import.meta.env.VITE_API_BASE_URL}/api` : "https://api.zippyapp.online/api";
+export const baseUrl = "http://localhost:3000/api";
 export const getAllUsersApi = `${baseUrl}/users/all`;
 export const getUserApi = `${baseUrl}/users`;
 export const createUserApi = `${baseUrl}/users`;
@@ -8,6 +8,9 @@ export const updateUserApi = `${baseUrl}/users`;
 export const deleteUserApi = `${baseUrl}/users`;
 export const notifyUserApi = (userId) => `${baseUrl}/users/notify/${userId}`;
 export const notifyAllUsersApi = `${baseUrl}/users/notify-all`;
+export const getBroadcastsApi = `${baseUrl}/users/broadcasts`;
+export const deleteBroadcastApi = (id) => `${baseUrl}/users/broadcasts/${id}`;
+export const uploadNotificationImageApi = `${baseUrl}/users/upload-notification-image`;
 export const updateUserLeaveApi = `${baseUrl}/users/userLeave`
 export const markNotificationsAsReadApi = (userId) => `${baseUrl}/users/mark-as-read/${userId}`;
 export const getAdminNotificationsApi = `${baseUrl}/admin-notifications`;

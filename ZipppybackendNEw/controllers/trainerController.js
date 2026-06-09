@@ -1,4 +1,5 @@
 import { supabase } from '../supabaseClient.js';
+import { sendPushToUser } from '../firebaseAdmin.js';
 
 export const updateTrainer = async (req, res) => {
     try {

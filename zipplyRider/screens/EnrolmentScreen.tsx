@@ -101,7 +101,7 @@ export default function EnrolmentScreen() {
                             <View className="flex-1 justify-center">
                                 <Text className="text-[#1a202c] font-extrabold text-[15px] mb-1">Cancellation Policy</Text>
                                 <Text className="text-[#64748b] text-[12px] leading-4 pr-2">
-                                    Free cancellation up to 24 hours before your scheduled session.
+                                    Bookings and cancellations are allowed until 8:00 PM on the previous day. After this cutoff time, no booking changes will be permitted. No-shows will result in session deduction.
                                 </Text>
                             </View>
                         </View>

@@ -14,7 +14,7 @@ export default function ProfileScreen() {
   const { stables } = useSelector((state) => state.getData)
 
   const [date, setDate] = useState(new Date())
-  const [formData, setFormData] = useState({ name: "", mobile: "", email: "", password: "", type: "rider", dob: "", age: "", code: "", weight: 0, parent_name: "", emergency_contact: "", allergies: "", medical: "", level: "Novice", instructions: "", riderType: "Regular" })
+  const [formData, setFormData] = useState({ name: "", mobile: "", email: "", password: "", type: "rider", dob: "", age: "", code: "", weight: 0, parent_name: "", emergency_contact: "", allergies: "", medical: "", level: "Novice", instructions: "", riderType: "Regular", stableId: null })
   const [dateTimePicker, setDateTimePicker] = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
@@ -265,7 +265,7 @@ export default function ProfileScreen() {
                       <TouchableOpacity
                         key={stable._id || stable.code}
                         onPress={() => {
-                          setFormData((prev) => ({ ...prev, code: stable.code }));
+                          setFormData((prev) => ({ ...prev, code: stable.code, stableId: stable.id }));
                           setDropdownOpen(false);
                         }}
                         className={`px-4 py-3 flex-col justify-center ${index !== stables.length - 1 ? 'border-b border-[#f3ebdf]' : ''

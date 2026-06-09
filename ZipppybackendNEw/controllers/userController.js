@@ -1,6 +1,8 @@
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import { supabase } from '../supabaseClient.js';
+import { sendPushToUser } from '../firebaseAdmin.js';
+import { sendPushNotification } from '../firebaseAdmin.js';
 
 let bcrypt;
 try {
@@ -66,6 +68,7 @@ export const getAllUsers = async (req, res) => {
             instructions: user.rider && user.rider.length > 0 ? user.rider[0].instructions : "",
             plan: user.rider && user.rider.length > 0 ? (user.rider[0].plan || null) : null,
             planEndDate: user.rider && user.rider.length > 0 ? (user.rider[0].plan_end_date || null) : null,
+            stableId: (user.rider && user.rider.length > 0 && user.rider[0].stable_id) ? user.rider[0].stable_id : (user.trainers && user.trainers.length > 0 ? user.trainers[0].stable_id : null),
             title: user.trainers && user.trainers.length > 0 ? user.trainers[0].title : "",
             experience: user.trainers && user.trainers.length > 0 ? user.trainers[0].experience : ""
         }));
@@ -162,6 +165,7 @@ export const getUser = async (req, res) => {
             allergies: rawUser.rider && rawUser.rider.length > 0 ? rawUser.rider[0].allergies : "",
             medical: rawUser.rider && rawUser.rider.length > 0 ? rawUser.rider[0].medical : "",
             instructions: rawUser.rider && rawUser.rider.length > 0 ? rawUser.rider[0].instructions : "",
+            stableId: (rawUser.rider && rawUser.rider.length > 0 && rawUser.rider[0].stable_id) ? rawUser.rider[0].stable_id : (rawUser.trainers && rawUser.trainers.length > 0 ? rawUser.trainers[0].stable_id : null),
             title: rawUser.trainers && rawUser.trainers.length > 0 ? rawUser.trainers[0].title : "",
             experience: rawUser.trainers && rawUser.trainers.length > 0 ? rawUser.trainers[0].experience : ""
         };
@@ -236,7 +240,7 @@ export const createUser = async (req, res) => {
             const { data: riders } = await supabase.from('rider').select('id');
             const newCode = `${code}-${((riders ? riders.length : 0) + 1001).toString()}`;
             const { data: newRider, error: riderError } = await supabase.from('rider').insert({ 
-                user_id: newUser[0].id, allergies, medical, level, instructions, rider_type: riderType, code: newCode 
+                user_id: newUser[0].id, allergies, medical, level, instructions, rider_type: riderType, code: newCode, stable_id: stableId || null 
             }).select();
             if (riderError || !newRider) {
                 return res.status(400).json({ message: 'Error creating rider', success: false, detail: riderError });
@@ -457,6 +461,7 @@ export const updateUser = async (req, res) => {
                 if(usr && usr.length > 0) {
                      const notifs = usr[0].notifications || [];
                      await supabase.from('users').update({ notifications: [...notifs, newNotif] }).eq('id', id);
+                        await sendPushToUser(id, newNotif.title, newNotif.desc, { type: newNotif.type });
                 }
             }
         } else if (user.type === "vet") {
@@ -713,6 +718,7 @@ export const notifyUser = async (req, res) => {
         if (user && user.length > 0) {
             const notifs = user[0].notifications || [];
             await supabase.from('users').update({ notifications: [...notifs, notification] }).eq('id', id);
+                        await sendPushToUser(id, notification.title, notification.desc, { type: notification.type });
         }
 
         res.status(200).json({ success: true, message: 'Notification sent successfully' });
@@ -722,30 +728,131 @@ export const notifyUser = async (req, res) => {
 };
 
 export const notifyAllUsers = async (req, res) => {
-    const { title, desc, type } = req.body.data;
+    const { title, desc, type, image, targetType } = req.body.data;
 
     try {
-        const notification = {
-            id: Math.random().toString(36).substr(2, 9),
+        // 1. Insert into broadcast_notifications table to track it globally
+        const { data: broadcastRecord, error: broadcastError } = await supabase.from('broadcast_notifications').insert({
             title,
             desc,
-            type: type || 'info',
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            unread: true,
-            date: new Date().toISOString()
-        };
+            target_type: targetType || null,
+            image: image || null
+        }).select();
 
-        const { data: users } = await supabase.from('users').select('id, notifications');
+        if (broadcastError) {
+            console.error("Failed to insert broadcast_notifications:", broadcastError);
+            throw broadcastError;
+        }
+
+        const broadcastId = broadcastRecord[0].id;
+
+        // 2. Fetch FCM tokens for the target audience to send Push Notifications
+        let query = supabase.from('users').select('fcm_token, type');
+        const { data: users } = await query;
+        
         if (users) {
+            const tokens = [];
             for (const user of users) {
-                const notifs = user.notifications || [];
-                await supabase.from('users').update({ notifications: [...notifs, notification] }).eq('id', user.id);
+                // If targetType is specified, only notify users of that type
+                if (targetType && user.type !== targetType) continue;
+                if (user.fcm_token) {
+                    tokens.push(user.fcm_token);
+                }
+            }
+
+            if (tokens.length > 0) {
+                await sendPushNotification(tokens, title, desc, { type: type || 'marketing', broadcastId }, image);
             }
         }
 
-        res.status(200).json({ success: true, message: 'Global broadcast signal dispatched successfully' });
+        res.status(200).json({ success: true, message: 'Global broadcast signal dispatched successfully', broadcast: broadcastRecord[0] });
     } catch (error) {
         res.status(500).json({ success: false, message: `Error: ${error.message}` });
+    }
+};
+
+export const getBroadcastNotifications = async (req, res) => {
+    try {
+        const { data: broadcasts, error } = await supabase
+            .from('broadcast_notifications')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        res.status(200).json({ success: true, broadcasts });
+    } catch (error) {
+        res.status(500).json({ success: false, message: `Error: ${error.message}` });
+    }
+};
+
+export const deleteBroadcastNotification = async (req, res) => {
+    const { id } = req.params;
+    try {
+        // 1. Delete from broadcast_notifications table
+        const { error: deleteError } = await supabase.from('broadcast_notifications').delete().eq('id', id);
+        if (deleteError) throw deleteError;
+
+        // 2. Remove the notification from every user's notifications array
+        const { data: users } = await supabase.from('users').select('id, notifications');
+        if (users) {
+            for (const user of users) {
+                if (user.notifications && user.notifications.length > 0) {
+                    const filteredNotifs = user.notifications.filter(n => n.id !== id);
+                    // Only update if something was actually removed
+                    if (filteredNotifs.length !== user.notifications.length) {
+                        await supabase.from('users').update({ notifications: filteredNotifs }).eq('id', user.id);
+                    }
+                }
+            }
+        }
+
+        res.status(200).json({ success: true, message: 'Broadcast notification deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: `Error: ${error.message}` });
+    }
+};
+
+export const uploadNotificationImage = async (req, res) => {
+    try {
+        const file = req.file;
+        if (!file) {
+            return res.status(400).json({ success: false, message: "No file provided" });
+        }
+
+        let fileBuffer;
+        if (file.buffer) {
+            // Memory storage
+            fileBuffer = file.buffer;
+        } else if (file.path) {
+            // Disk storage fallback
+            const fs = await import('fs');
+            fileBuffer = fs.readFileSync(file.path);
+        } else {
+            return res.status(400).json({ success: false, message: "File processing error" });
+        }
+
+        const fileName = `notifications/${Date.now()}_${file.originalname}`;
+
+        const { data, error } = await supabase.storage.from('zippy').upload(fileName, fileBuffer, {
+            contentType: file.mimetype
+        });
+
+        if (error) throw error;
+
+        const { data: publicUrlData } = supabase.storage.from('zippy').getPublicUrl(fileName);
+        const url = publicUrlData.publicUrl;
+
+        // Cleanup if disk storage was used
+        if (file.path) {
+            const fs = await import('fs');
+            if (fs.existsSync(file.path)) {
+                fs.unlinkSync(file.path);
+            }
+        }
+
+        return res.status(200).json({ success: true, message: "Image uploaded successfully", url });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: "Failed to upload image: " + error.message });
     }
 };
 
@@ -791,6 +898,7 @@ export const updateLeaveRequest = async (req, res) => {
                     date: new Date().toISOString()
                 };
                 await supabase.from('users').update({ notifications: [...notifs, newNotif] }).eq('id', rUserId);
+                        await sendPushToUser(rUserId, newNotif.title, newNotif.desc, { type: newNotif.type });
             }
         } catch (notifErr) {
             console.error("Rider notification failed for leave request update:", notifErr);
@@ -837,6 +945,7 @@ export const updateTrainerLeaveRequest = async (req, res) => {
                 date: new Date().toISOString()
             };
             const { error: notifErr } = await supabase.from('users').update({ notifications: [...notifs, newNotif] }).eq('id', userId);
+                        await sendPushToUser(userId, newNotif.title, newNotif.desc, { type: newNotif.type });
             if (notifErr) throw notifErr;
         } catch (notifErr) {
             console.error("User notification failed for leave request update:", notifErr);

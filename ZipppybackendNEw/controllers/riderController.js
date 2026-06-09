@@ -1,4 +1,5 @@
 import { supabase } from '../supabaseClient.js';
+import { sendPushToUser } from '../firebaseAdmin.js';
 
 export const getRider = async (req, res) => {
     const userId = req.userId;
@@ -149,6 +150,7 @@ export const enrollPack = async (req, res) => {
         if (user && user.length > 0) {
             const notifs = user[0].notifications || [];
             await supabase.from('users').update({ notifications: [...notifs, notification] }).eq('id', userId);
+                        await sendPushToUser(userId, notification.title, notification.desc, { type: notification.type });
 
             // Send admin notification
             try {

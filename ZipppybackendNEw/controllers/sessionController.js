@@ -1,4 +1,6 @@
 import { supabase } from '../supabaseClient.js';
+import { sendPushToUser } from '../firebaseAdmin.js';
+import jwt from 'jsonwebtoken';
 
 // Helper to map DB snake_case to frontend camelCase
 const mapToClient = (data) => {
@@ -93,6 +95,7 @@ export const createSession = async (req, res) => {
                         };
                         const notifs = user[0].notifications || [];
                         await supabase.from('users').update({ notifications: [...notifs, newNotif] }).eq('id', userId);
+                        await sendPushToUser(userId, newNotif.title, newNotif.desc, { type: newNotif.type });
                     }
                 }
             } catch (notifError) {
@@ -111,6 +114,15 @@ export const getSessions = async (req, res) => {
         let { trainerId, riderId, location, horseId, includeArchived } = req.query;
         if (riderId) riderId = riderId.replace(/\/$/, "").trim();
         if (horseId) horseId = horseId.replace(/\/$/, "").trim();
+
+        if (!req.userId && req.headers && req.headers.authorization) {
+            try {
+                const tokenWithoutBearer = req.headers.authorization.split(' ')[1];
+                const decodedToken = jwt.verify(tokenWithoutBearer, process.env.JWT_SECRET);
+                req.userId = decodedToken.id;
+                req.userType = decodedToken.type;
+            } catch (err) { }
+        }
 
         let query = supabase.from('sessions').select('*');
 
@@ -151,10 +163,41 @@ export const getSessions = async (req, res) => {
         
         let filteredSessions = sessions;
         if (riderId) {
-            filteredSessions = sessions.filter(session => {
+            filteredSessions = filteredSessions.filter(session => {
                 if (!session.participants) return false;
                 return session.participants.some(p => p.riderId === riderId);
             });
+        }
+
+        // Apply stable_id filtering for logged-in riders
+        if (req.userType === 'rider' && req.userId) {
+            try {
+                const { data: riderProfile } = await supabase.from('rider').select('stable_id').eq('user_id', req.userId).limit(1);
+                if (riderProfile && riderProfile.length > 0 && riderProfile[0].stable_id) {
+                    const riderStableId = riderProfile[0].stable_id;
+                    
+                    // Fetch the stable name to match against session.location
+                    const { data: stableData } = await supabase.from('stable').select('name').eq('id', riderStableId).limit(1);
+                    const stableName = stableData && stableData.length > 0 ? stableData[0].name : null;
+                    
+                    // Fetch all trainers belonging to this stable
+                    const { data: stableTrainers } = await supabase.from('trainers').select('id').eq('stable_id', riderStableId);
+                    
+                    if ((stableTrainers && stableTrainers.length > 0) || stableName) {
+                        const validTrainerIds = new Set((stableTrainers || []).map(t => t.id));
+                        filteredSessions = filteredSessions.filter(session => {
+                            if (stableName && session.location === stableName) return true;
+                            if (session.trainers && validTrainerIds.has(session.trainers)) return true;
+                            return false;
+                        });
+                    } else {
+                        // If the stable has no trainers and no name, there are no valid sessions
+                        filteredSessions = [];
+                    }
+                }
+            } catch (riderFilterErr) {
+                console.error("Failed to filter sessions by rider stableId:", riderFilterErr);
+            }
         }
 
         return res.status(200).json({ success: true, sessions: filteredSessions.map(mapToClient) });
@@ -262,6 +305,7 @@ export const cancelBooking = async (req, res) => {
             };
             const notifs = userData && userData.length > 0 ? (userData[0].notifications || []) : [];
             await supabase.from('users').update({ notifications: [...notifs, riderNotif] }).eq('id', userId);
+                        await sendPushToUser(userId, riderNotif.title, riderNotif.desc, { type: riderNotif.type });
 
             // Trainer notification
             const trainerRowId = session[0].trainers;
@@ -281,6 +325,7 @@ export const cancelBooking = async (req, res) => {
                         date: new Date().toISOString()
                     };
                     await supabase.from('users').update({ notifications: [...tNotifs, trainerNotif] }).eq('id', trainerUserId);
+                        await sendPushToUser(trainerUserId, trainerNotif.title, trainerNotif.desc, { type: trainerNotif.type });
                 }
             }
         } catch (notifErr) {
@@ -429,6 +474,7 @@ export const updateSession = async (req, res) => {
                         date: new Date().toISOString()
                     };
                     await supabase.from('users').update({ notifications: [...tNotifs, trainerNotif] }).eq('id', trainerUserId);
+                        await sendPushToUser(trainerUserId, trainerNotif.title, trainerNotif.desc, { type: trainerNotif.type });
                 }
             }
         } catch (notifErr) {
@@ -489,6 +535,7 @@ export const deleteSession = async (req, res) => {
                         date: new Date().toISOString()
                     };
                     await supabase.from('users').update({ notifications: [...tNotifs, trainerNotif] }).eq('id', trainerUserId);
+                        await sendPushToUser(trainerUserId, trainerNotif.title, trainerNotif.desc, { type: trainerNotif.type });
                 }
             }
         } catch (notifErr) {
@@ -545,6 +592,7 @@ export const updateSessionStatus = async (req, res) => {
                         date: new Date().toISOString()
                     };
                     await supabase.from('users').update({ notifications: [...notifs, newNotif] }).eq('id', riderUserId);
+                        await sendPushToUser(riderUserId, newNotif.title, newNotif.desc, { type: newNotif.type });
 
                     // Trainer notification
                     const trainerRowId = session[0].trainers;
@@ -564,6 +612,7 @@ export const updateSessionStatus = async (req, res) => {
                                 date: new Date().toISOString()
                             };
                             await supabase.from('users').update({ notifications: [...tNotifs, trainerNotif] }).eq('id', trainerUserId);
+                        await sendPushToUser(trainerUserId, trainerNotif.title, trainerNotif.desc, { type: trainerNotif.type });
                         }
                     }
                 } catch (err) {
@@ -600,6 +649,7 @@ export const updateSessionStatus = async (req, res) => {
                         date: new Date().toISOString()
                     };
                     await supabase.from('users').update({ notifications: [...notifs, newNotif] }).eq('id', riderUserId);
+                        await sendPushToUser(riderUserId, newNotif.title, newNotif.desc, { type: newNotif.type });
 
                     // Trainer notification
                     const trainerRowId = session[0].trainers;
@@ -619,6 +669,7 @@ export const updateSessionStatus = async (req, res) => {
                                 date: new Date().toISOString()
                             };
                             await supabase.from('users').update({ notifications: [...tNotifs, trainerNotif] }).eq('id', trainerUserId);
+                        await sendPushToUser(trainerUserId, trainerNotif.title, trainerNotif.desc, { type: trainerNotif.type });
                         }
                     }
                 } catch (err) {
@@ -756,6 +807,7 @@ export const cancelFullSession = async (req, res) => {
                         };
                         const notifs = userData[0].notifications || [];
                         await supabase.from('users').update({ notifications: [...notifs, riderNotif] }).eq('id', userId);
+                        await sendPushToUser(userId, riderNotif.title, riderNotif.desc, { type: riderNotif.type });
                     }
                 }
             }
@@ -780,6 +832,7 @@ export const cancelFullSession = async (req, res) => {
                         date: new Date().toISOString()
                     };
                     await supabase.from('users').update({ notifications: [...tNotifs, trainerNotif] }).eq('id', trainerUserId);
+                        await sendPushToUser(trainerUserId, trainerNotif.title, trainerNotif.desc, { type: trainerNotif.type });
                 }
             }
         }

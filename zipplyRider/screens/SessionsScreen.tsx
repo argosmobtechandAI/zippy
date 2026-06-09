@@ -133,7 +133,7 @@ export default function SessionsScreen() {
             <ArrowLeft color="white" size={24} />
           </View>
         </TouchableOpacity>
-        <Text className="text-white font-bold text-lg">zippy Equestrian Center</Text>
+        <Text className="text-white font-bold text-lg">Zippy Equestrian Center</Text>
       </View>
 
       <ScrollView
@@ -220,7 +220,7 @@ export default function SessionsScreen() {
                   <View className="flex-row items-center justify-between pt-4 border-t border-[#f1f5f9]">
                     <View className="flex-row items-center flex-1 mr-2">
                       <Text className="text-[#8C4A28]/40 text-[10px] font-black uppercase tracking-widest mr-2">LOCATION</Text>
-                      <Text className="text-[#64748b] text-[11px] font-black uppercase truncate">{session.location}</Text>
+                      <Text className="text-[#64748b] text-[11px] font-black uppercase flex-1" numberOfLines={2}>{session.location}</Text>
                     </View>
                     <View className={`px-3 py-1.5 rounded-full border ${seatsLeft <= 2 ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
                       <Text className={`text-[9px] font-black uppercase tracking-widest ${seatsLeft <= 2 ? 'text-red-600' : 'text-green-600'}`}>

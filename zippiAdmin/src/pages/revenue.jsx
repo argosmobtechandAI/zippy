@@ -513,15 +513,17 @@ const Revenue = () => {
                                     </div>
                                     <h3 className="text-xl font-bold text-[#1e2330] mb-2">{plan.name}</h3>
                                     <div className="flex items-baseline gap-1 mb-6">
-                                        <span className="text-3xl font-bold text-[#964C2E]">₹{plan.amount}</span>
-                                        <span className="text-sm text-gray-500 font-medium">/ {plan.validity} months</span>
+                                        {plan.amount > 0 ? (
+                                            <>
+                                                <span className="text-3xl font-bold text-[#964C2E]">{plan.amount}</span>
+                                                <span className="text-sm text-gray-500 font-medium">/ {plan.validity} months</span>
+                                            </>
+                                        ) : (
+                                            <span className="text-3xl font-bold text-[#964C2E]">{plan.validity} months</span>
+                                        )}
                                     </div>
 
                                     <div className="space-y-3 mb-6">
-                                        <div className="flex items-center gap-3 text-sm text-gray-600">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-[#964C2E]"></div>
-                                            <span className="font-medium">{plan.sessions_count || plan.sessionsCount} Sessions included</span>
-                                        </div>
                                         {(plan.rules || []).map((rule, idx) => (
                                             <div key={idx} className="flex items-center gap-3 text-sm text-gray-600">
                                                 <div className="w-1.5 h-1.5 rounded-full bg-[#964C2E]"></div>

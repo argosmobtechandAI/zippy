@@ -6,6 +6,7 @@ import { Leaf, Bell, AlertTriangle, Calendar, Clock, Activity, Plus, User } from
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchRider, fetchRiderSessions, fetchUser } from '../redux/getDataSlice';
+import { setupFirebaseMessaging } from '../utils/firebaseUtils';
 
 export default function DashboardHomeScreen() {
   const { user, rider, sessions, loading } = useSelector((state: any) => state.getData)
@@ -45,6 +46,12 @@ export default function DashboardHomeScreen() {
       dispatch(fetchRiderSessions(user.riderId));
     }
   }, [dispatch, user?.riderId]);
+
+  useEffect(() => {
+    if (user?.id) {
+      setupFirebaseMessaging(user.id);
+    }
+  }, [user?.id]);
 
   console.log(user, rider, sessions, "dashboard data")
 

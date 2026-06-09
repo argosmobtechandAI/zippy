@@ -165,28 +165,38 @@ export default function CompetitiveRiderPacksScreen() {
                             </View>
                         ) : plans.map((pack) => {
                             const isActive = isPackActive(pack.name);
+                            const sessionsCount = pack.sessionsCount || pack.sessions_count || 0;
                             return (
                             <View
                                 key={pack.id}
                                 className={`bg-white rounded-[20px] p-5 mb-4 shadow-sm border ${isActive ? 'border-[#4ade80] border-2 bg-[#f0fdf4]' : pack.level === 'Intermediate' ? 'border-[#8C4A28] pb-6 pt-6' : 'border-[#e2d5c3]'}`}
                             >
-                                <View className="flex-row justify-between items-center mb-4">
-                                    <Text className="text-[#1a202c] text-[16px] font-black">{pack.name}</Text>
-                                    <View className={`bg-[#8C4A28] px-3 py-1 rounded shadow-sm`}>
-                                        <Text className={`text-white text-[8px] font-black uppercase tracking-widest`}>{pack.level}</Text>
+                                <View className="flex-row justify-between items-start mb-4">
+                                    <Text className="text-[#1a202c] text-[16px] font-black flex-1 pr-2">{pack.name}</Text>
+                                    <View className={`bg-[#8C4A28] px-3 py-1 rounded shadow-sm max-w-[55%]`}>
+                                        <Text className={`text-white text-[8px] font-black uppercase tracking-widest text-center`}>{pack.level}</Text>
                                     </View>
                                 </View>
 
                                 <View className="flex-row items-baseline mb-5">
-                                    <Text className="text-[#1a202c] text-[38px] font-black leading-10">{pack.sessionsCount || pack.sessions_count || 0}</Text>
-                                    <Text className="text-[#64748b] text-[12px] font-bold ml-1">sessions / {pack.validity}</Text>
+                                    {sessionsCount > 0 ? (
+                                        <>
+                                            <Text className="text-[#1a202c] text-[38px] font-black leading-10">{sessionsCount}</Text>
+                                            <Text className="text-[#64748b] text-[12px] font-bold ml-1">sessions / {pack.validity} months</Text>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Text className="text-[#1a202c] text-[38px] font-black leading-10">{pack.validity}</Text>
+                                            <Text className="text-[#64748b] text-[12px] font-bold ml-1">months</Text>
+                                        </>
+                                    )}
                                 </View>
 
                                 {isActive ? (
                                     <View className="w-full py-4 rounded-xl items-center justify-center mb-6 bg-[#4ade80]/20 border border-[#4ade80]">
                                         <Text className="font-black text-[13px] text-[#064e3b] uppercase tracking-widest">Currently Active</Text>
                                     </View>
-                                ) : (
+                                ) : null /* (
                                     <TouchableOpacity
                                         className={`w-full py-4 rounded-xl items-center justify-center mb-6 shadow-sm ${enrolling === pack.id ? 'bg-[#8C4A28]/70' : 'bg-[#8C4A28]'}`}
                                         onPress={() => handleEnrollment(pack.id)}
@@ -195,16 +205,20 @@ export default function CompetitiveRiderPacksScreen() {
                                         {enrolling === pack.id ? (
                                             <ActivityIndicator size="small" color="white" />
                                         ) : (
-                                            <Text className={`font-black text-[13px] text-white`}>Enroll for ₹{pack.amount}</Text>
+                                            <Text className={`font-black text-[13px] text-white`}>
+                                                {pack.amount > 0 ? `Enroll for ${pack.amount}` : 'Enroll for Free'}
+                                            </Text>
                                         )}
                                     </TouchableOpacity>
-                                )}
+                                ) */}
 
                                 <View>
                                     {(pack.rules || ['Professional training', 'Stable access', 'Competition prep']).map((feature: string, idx: number) => (
-                                        <View key={idx} className="flex-row items-center mb-[10px]">
-                                            <CheckCircle2 color="#8C4A28" size={14} />
-                                            <Text className="text-[#475569] text-[11px] font-semibold ml-2">{feature}</Text>
+                                        <View key={idx} className="flex-row items-start mb-[10px]">
+                                            <View className="mt-[2px] mr-2">
+                                                <CheckCircle2 color="#8C4A28" size={14} />
+                                            </View>
+                                            <Text className="text-[#475569] text-[11px] font-semibold flex-1 leading-tight">{feature}</Text>
                                         </View>
                                     ))}
                                 </View>

@@ -27,3 +27,5 @@ export const markNotificationsAsReadApi = (id) => `${baseURL}/users/mark-as-read
 export const sendForgotPasswordOtpApi = `${baseURL}/users/forgot-password/send-otp`;
 export const verifyForgotPasswordOtpApi = `${baseURL}/users/forgot-password/verify-otp`;
 export const resetPasswordApi = `${baseURL}/users/forgot-password/reset-password`;
+export const getBroadcastsApi = `${baseURL}/users/broadcasts`;
+export const updateFcmTokenApi = `${baseURL}/users/update-fcm-token`;

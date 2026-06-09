@@ -292,7 +292,7 @@ export default function BookingsScreen() {
                   <Text className="text-[#8C4A28] font-bold text-sm">Cancellation Policy</Text>
                 </View>
                 <Text className="text-[#64748b] text-xs leading-relaxed mb-2">
-                  Cancellations made within 24 hours of the session start time are non-refundable. Please contact support for emergencies or specific inquiries.
+                  Bookings and cancellations are allowed until 8:00 PM on the previous day. After this cutoff time, no booking changes will be permitted. No-shows will result in session deduction.
                 </Text>
                 <TouchableOpacity className="flex-row items-center" onPress={() => setPolicyVisible(true)}>
                   <Text className="text-[#8C4A28] font-bold text-xs mr-1">Full Policy</Text>

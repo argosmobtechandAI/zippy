@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Crown, MapPin, ShieldCheck } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { requestUserPermission } from '../utils/firebaseUtils';
 
 export default function WelcomeScreen() {
   const navigation = useNavigation();
@@ -16,6 +17,7 @@ export default function WelcomeScreen() {
       }
     };
     checkLogin();
+    requestUserPermission();
   },[])
   return (
     <ImageBackground 

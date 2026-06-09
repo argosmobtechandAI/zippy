@@ -1,4 +1,5 @@
 import { supabase } from '../supabaseClient.js';
+import { sendPushToUser } from '../firebaseAdmin.js';
 
 // Helper to convert frontend camelCase to db snake_case
 const mapToDb = (data) => {

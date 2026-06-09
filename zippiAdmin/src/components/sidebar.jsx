@@ -61,6 +61,10 @@ const Sidebar = () => {
                     <Calendar className="w-5 h-5" />
                     Leave Requests
                 </NavLink>
+                <NavLink to="/marketing" className={({ isActive }) => `flex items-center gap-4 px-4 py-3.5 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
+                    <Tag className="w-5 h-5" />
+                    Marketing & Offers
+                </NavLink>
                 <NavLink to="/attendanceReport" className={({ isActive }) => `flex items-center gap-4 px-4 py-3.5 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
                     <ClipboardList className="w-5 h-5" />
                     Attendance Report
