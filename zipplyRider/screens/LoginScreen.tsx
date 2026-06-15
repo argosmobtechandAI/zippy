@@ -113,13 +113,13 @@ export default function LoginScreen() {
               <ArrowRight color="white" size={16} />
             </View>
             <Text className="text-lg font-bold text-[#1a202c]">
-              zippy <Text className="text-[#8C4A28]">Equestrian</Text>
+              zippy <Text className="text-[#8C4A28] font-normal">Equestrian</Text>
             </Text>
           </View>
 
             <View>
               <Text className="text-2xl font-bold text-[#1a202c] mb-2">Welcome Back</Text>
-              <Text className="text-[#64748b] mb-8 text-sm">
+              <Text className="text-[#64748b] mb-8 text-sm font-normal">
                 Enter your mobile number and password to sign in.
               </Text>
 
@@ -132,7 +132,7 @@ export default function LoginScreen() {
                 </View>
                 {identifierType === 'mobile' ? (
                   <TextInput
-                    className="flex-1 text-[#1e293b]"
+                    className="flex-1 text-[#1e293b] font-normal"
                     placeholder="+1 (555) 000-0000"
                     placeholderTextColor="#94a3b8"
                     keyboardType="phone-pad"
@@ -161,7 +161,7 @@ export default function LoginScreen() {
                   />
                 ) : (
                   <TextInput
-                    className="flex-1 text-[#1e293b]"
+                    className="flex-1 text-[#1e293b] font-normal"
                     placeholder="email@example.com"
                     placeholderTextColor="#94a3b8"
                     keyboardType="email-address"
@@ -178,7 +178,7 @@ export default function LoginScreen() {
                   <Lock color="#94a3b8" size={20} />
                 </View>
                 <TextInput
-                  className="flex-1 text-[#1e293b]"
+                  className="flex-1 text-[#1e293b] font-normal"
                   placeholder="••••••••"
                   placeholderTextColor="#94a3b8"
                   secureTextEntry={!showPassword}
@@ -238,9 +238,9 @@ export default function LoginScreen() {
             </View>
 
           <View className="mt-auto pt-4 border-t border-dotted border-[#cbd5e1]">
-            <Text className="text-center text-[#94a3b8] text-[10px] mt-4">
+            <Text className="text-center text-[#94a3b8] text-[10px] mt-4 font-normal">
               By continuing, you agree to zippy Equestrian's{' '}
-              <Text className="underline">Terms of Service</Text> and <Text className="underline">Privacy Policy</Text>.
+              <Text className="underline font-normal">Terms of Service</Text> and <Text className="underline font-normal">Privacy Policy</Text>.
             </Text>
           </View>
         </View>

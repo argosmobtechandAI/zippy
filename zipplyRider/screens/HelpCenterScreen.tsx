@@ -100,7 +100,7 @@ export default function HelpCenterScreen() {
       <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         <View className="mb-6">
           <Text className="text-2xl font-bold text-[#1a202c] mb-2">How can we help?</Text>
-          <Text className="text-[#64748b]">
+          <Text className="text-[#64748b] font-normal">
             Fill out the form below and our support team will get back to you as soon as possible.
           </Text>
         </View>
@@ -108,7 +108,7 @@ export default function HelpCenterScreen() {
         <View className="mb-6">
           <Text className="text-[#1a202c] font-semibold text-xs mb-2">Subject</Text>
           <TextInput
-            className="bg-white border border-[#e2d5c3] rounded-xl px-4 py-3 text-[#1e293b]"
+            className="bg-white border border-[#e2d5c3] rounded-xl px-4 py-3 text-[#1e293b] font-normal"
             placeholder="What is this regarding?"
             placeholderTextColor="#94a3b8"
             value={subject}
@@ -119,7 +119,7 @@ export default function HelpCenterScreen() {
         <View className="mb-8">
           <Text className="text-[#1a202c] font-semibold text-xs mb-2">Message</Text>
           <TextInput
-            className="bg-white border border-[#e2d5c3] rounded-xl px-4 py-3 text-[#1e293b] h-32"
+            className="bg-white border border-[#e2d5c3] rounded-xl px-4 py-3 text-[#1e293b] h-32 font-normal"
             placeholder="Describe your issue or question in detail..."
             placeholderTextColor="#94a3b8"
             multiline

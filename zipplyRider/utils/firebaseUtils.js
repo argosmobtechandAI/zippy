@@ -40,6 +40,8 @@ export async function requestUserPermission() {
 }
 
 export async function setupFirebaseMessaging(userId) {
+  if (Platform.OS === 'ios') return;
+
   const hasPermission = await requestUserPermission();
   if (!hasPermission) return;
 
@@ -97,6 +99,8 @@ export function handleNotificationRoute(remoteMessage) {
  * Listeners for the 3 App States: Foreground, Background, and Quit (Killed)
  */
 export function listenToNotifications() {
+  if (Platform.OS === 'ios') return () => {};
+
   // 1. Foreground State: App is open
   const unsubscribeOnMessage = messaging().onMessage(async remoteMessage => {
     console.log('🔥 A new FCM message arrived (Foreground)!', JSON.stringify(remoteMessage));

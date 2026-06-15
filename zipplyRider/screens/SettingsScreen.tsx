@@ -154,7 +154,7 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        <Text className="text-center text-[#94a3b8] text-xs">App Version 1.0.0</Text>
+        <Text className="text-center text-[#94a3b8] text-xs font-normal">App Version 1.0.0</Text>
 
       </ScrollView>
     </SafeAreaView>

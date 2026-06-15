@@ -18,6 +18,11 @@ const MainTabsStack = () => {
                 headerShown: false,
                 tabBarActiveTintColor: '#8C4A28',
                 tabBarInactiveTintColor: '#999',
+                tabBarLabelStyle: {
+                    fontFamily: 'GTUltra-Regular',
+                    fontSize: 11,
+                    fontWeight: 'bold',
+                }
             }}
             initialRouteName='Home'
         >

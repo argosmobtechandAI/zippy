@@ -853,3 +853,138 @@ export const cancelFullSession = async (req, res) => {
         return res.status(500).json({ success: false, message: `Error: ${error.message}` });
     }
 };
+
+export const bulkCreateSessions = async (req, res) => {
+    const { data } = req.body;
+    const { startDate, endDate, trainerId, horseId, location, totalSeats, slots } = data || {};
+    
+    try {
+        if (!startDate || !endDate || !location) {
+            return res.status(400).json({ success: false, message: "Start date, end date, and location are required." });
+        }
+        
+        // Generate list of dates between startDate and endDate
+        const dates = [];
+        let start = new Date(startDate);
+        const end = new Date(endDate);
+        
+        while (start <= end) {
+            const dayOfWeek = start.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
+            if (dayOfWeek !== 1) { // Skip Monday
+                const year = start.getFullYear();
+                const month = String(start.getMonth() + 1).padStart(2, '0');
+                const day = String(start.getDate()).padStart(2, '0');
+                dates.push(`${year}-${month}-${day}`);
+            }
+            start.setDate(start.getDate() + 1);
+        }
+        
+        // Define active slots
+        const slotsToCreate = slots && slots.length > 0 ? slots : [
+            { title: 'Morning 6:00 AM', timing: '06:00 - 06:45' },
+            { title: 'Morning 7:00 AM', timing: '07:00 - 07:45' },
+            { title: 'Morning 8:00 AM', timing: '08:00 - 08:45' },
+            { title: 'Evening 4:00 PM', timing: '16:00 - 16:45' },
+            { title: 'Evening 5:00 PM', timing: '17:00 - 17:45' },
+            { title: 'Evening 6:00 PM', timing: '18:00 - 18:45' }
+        ];
+        
+        // Load existing sessions in range to prevent duplicates
+        const { data: existingSessions, error: fetchError } = await supabase
+            .from('sessions')
+            .select('*')
+            .gte('date', startDate)
+            .lte('date', endDate)
+            .neq('status', 'ARCHIVED');
+            
+        if (fetchError) {
+            return res.status(400).json({ success: false, message: fetchError.message });
+        }
+        
+        const recordsToInsert = [];
+        
+        for (const date of dates) {
+            for (const slot of slotsToCreate) {
+                // Check if already exists
+                const exists = existingSessions.some(s => 
+                    s.date === date && 
+                    s.timing.trim() === slot.timing.trim() && 
+                    s.location === location
+                );
+                
+                if (!exists) {
+                    // Calculate duration
+                    const startStr = slot.timing.split("-")[0]?.trim();
+                    const endStr = slot.timing.split("-")[1]?.trim();
+                    let durationVal = "45 Min";
+                    if (startStr && endStr) {
+                        const [sh, sm] = startStr.split(":").map(Number);
+                        const [eh, em] = endStr.split(":").map(Number);
+                        let diff = (eh * 60 + em) - (sh * 60 + sm);
+                        if (diff < 0) diff += 24 * 60;
+                        durationVal = `${diff} Min`;
+                    }
+                    
+                    const newSession = {
+                        title: slot.title,
+                        timing: slot.timing,
+                        date: date,
+                        joiningAmount: 0,
+                        trainerId: trainerId || null,
+                        horseId: horseId || [],
+                        participants: [],
+                        duration: durationVal,
+                        location: location,
+                        totalSeats: totalSeats || 7,
+                        status: 'ACTIVE'
+                    };
+                    
+                    recordsToInsert.push(sanitizeSessionData(mapToDb(newSession)));
+                }
+            }
+        }
+        
+        if (recordsToInsert.length === 0) {
+            return res.status(200).json({ success: true, message: "All slots already populated. No sessions inserted.", sessions: [] });
+        }
+        
+        const { data: newSessions, error: insertError } = await supabase
+            .from('sessions')
+            .insert(recordsToInsert)
+            .select();
+            
+        if (insertError) {
+            return res.status(400).json({ success: false, message: insertError.message });
+        }
+        
+        // Notify trainer only once if trainer assigned
+        if (trainerId && newSessions.length > 0) {
+            try {
+                const { data: trainer } = await supabase.from('trainers').select('user_id').eq('id', trainerId).limit(1);
+                if (trainer && trainer.length > 0) {
+                    const userId = trainer[0].user_id;
+                    const { data: user } = await supabase.from('users').select('notifications').eq('id', userId).limit(1);
+                    if (user && user.length > 0) {
+                        const newNotif = {
+                            id: Date.now().toString(),
+                            title: "Bulk Sessions Scheduled",
+                            desc: `You have been assigned to multiple training sessions scheduled between ${startDate} and ${endDate}.`,
+                            time: "Just Now",
+                            type: "booking",
+                            unread: true
+                        };
+                        const notifs = user[0].notifications || [];
+                        await supabase.from('users').update({ notifications: [...notifs, newNotif] }).eq('id', userId);
+                        await sendPushToUser(userId, newNotif.title, newNotif.desc, { type: newNotif.type });
+                    }
+                }
+            } catch (notifError) {
+                console.error("Trainer notification failed:", notifError);
+            }
+        }
+        
+        return res.status(201).json({ success: true, message: `Successfully created ${newSessions.length} sessions.`, sessions: newSessions.map(mapToClient) });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: `Error: ${err.message}` });
+    }
+};

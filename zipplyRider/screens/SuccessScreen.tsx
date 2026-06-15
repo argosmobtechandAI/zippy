@@ -28,7 +28,7 @@ export default function SuccessScreen() {
         <Text className="text-4xl font-bold text-white text-center mb-4">You're All Set!</Text>
 
         <View className="bg-white/10 p-6 rounded-3xl mb-12 border border-white/20 w-full">
-          <Text className="text-[#fceddf] text-center text-base leading-relaxed mb-4">
+          <Text className="text-[#fceddf] text-center text-base leading-relaxed mb-4 font-normal">
             Your rider profile is complete and your indemnity agreement has been securely saved.
           </Text>
           <View className="bg-black/20 p-4 rounded-xl items-center">

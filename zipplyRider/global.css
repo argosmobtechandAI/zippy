@@ -1,3 +1,44 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  Text, TextInput {
+    font-family: "GTUltra-Regular";
+  }
+}
+
+@layer utilities {
+  .font-thin {
+    font-family: "GTUltra-Thin";
+    font-weight: normal;
+  }
+  .font-light {
+    font-family: "GTUltra-Light";
+    font-weight: normal;
+  }
+  .font-normal {
+    font-family: "GTUltra-Regular";
+    font-weight: normal;
+  }
+  .font-medium {
+    font-family: "GTUltra-Regular";
+    font-weight: normal;
+  }
+  .font-semibold {
+    font-family: "GTUltra-Bold";
+    font-weight: normal;
+  }
+  .font-bold {
+    font-family: "GTUltra-Bold";
+    font-weight: normal;
+  }
+  .font-extrabold {
+    font-family: "GTUltra-Black";
+    font-weight: normal;
+  }
+  .font-black {
+    font-family: "GTUltra-Black";
+    font-weight: normal;
+  }
+}

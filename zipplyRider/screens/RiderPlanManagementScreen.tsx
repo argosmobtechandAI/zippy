@@ -45,7 +45,7 @@ export default function RiderPlanManagementScreen() {
                     </TouchableOpacity>
                     <View>
                         <Text className="text-[#1a202c] text-[16px] font-extrabold">Rider Plan Management</Text>
-                        <Text className="text-[#64748b] text-[10px] mt-[2px]">Zippy Equestrian Center</Text>
+                        <Text className="text-[#64748b] text-[10px] mt-[2px] font-normal">Zippy Equestrian Center</Text>
                     </View>
                 </View>
                 <View className="flex-row items-center">
@@ -69,7 +69,7 @@ export default function RiderPlanManagementScreen() {
                     <Text className="text-[#8C4A28] text-[10px] font-extrabold uppercase mb-1">
                         Current Membership
                     </Text>
-                    <Text className="text-[#475569] text-sm leading-5 pr-4">
+                    <Text className="text-[#475569] text-sm leading-5 pr-4 font-normal">
                         You haven't selected a rider plan yet. Choose one below to start your journey.
                     </Text>
                 </View>
@@ -118,7 +118,7 @@ export default function RiderPlanManagementScreen() {
                                     </Text>
                                 </View>
 
-                                <Text className="text-[#64748b] text-[13px] leading-5 mb-5">
+                                <Text className="text-[#64748b] text-[13px] leading-5 mb-5 font-normal">
                                     {plan.rules?.join('. ') || 'Standard equestrian training plan tailored for your level.'}
                                 </Text>
 

@@ -40,8 +40,7 @@ class ReactNativeDelegate: RCTDefaultReactNativeFactoryDelegate {
 
   override func bundleURL() -> URL? {
 #if DEBUG
-    // Hardcoded Mac IP to fix physical device localhost connection issues
-    URL(string: "http://192.168.1.34:8081/index.bundle?platform=ios&dev=true&minify=false")
+    RCTBundleURLProvider.sharedSettings().jsBundleURL(forBundleRoot: "index")
 #else
     Bundle.main.url(forResource: "main", withExtension: "jsbundle")
 #endif

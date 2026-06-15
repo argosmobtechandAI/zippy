@@ -6,7 +6,7 @@ import {
 import { useState, useEffect } from 'react';
 import { apiFunction } from '../api/apiFunction';
 import {
-    getAllSessionsApi, createSessionApi, updateSessionApi, deleteSessionApi,
+    getAllSessionsApi, createSessionApi, bulkCreateSessionsApi, updateSessionApi, deleteSessionApi,
     getAllUsersApi, getAllStablesApi, getAllHorsesApi, getAllTrainersApi,
     approveSessionApi, cancelFullSessionApi
 } from '../api/apis';
@@ -39,6 +39,7 @@ const SlotManagement = () => {
     const [loading, setLoading] = useState(true);
 
     const [showSessionModal, setShowSessionModal] = useState(false);
+    const [showBulkModal, setShowBulkModal] = useState(false);
     const [sessionToEdit, setSessionToEdit] = useState(null);
 
     const fetchData = async () => {
@@ -52,7 +53,20 @@ const SlotManagement = () => {
                 apiFunction(getAllHorsesApi, [], {}, "GET", true)
             ]);
 
-            if (sessionRes?.success) setSessions(sessionRes.sessions || []);
+            if (sessionRes?.success) {
+                const getTodayDateString = () => {
+                    const today = new Date();
+                    const year = today.getFullYear();
+                    const month = String(today.getMonth() + 1).padStart(2, '0');
+                    const day = String(today.getDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
+                };
+                const todayStr = getTodayDateString();
+                const activeSessions = (sessionRes.sessions || []).filter(s => 
+                    s.date === 'daily' || s.date >= todayStr
+                );
+                setSessions(activeSessions);
+            }
             if (stableRes?.success) setStables(stableRes.stables || []);
             if (trainerRes?.success) setTrainers(trainerRes.trainers || []);
             if (userRes?.success) setUsers(userRes.users.filter(u => u.type?.toLowerCase() === 'trainer') || []);
@@ -179,6 +193,13 @@ const SlotManagement = () => {
                             <Plus className="w-4 h-4" strokeWidth={2.5} />
                             Add Session
                         </button>
+                        <button
+                            onClick={() => setShowBulkModal(true)}
+                            className="bg-[#964C2E] text-white text-[13px] font-bold px-5 py-3.5 rounded-xl shadow-md flex items-center gap-2.5 hover:bg-[#7D3F25] transition-all"
+                        >
+                            <Calendar className="w-4 h-4" strokeWidth={2.5} />
+                            Bulk Create Slots
+                        </button>
                     </div>
                 </div>
             </div>
@@ -267,6 +288,16 @@ const SlotManagement = () => {
                     trainers={trainers}
                     horses={horses}
                     isAdmin={true}
+                />
+            )}
+            {showBulkModal && (
+                <BulkSessionModal
+                    setShowModal={setShowBulkModal}
+                    onSuccess={fetchData}
+                    stables={stables}
+                    users={users}
+                    trainers={trainers}
+                    horses={horses}
                 />
             )}
         </div>
@@ -444,6 +475,143 @@ const SessionModal = ({ sessionToEdit, setShowModal, onSuccess, stables, users, 
                         <button type="button" onClick={() => setShowModal(false)} className="px-8 py-3.5 rounded-2xl border border-gray-200 text-[#1e2330] text-[14px] font-bold hover:bg-gray-50 transition-all">Cancel</button>
                         <button disabled={isSubmitting} type="submit" className="px-8 py-3.5 rounded-2xl bg-[#964C2E] text-white text-[14px] font-bold shadow-lg hover:bg-[#7D3F25] transition-all disabled:opacity-50">
                             {isSubmitting ? "Saving..." : "Save Session"}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+const BulkSessionModal = ({ setShowModal, onSuccess, stables, users, trainers, horses }) => {
+    const [formData, setFormData] = useState({
+        startDate: "",
+        endDate: "",
+        location: "",
+        totalSeats: 7,
+        trainerId: "",
+        horseId: []
+    });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleHorseToggle = (id) => {
+        setFormData(prev => ({
+            ...prev,
+            horseId: prev.horseId.includes(id)
+                ? prev.horseId.filter(hId => hId !== id)
+                : [...prev.horseId, id]
+        }));
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        
+        if (new Date(formData.startDate) > new Date(formData.endDate)) {
+            toast.error("Start Date cannot be after End Date.");
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            const finalData = {
+                startDate: formData.startDate,
+                endDate: formData.endDate,
+                location: formData.location,
+                totalSeats: formData.totalSeats,
+                trainerId: formData.trainerId ? formData.trainerId : null,
+                horseId: formData.horseId
+            };
+
+            const res = await apiFunction(bulkCreateSessionsApi, [], finalData, "POST", true);
+
+            if (res?.success) {
+                toast.success(res.message || "Slots created successfully!");
+                setShowModal(false);
+                if (onSuccess) onSuccess();
+            } else {
+                toast.error(res?.message || "Failed to create bulk sessions");
+            }
+        } catch (error) {
+            toast.error("Network error");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="bg-white rounded-3xl p-8 w-[600px] shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200">
+                <div className="flex justify-between items-center mb-8 pb-6 border-b border-gray-50">
+                    <div>
+                        <h3 className="text-[22px] font-black text-[#1e2330]">
+                            Bulk Create Slots
+                        </h3>
+                        <p className="text-[13px] font-semibold text-gray-400 mt-1">Automatically create slots for all weekdays (Tue-Sun, skipping Mon) in the range.</p>
+                    </div>
+                    <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-[#964C2E] p-2 hover:bg-gray-50 rounded-xl transition-all">
+                        <X className="w-6 h-6" />
+                    </button>
+                </div>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Start Date</label>
+                            <input type="date" required value={formData.startDate} onChange={(e) => setFormData({ ...formData, startDate: e.target.value })} className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]" />
+                        </div>
+                        <div>
+                            <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">End Date</label>
+                            <input type="date" required value={formData.endDate} onChange={(e) => setFormData({ ...formData, endDate: e.target.value })} className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]" />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Location / Center</label>
+                        <select required value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]">
+                            <option value="">Select Center</option>
+                            {stables.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Total Seats (per slot)</label>
+                        <input type="number" required min="1" value={formData.totalSeats} onChange={(e) => setFormData({ ...formData, totalSeats: parseInt(e.target.value) })} className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]" />
+                    </div>
+                    <div>
+                        <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Assigned Trainer</label>
+                        <select value={formData.trainerId} onChange={(e) => setFormData({ ...formData, trainerId: e.target.value })} className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]">
+                            <option value="">No Trainer Assigned</option>
+                            {users.map(u => {
+                                const val = u.trainerId || u.id;
+                                return (
+                                    <option key={val} value={val}>
+                                        {u.name}
+                                    </option>
+                                );
+                            })}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Assigned Horses</label>
+                        <div className="max-h-40 overflow-y-auto border border-gray-100 rounded-2xl p-2 bg-gray-50/50">
+                            {horses.length === 0 ? (
+                                <p className="text-[13px] font-bold text-gray-400 text-center py-2">No horses available</p>
+                            ) : (
+                                horses.map(h => (
+                                    <label key={h.id} className="flex items-center gap-3 p-2 hover:bg-white rounded-xl cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.horseId.includes(h.id)}
+                                            onChange={() => handleHorseToggle(h.id)}
+                                            className="w-4 h-4 text-[#964C2E] rounded focus:ring-[#964C2E]"
+                                        />
+                                        <span className="text-[13px] font-bold">{h.name}</span>
+                                    </label>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                    <div className="mt-10 flex justify-end gap-4 pt-8 border-t border-gray-50">
+                        <button type="button" onClick={() => setShowModal(false)} className="px-8 py-3.5 rounded-2xl border border-gray-200 text-[#1e2330] text-[14px] font-bold hover:bg-gray-50 transition-all">Cancel</button>
+                        <button disabled={isSubmitting} type="submit" className="px-8 py-3.5 rounded-2xl bg-[#964C2E] text-white text-[14px] font-bold shadow-lg hover:bg-[#7D3F25] transition-all disabled:opacity-50">
+                            {isSubmitting ? "Creating..." : "Create Slots"}
                         </button>
                     </div>
                 </form>

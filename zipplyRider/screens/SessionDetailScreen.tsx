@@ -171,7 +171,7 @@ export default function SessionDetailScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-[#F5EDDF]">
-      <Text>{date}</Text>
+      <Text className="font-normal">{date}</Text>
       {/* Header */}
       <View className="flex-row items-center px-6 py-4 bg-white border-b border-[#e2e8f0] mt-2">
         <TouchableOpacity onPress={() => navigation.goBack()} className="mr-4 p-2 bg-[#f8fafc] rounded-full">
@@ -210,11 +210,11 @@ export default function SessionDetailScreen() {
           <View className="flex-row justify-between items-center bg-[#f8fafc] p-4 rounded-2xl mb-6">
             <View className="flex-1">
               <Text className="text-[#94a3b8] text-xs uppercase font-bold tracking-wider mb-1">Capacity</Text>
-              <Text className="text-[#1a202c] font-semibold text-base">{(session.participants?.length || 0)} / {session.totalSeats}</Text>
+              <Text className="text-[#1a202c] font-semibold text-base">{(session.participants?.filter((p: any) => p.date === date).length || 0)} / {session.totalSeats}</Text>
             </View>
           </View>
 
-          <Text className="text-[#64748b] text-xs leading-5">
+          <Text className="text-[#64748b] text-xs leading-5 font-normal">
             Join this session to improve your riding skills with our expert trainers. Please arrive 15 minutes early to prepare your horse.
           </Text>
           {isDeadlinePassed && (

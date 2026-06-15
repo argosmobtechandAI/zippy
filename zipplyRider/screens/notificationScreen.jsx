@@ -242,7 +242,7 @@ export default function NotificationScreen() {
                                     </View>
                                 </View>
                                 <Text 
-                                    className="text-[#64748b] text-[13px] leading-5 pr-4"
+                                    className="text-[#64748b] text-[13px] leading-5 pr-4 font-normal"
                                     numberOfLines={(notif.image || notif.type === 'marketing') ? 2 : undefined}
                                 >
                                     {notif.desc}
@@ -300,7 +300,7 @@ export default function NotificationScreen() {
                             <Text className="text-[#1a202c] font-extrabold text-[22px] mb-4 leading-tight">
                                 {selectedNotification?.title}
                             </Text>
-                            <Text className="text-[#64748b] text-[15px] leading-relaxed mb-6">
+                            <Text className="text-[#64748b] text-[15px] leading-relaxed mb-6 font-normal">
                                 {selectedNotification?.desc}
                             </Text>
                         </ScrollView>

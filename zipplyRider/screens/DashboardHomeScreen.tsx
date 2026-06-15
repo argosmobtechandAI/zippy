@@ -190,7 +190,7 @@ export default function DashboardHomeScreen() {
 
         <View className="mb-6">
           <Text className="text-3xl font-bold text-[#8C4A28] mb-1">Hello, {user?.name}!</Text>
-          <Text className="text-[#64748b]">Welcome back to the stable.</Text>
+          <Text className="text-[#64748b] font-normal">Welcome back to the stable.</Text>
         </View>
 
         {/* Alert Banner */}
@@ -200,7 +200,7 @@ export default function DashboardHomeScreen() {
           </View>
           <View className="flex-1">
             <Text className="text-[#8C4A28] font-bold text-sm mb-1">Low balance! {sessionCount} sessions left</Text>
-            <Text className="text-[#8C4A28] opacity-80 text-xs">Consider topping up your plan soon.</Text>
+            <Text className="text-[#8C4A28] opacity-80 text-xs font-normal">Consider topping up your plan soon.</Text>
           </View>
         </TouchableOpacity>}
 

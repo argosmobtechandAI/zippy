@@ -92,14 +92,14 @@ export default function ForgotPasswordScreen() {
               </View>
             </TouchableOpacity>
             <Text className="text-lg font-bold text-[#1a202c]">
-              Forgot <Text className="text-[#8C4A28]">Password</Text>
+              Forgot <Text className="text-[#8C4A28] font-normal">Password</Text>
             </Text>
           </View>
 
           {step === 1 && (
             <View>
               <Text className="text-2xl font-bold text-[#1a202c] mb-2">Reset Password</Text>
-              <Text className="text-[#64748b] mb-8 text-sm">
+              <Text className="text-[#64748b] mb-8 text-sm font-normal">
                 Enter your registered email address to receive a 6-digit OTP.
               </Text>
 
@@ -109,7 +109,7 @@ export default function ForgotPasswordScreen() {
                   <Mail color="#94a3b8" size={20} />
                 </View>
                 <TextInput
-                  className="flex-1 text-[#1e293b]"
+                  className="flex-1 text-[#1e293b] font-normal"
                   placeholder="email@example.com"
                   placeholderTextColor="#94a3b8"
                   keyboardType="email-address"
@@ -137,7 +137,7 @@ export default function ForgotPasswordScreen() {
           {step === 2 && (
             <View>
               <Text className="text-2xl font-bold text-[#1a202c] mb-2">Enter OTP</Text>
-              <Text className="text-[#64748b] mb-8 text-sm">
+              <Text className="text-[#64748b] mb-8 text-sm font-normal">
                 We've sent a 6-digit code to <Text className="font-semibold text-[#1a202c]">{email}</Text>.
               </Text>
 
@@ -179,7 +179,7 @@ export default function ForgotPasswordScreen() {
           {step === 3 && (
             <View>
               <Text className="text-2xl font-bold text-[#1a202c] mb-2">New Password</Text>
-              <Text className="text-[#64748b] mb-8 text-sm">
+              <Text className="text-[#64748b] mb-8 text-sm font-normal">
                 Please enter your new secure password below.
               </Text>
 
@@ -189,7 +189,7 @@ export default function ForgotPasswordScreen() {
                   <Lock color="#94a3b8" size={20} />
                 </View>
                 <TextInput
-                  className="flex-1 text-[#1e293b]"
+                  className="flex-1 text-[#1e293b] font-normal"
                   placeholder="••••••••"
                   placeholderTextColor="#94a3b8"
                   secureTextEntry={!showPassword}

@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Search, ChevronRight, Activity, Calendar, Shield, Info, Syringe, HeartPulse, User, MapPin, Pill, CheckCircle2, AlertTriangle, Clock } from 'lucide-react';
 import { apiFunction } from '../api/apiFunction';
-import { getAllHorsesApi } from '../api/apis';
+import { getAllHorsesApi, baseUrl } from '../api/apis';
 import toast from 'react-hot-toast';
 
 const getImageUrl = (url) => {
     if (!url) return '';
     if (url.startsWith('http')) return url;
     // Strip api suffix from backend base URL if it's there
-    return `http://localhost:3000${url.startsWith('/') ? '' : '/'}${url}`;
+    const cleanBaseUrl = baseUrl.endsWith('/api') ? baseUrl.slice(0, -4) : baseUrl;
+    return `${cleanBaseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
 };
 
 const MedicalRecords = () => {

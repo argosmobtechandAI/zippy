@@ -78,7 +78,7 @@ export default function DashboardProfileScreen() {
         >
           <ArrowLeft color="#85431E" size={20} />
         </TouchableOpacity>
-        <Text style={{ color: '#85431E', fontSize: 14, fontWeight: '700', letterSpacing: 3, textTransform: 'uppercase' }}>Rider's Profile</Text>
+        <Text className="font-normal" style={{ color: '#85431E', fontSize: 14, fontWeight: '700', letterSpacing: 3, textTransform: 'uppercase' }}>Rider's Profile</Text>
         <TouchableOpacity
           onPress={() => navigation.navigate('Settings')}
           style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.6)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(133,67,30,0.1)' }}
@@ -99,7 +99,7 @@ export default function DashboardProfileScreen() {
                   style={{ width: '100%', height: '100%' }}
                 />
               ) : (
-                <Text style={{ fontSize: 40, fontWeight: '800', color: '#85431E', letterSpacing: 2 }}>
+                <Text className="font-normal" style={{ fontSize: 40, fontWeight: '800', color: '#85431E', letterSpacing: 2 }}>
                   {getInitials(user?.name)}
                 </Text>
               )}
@@ -109,27 +109,27 @@ export default function DashboardProfileScreen() {
             </View>
           </View>
 
-          <Text style={{ fontSize: 28, fontWeight: '700', color: '#5C2E0E', textAlign: 'center', marginBottom: 4 }}>
+          <Text className="font-normal" style={{ fontSize: 28, fontWeight: '700', color: '#5C2E0E', textAlign: 'center', marginBottom: 4 }}>
             {user?.name || 'Rider Name'}
           </Text>
-          <Text style={{ fontSize: 11, color: 'rgba(133,67,30,0.55)', fontWeight: '600', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 4 }}>
+          <Text className="font-normal" style={{ fontSize: 11, color: 'rgba(133,67,30,0.55)', fontWeight: '600', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 4 }}>
             {rider?.level || 'Novice'} Equestrian
           </Text>
-          <Text style={{ fontSize: 12, color: 'rgba(133,67,30,0.35)', fontWeight: '400' }}>
+          <Text className="font-normal" style={{ fontSize: 12, color: 'rgba(133,67,30,0.35)', fontWeight: '400' }}>
             Member since {user?.createdAt?.split('-')[0] || '2024'}
           </Text>
         </View>
 
         {/* Total Rides Card – replacing wallet */}
         <View style={{ marginHorizontal: 20, marginBottom: 20, backgroundColor: '#5C2E0E', borderRadius: 24, padding: 20 }}>
-          <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 10, fontWeight: '700', letterSpacing: 2.5, textTransform: 'uppercase', marginBottom: 6 }}>Total Rides Left</Text>
+          <Text className="font-normal" style={{ color: 'rgba(255,255,255,0.55)', fontSize: 10, fontWeight: '700', letterSpacing: 2.5, textTransform: 'uppercase', marginBottom: 6 }}>Total Rides Left</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', marginRight: 14 }}>
               <Star color="#DA7347" size={22} />
             </View>
-            <Text style={{ fontSize: 36, fontWeight: '800', color: '#fff', letterSpacing: -0.5 }}>{rider?.session_count ?? rider?.sessionCount ?? 0}</Text>
+            <Text className="font-normal" style={{ fontSize: 36, fontWeight: '800', color: '#fff', letterSpacing: -0.5 }}>{rider?.session_count ?? rider?.sessionCount ?? 0}</Text>
           </View>
-          <Text style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, marginTop: 10 }}>Contact your center admin to renew your plan.</Text>
+          <Text className="font-normal" style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, marginTop: 10 }}>Contact your center admin to renew your plan.</Text>
         </View>
 
         {/* Stats Row */}
@@ -140,8 +140,8 @@ export default function DashboardProfileScreen() {
             { label: 'Safety Score', value: `${rider?.safetyBriefing?.length || 100}%` },
           ].map((stat, i) => (
             <View key={i} style={{ flex: 1, backgroundColor: '#fff', borderRadius: 20, padding: 14, alignItems: 'center', shadowColor: '#85431E', shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 }}>
-              <Text style={{ fontSize: 22, fontWeight: '800', color: '#5C2E0E', marginBottom: 2 }}>{stat.value}</Text>
-              <Text style={{ fontSize: 9, fontWeight: '700', color: 'rgba(133,67,30,0.4)', letterSpacing: 1.5, textTransform: 'uppercase', textAlign: 'center' }}>{stat.label}</Text>
+              <Text className="font-normal" style={{ fontSize: 22, fontWeight: '800', color: '#5C2E0E', marginBottom: 2 }}>{stat.value}</Text>
+              <Text className="font-normal" style={{ fontSize: 9, fontWeight: '700', color: 'rgba(133,67,30,0.4)', letterSpacing: 1.5, textTransform: 'uppercase', textAlign: 'center' }}>{stat.label}</Text>
             </View>
           ))}
         </View>
@@ -149,7 +149,7 @@ export default function DashboardProfileScreen() {
         {/* Essential Details */}
         <View style={{ paddingHorizontal: 20, marginBottom: 24 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <Text style={{ fontSize: 18, fontWeight: '700', color: '#5C2E0E' }}>Essential Details</Text>
+            <Text className="font-normal" style={{ fontSize: 18, fontWeight: '700', color: '#5C2E0E' }}>Essential Details</Text>
             <Info color="#85431E" size={18} opacity={0.4} />
           </View>
 
@@ -161,8 +161,8 @@ export default function DashboardProfileScreen() {
                   <IconComp color={item.color} size={22} strokeWidth={2.5} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#5C2E0E', marginBottom: 3 }}>{item.title}</Text>
-                  <Text style={{ fontSize: 12, color: 'rgba(133,67,30,0.5)', lineHeight: 18 }}>{item.desc}</Text>
+                  <Text className="font-normal" style={{ fontSize: 13, fontWeight: '700', color: '#5C2E0E', marginBottom: 3 }}>{item.title}</Text>
+                  <Text className="font-normal" style={{ fontSize: 12, color: 'rgba(133,67,30,0.5)', lineHeight: 18 }}>{item.desc}</Text>
                 </View>
               </TouchableOpacity>
             );
@@ -172,17 +172,17 @@ export default function DashboardProfileScreen() {
         {/* Trainer Feedback */}
         <View style={{ paddingHorizontal: 20, marginBottom: 24 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <Text style={{ fontSize: 18, fontWeight: '700', color: '#5C2E0E' }}>Trainer Feedback</Text>
+            <Text className="font-normal" style={{ fontSize: 18, fontWeight: '700', color: '#5C2E0E' }}>Trainer Feedback</Text>
             {sessionsWithRemarks.length > 0 && (
               <TouchableOpacity onPress={() => navigation.navigate('FeedbackList', { sessionsWithRemarks, riderId: rider?.id })}>
-                <Text style={{ fontSize: 13, fontWeight: '700', color: '#DA7347' }}>View All</Text>
+                <Text className="font-normal" style={{ fontSize: 13, fontWeight: '700', color: '#DA7347' }}>View All</Text>
               </TouchableOpacity>
             )}
           </View>
           
           {sessionsWithRemarks.length === 0 ? (
             <View style={{ backgroundColor: '#fff', borderRadius: 20, padding: 24, alignItems: 'center', shadowColor: '#85431E', shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 }}>
-              <Text style={{ color: 'rgba(133,67,30,0.5)', fontSize: 13, fontWeight: '600', textAlign: 'center' }}>No feedback received yet.</Text>
+              <Text className="font-normal" style={{ color: 'rgba(133,67,30,0.5)', fontSize: 13, fontWeight: '600', textAlign: 'center' }}>No feedback received yet.</Text>
             </View>
           ) : (
             sessionsWithRemarks.slice(0, 2).map((session, idx) => {
@@ -190,12 +190,12 @@ export default function DashboardProfileScreen() {
               return (
                 <View key={idx} style={{ backgroundColor: '#fff', borderRadius: 20, padding: 18, marginBottom: 12, shadowColor: '#85431E', shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#5C2E0E' }}>{session.title || 'Training Session'}</Text>
-                    <Text style={{ fontSize: 10, fontWeight: '700', color: 'rgba(133,67,30,0.5)', textTransform: 'uppercase' }}>{session.date}</Text>
+                    <Text className="font-normal" style={{ fontSize: 14, fontWeight: '700', color: '#5C2E0E' }}>{session.title || 'Training Session'}</Text>
+                    <Text className="font-normal" style={{ fontSize: 10, fontWeight: '700', color: 'rgba(133,67,30,0.5)', textTransform: 'uppercase' }}>{session.date}</Text>
                   </View>
                   <View style={{ backgroundColor: '#FAF3EC', borderRadius: 12, padding: 12 }}>
-                    <Text style={{ fontSize: 10, fontWeight: '800', color: '#DA7347', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Remark</Text>
-                    <Text style={{ fontSize: 13, color: '#5C2E0E', lineHeight: 18 }}>"{participantData.remark}"</Text>
+                    <Text className="font-normal" style={{ fontSize: 10, fontWeight: '800', color: '#DA7347', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Remark</Text>
+                    <Text className="font-normal" style={{ fontSize: 13, color: '#5C2E0E', lineHeight: 18 }}>"{participantData.remark}"</Text>
                   </View>
                 </View>
               );
@@ -208,18 +208,18 @@ export default function DashboardProfileScreen() {
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Trophy color="#85431E" size={20} />
-              <Text style={{ fontSize: 18, fontWeight: '700', color: '#5C2E0E', marginLeft: 8 }}>My Trophies</Text>
+              <Text className="font-normal" style={{ fontSize: 18, fontWeight: '700', color: '#5C2E0E', marginLeft: 8 }}>My Trophies</Text>
             </View>
             <TouchableOpacity onPress={() => navigation.navigate('Trophies')}>
-              <Text style={{ fontSize: 13, fontWeight: '700', color: '#DA7347' }}>View All</Text>
+              <Text className="font-normal" style={{ fontSize: 13, fontWeight: '700', color: '#DA7347' }}>View All</Text>
             </TouchableOpacity>
           </View>
 
           {(!rider?.trophies || rider.trophies.length === 0) ? (
             <View style={{ backgroundColor: '#fff', borderRadius: 24, paddingVertical: 36, alignItems: 'center', shadowColor: '#85431E', shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 }}>
               <Trophy color="#e2d5c3" size={36} />
-              <Text style={{ color: 'rgba(133,67,30,0.5)', fontSize: 14, fontWeight: '600', marginTop: 12 }}>No trophies earned yet.</Text>
-              <Text style={{ color: 'rgba(133,67,30,0.35)', fontSize: 12, marginTop: 4 }}>Keep riding to unlock achievements!</Text>
+              <Text className="font-normal" style={{ color: 'rgba(133,67,30,0.5)', fontSize: 14, fontWeight: '600', marginTop: 12 }}>No trophies earned yet.</Text>
+              <Text className="font-normal" style={{ color: 'rgba(133,67,30,0.35)', fontSize: 12, marginTop: 4 }}>Keep riding to unlock achievements!</Text>
             </View>
           ) : (
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
@@ -230,8 +230,8 @@ export default function DashboardProfileScreen() {
                     <View style={{ backgroundColor: '#FAF3EC', alignSelf: 'flex-start', padding: 10, borderRadius: 14, marginBottom: 12 }}>
                       <IconComp color={trophy.color || '#85431E'} size={26} strokeWidth={2.5} />
                     </View>
-                    <Text style={{ fontSize: 13, fontWeight: '700', color: '#5C2E0E', marginBottom: 3 }}>{trophy.title}</Text>
-                    <Text style={{ fontSize: 10, fontWeight: '600', color: 'rgba(133,67,30,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>{trophy.subtitle || trophy.date}</Text>
+                    <Text className="font-normal" style={{ fontSize: 13, fontWeight: '700', color: '#5C2E0E', marginBottom: 3 }}>{trophy.title}</Text>
+                    <Text className="font-normal" style={{ fontSize: 10, fontWeight: '600', color: 'rgba(133,67,30,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>{trophy.subtitle || trophy.date}</Text>
                   </View>
                 );
               })}

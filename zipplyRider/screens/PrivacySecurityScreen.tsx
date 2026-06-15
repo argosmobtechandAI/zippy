@@ -23,7 +23,7 @@ export default function PrivacySecurityScreen() {
             <Shield color="#8C4A28" size={40} />
           </View>
           <Text className="text-xl font-bold text-[#1a202c]">Your Data is Secure</Text>
-          <Text className="text-[#64748b] text-center mt-2">
+          <Text className="text-[#64748b] text-center mt-2 font-normal">
             We prioritize the security and privacy of your personal information.
           </Text>
         </View>
@@ -33,7 +33,7 @@ export default function PrivacySecurityScreen() {
             <Lock color="#8C4A28" size={20} className="mr-2" />
             <Text className="text-[#1a202c] font-bold text-lg">Privacy Policy</Text>
           </View>
-          <Text className="text-[#64748b] leading-6">
+          <Text className="text-[#64748b] leading-6 font-normal">
             Our privacy policy outlines how we collect, use, and protect your data. We do not sell your personal information to third parties. Your data is used exclusively to improve your experience within the zippy Equestrian platform and to communicate with you about your sessions and updates.
           </Text>
         </View>
@@ -43,7 +43,7 @@ export default function PrivacySecurityScreen() {
             <Shield color="#8C4A28" size={20} className="mr-2" />
             <Text className="text-[#1a202c] font-bold text-lg">Security Measures</Text>
           </View>
-          <Text className="text-[#64748b] leading-6">
+          <Text className="text-[#64748b] leading-6 font-normal">
             We employ industry-standard encryption and security practices to ensure your account details and riding records are protected against unauthorized access.
           </Text>
         </View>

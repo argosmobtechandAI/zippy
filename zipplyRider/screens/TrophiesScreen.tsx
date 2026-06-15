@@ -88,7 +88,7 @@ export default function TrophiesScreen() {
                     <Text className="text-[#94a3b8] text-[10px] font-bold mt-1">{trophy.date}</Text>
                   </View>
                   <Text className="text-[#8C4A28] font-bold text-xs mb-2">{trophy.subtitle}</Text>
-                  <Text className="text-[#64748b] text-xs leading-5 pr-2">{trophy.desc}</Text>
+                  <Text className="text-[#64748b] text-xs leading-5 pr-2 font-normal">{trophy.desc}</Text>
                 </View>
               </View>
             );

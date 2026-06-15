@@ -53,7 +53,9 @@ export default function ProfileScreen() {
     if (selectedDate) {
       setDate(selectedDate);
       setFormData((prev) => ({ ...prev, dob: formatDate(selectedDate) }))
-      setDateTimePicker(false)
+      if (Platform.OS === 'android') {
+        setDateTimePicker(false)
+      }
     }
   };
 
@@ -135,7 +137,7 @@ export default function ProfileScreen() {
 
           <Text className="text-[#1a202c] font-semibold text-xs mb-1">Full Name</Text>
           <TextInput
-            className="bg-white border border-[#e2d5c3] rounded-xl px-4 py-3 mb-4 text-[#1e293b]"
+            className="bg-white border border-[#e2d5c3] rounded-xl px-4 py-3 mb-4 text-[#1e293b] font-normal"
             placeholder="e.g. John Doe"
             placeholderTextColor="#94a3b8"
             value={formData.name}
@@ -144,7 +146,7 @@ export default function ProfileScreen() {
 
           <Text className="text-[#1a202c] font-semibold text-xs mb-1">Mobile Number</Text>
           <TextInput
-            className="bg-white border border-[#e2d5c3] rounded-xl px-4 py-3 mb-4 text-[#1e293b]"
+            className="bg-white border border-[#e2d5c3] rounded-xl px-4 py-3 mb-4 text-[#1e293b] font-normal"
             placeholder="Ex: 1234567890"
             placeholderTextColor="#94a3b8"
             keyboardType="number-pad"
@@ -172,7 +174,7 @@ export default function ProfileScreen() {
 
           <Text className="text-[#1a202c] font-semibold text-xs mb-1">Email address</Text>
           <TextInput
-            className="bg-white border border-[#e2d5c3] rounded-xl px-4 py-3 mb-4 text-[#1e293b]"
+            className="bg-white border border-[#e2d5c3] rounded-xl px-4 py-3 mb-4 text-[#1e293b] font-normal"
             placeholder="Ex: email@abc.com"
             placeholderTextColor="#94a3b8"
             keyboardType="email-address"
@@ -185,7 +187,7 @@ export default function ProfileScreen() {
           <Text className="text-[#1a202c] font-semibold text-xs mb-1">Password</Text>
           <View className="flex-row items-center bg-white border border-[#e2d5c3] rounded-xl px-4 mb-4">
             <TextInput
-              className="flex-1 py-3 text-[#1e293b]"
+              className="flex-1 py-3 text-[#1e293b] font-normal"
               placeholder="Choose a secure password"
               placeholderTextColor="#94a3b8"
               secureTextEntry={!showPassword}
@@ -213,7 +215,7 @@ export default function ProfileScreen() {
 
           <Text className="text-[#1a202c] font-semibold text-xs mb-1">Age</Text>
           <TextInput
-            className="bg-white border border-[#e2d5c3] rounded-xl px-4 py-3 mb-4 text-[#1e293b]"
+            className="bg-white border border-[#e2d5c3] rounded-xl px-4 py-3 mb-4 text-[#1e293b] font-normal"
             placeholder="Years"
             placeholderTextColor="#94a3b8"
             keyboardType="number-pad"
@@ -242,7 +244,7 @@ export default function ProfileScreen() {
                   <Text className="text-[#1a202c] font-semibold text-sm">
                     {stables.find((stable: any) => stable.code === formData.code).name}
                   </Text>
-                  <Text className="text-[#64748b] text-xs mt-0.5">
+                  <Text className="text-[#64748b] text-xs mt-0.5 font-normal">
                     {stables.find((stable: any) => stable.code === formData.code).location}
                   </Text>
                 </View>
@@ -274,7 +276,7 @@ export default function ProfileScreen() {
                         <Text className={`font-semibold text-sm ${isSelected ? 'text-[#8C4A28]' : 'text-[#1e293b]'}`}>
                           {stable.name}
                         </Text>
-                        <Text className={`text-xs mt-0.5 ${isSelected ? 'text-[#8C4A28]' : 'text-[#64748b]'}`}>
+                        <Text className={`text-xs mt-0.5 ${isSelected ? 'text-[#8C4A28]' : 'text-[#64748b]'} font-normal`}>
                           {stable.location}
                         </Text>
                       </TouchableOpacity>
@@ -282,7 +284,7 @@ export default function ProfileScreen() {
                   })
                 ) : (
                   <View className="px-4 py-3">
-                    <Text className="text-[#64748b] text-sm text-center">No stables available</Text>
+                    <Text className="text-[#64748b] text-sm text-center font-normal">No stables available</Text>
                   </View>
                 )}
               </View>
@@ -291,7 +293,7 @@ export default function ProfileScreen() {
 
           <Text className="text-[#1a202c] font-semibold text-xs mb-1">Weight (kg)</Text>
           <TextInput
-            className="bg-white border border-[#e2d5c3] rounded-xl px-4 py-3 mb-4 text-[#1e293b]"
+            className="bg-white border border-[#e2d5c3] rounded-xl px-4 py-3 mb-4 text-[#1e293b] font-normal"
             placeholder="0.0"
             placeholderTextColor="#94a3b8"
             keyboardType="numeric"
@@ -337,7 +339,7 @@ export default function ProfileScreen() {
             onPress={() => setDateTimePicker(false)}
           >
             <View style={{ backgroundColor: '#fff', borderRadius: 24, padding: 20, width: '85%', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 20, elevation: 10 }}>
-              <Text style={{ color: '#8C4A28', fontWeight: '700', fontSize: 16, marginBottom: 12 }}>Select Date of Birth</Text>
+              <Text className="font-normal" style={{ color: '#8C4A28', fontWeight: '700', fontSize: 16, marginBottom: 12 }}>Select Date of Birth</Text>
               <DateTimePicker
                 value={date}
                 mode="date"
@@ -345,12 +347,14 @@ export default function ProfileScreen() {
                 maximumDate={new Date()}
                 onChange={onChange}
                 style={{ width: '100%' }}
+                textColor="#000000"
+                themeVariant="light"
               />
               <TouchableOpacity
                 onPress={() => setDateTimePicker(false)}
                 style={{ marginTop: 12, backgroundColor: '#8C4A28', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 32 }}
               >
-                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Done</Text>
+                <Text className="font-normal" style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Done</Text>
               </TouchableOpacity>
             </View>
           </TouchableOpacity>
@@ -369,7 +373,7 @@ export default function ProfileScreen() {
 
           <Text className="text-[#1a202c] w-full font-semibold text-xs mb-1">Parent/Guardian Name</Text>
           <TextInput
-            className="w-full bg-white border border-[#e2d5c3] rounded-xl px-4 py-3 mb-4 text-[#1e293b]"
+            className="w-full bg-white border border-[#e2d5c3] rounded-xl px-4 py-3 mb-4 text-[#1e293b] font-normal"
             placeholder="Full name of guardian"
             placeholderTextColor="#94a3b8"
             value={formData.parent_name}
@@ -378,7 +382,7 @@ export default function ProfileScreen() {
 
           <Text className="text-[#1a202c] w-full font-semibold text-xs mb-1">Emergency Contact</Text>
           <TextInput
-            className="w-full bg-white border border-[#e2d5c3] rounded-xl px-4 py-3 mb-4 text-[#1e293b]"
+            className="w-full bg-white border border-[#e2d5c3] rounded-xl px-4 py-3 mb-4 text-[#1e293b] font-normal"
             placeholder="+1 (555) 000-0000"
             placeholderTextColor="#94a3b8"
             keyboardType="phone-pad"
@@ -416,7 +420,7 @@ export default function ProfileScreen() {
 
           <Text className="text-[#1a202c] w-full font-semibold text-xs mb-1">Medical Conditions</Text>
           <TextInput
-            className="w-full bg-white border border-[#e2d5c3] rounded-xl px-4 py-3 mb-4 text-[#1e293b] h-24"
+            className="w-full bg-white border border-[#e2d5c3] rounded-xl px-4 py-3 mb-4 text-[#1e293b] h-24 font-normal"
             placeholder="List any chronic conditions or previous injuries..."
             placeholderTextColor="#94a3b8"
             multiline
@@ -427,7 +431,7 @@ export default function ProfileScreen() {
 
           <Text className="text-[#1a202c] w-full font-semibold text-xs mb-1">Allergies</Text>
           <TextInput
-            className="w-full bg-white border border-[#e2d5c3] rounded-xl px-4 py-3 mb-4 text-[#1e293b] h-24"
+            className="w-full bg-white border border-[#e2d5c3] rounded-xl px-4 py-3 mb-4 text-[#1e293b] h-24 font-normal"
             placeholder="Food, medicine, or environmental allergies..."
             placeholderTextColor="#94a3b8"
             multiline
@@ -469,7 +473,7 @@ export default function ProfileScreen() {
 
           <Text className="text-[#1a202c] w-full font-semibold text-xs mb-1">Special Safety Instructions</Text>
           <TextInput
-            className="w-full bg-white border border-[#e2d5c3] rounded-xl px-4 py-3 mb-8 text-[#1e293b] h-24"
+            className="w-full bg-white border border-[#e2d5c3] rounded-xl px-4 py-3 mb-8 text-[#1e293b] h-24 font-normal"
             placeholder="Any specific instructions for instructors..."
             placeholderTextColor="#94a3b8"
             multiline
@@ -487,7 +491,7 @@ export default function ProfileScreen() {
           <ArrowRight color="white" size={20} />
         </TouchableOpacity>
 
-        <Text className="text-center text-[#64748b] text-xs">
+        <Text className="text-center text-[#64748b] text-xs font-normal">
           Step 1 of 3: You can edit these details later.
         </Text>
       </ScrollView>

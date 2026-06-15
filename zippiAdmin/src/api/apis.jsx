@@ -23,6 +23,7 @@ export const updateStableApi = `${baseUrl}/stable`;
 export const deleteStableApi = `${baseUrl}/stable`;
 export const getAllSessionsApi = `${baseUrl}/session`;
 export const createSessionApi = `${baseUrl}/session`;
+export const bulkCreateSessionsApi = `${baseUrl}/session/bulk`;
 export const updateSessionApi = `${baseUrl}/session`;
 export const approveSessionApi = `${baseUrl}/session/updateStatus`
 export const deleteSessionApi = `${baseUrl}/session`;

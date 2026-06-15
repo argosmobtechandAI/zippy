@@ -76,7 +76,7 @@ export default function EnrolmentScreen() {
                             </View>
                             <View className="flex-1 justify-center">
                                 <Text className="text-[#1a202c] font-extrabold text-[15px] mb-1">Weekday Sessions</Text>
-                                <Text className="text-[#64748b] text-[12px] leading-4 pr-2">
+                                <Text className="text-[#64748b] text-[12px] leading-4 pr-2 font-normal">
                                     Available Mon-Fri. Ideal for consistent skill building with less arena traffic.
                                 </Text>
                             </View>
@@ -88,7 +88,7 @@ export default function EnrolmentScreen() {
                             </View>
                             <View className="flex-1 justify-center">
                                 <Text className="text-[#1a202c] font-extrabold text-[15px] mb-1">Weekend Access</Text>
-                                <Text className="text-[#64748b] text-[12px] leading-4 pr-2">
+                                <Text className="text-[#64748b] text-[12px] leading-4 pr-2 font-normal">
                                     Limited to 2 weekend bookings per month to ensure fair access for all riders.
                                 </Text>
                             </View>
@@ -100,7 +100,7 @@ export default function EnrolmentScreen() {
                             </View>
                             <View className="flex-1 justify-center">
                                 <Text className="text-[#1a202c] font-extrabold text-[15px] mb-1">Cancellation Policy</Text>
-                                <Text className="text-[#64748b] text-[12px] leading-4 pr-2">
+                                <Text className="text-[#64748b] text-[12px] leading-4 pr-2 font-normal">
                                     Bookings and cancellations are allowed until 8:00 PM on the previous day. After this cutoff time, no booking changes will be permitted. No-shows will result in session deduction.
                                 </Text>
                             </View>

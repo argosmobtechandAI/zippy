@@ -127,7 +127,7 @@ export default function PersonalInformationScreen() {
         <Text className="text-[#64748b] text-xs font-bold tracking-widest uppercase mb-2 ml-1">{label}</Text>
         <View className="flex-row items-center bg-white rounded-2xl px-4 py-1 border border-[#e2e8f0] shadow-sm">
           <IconComponent color="#94a3b8" size={20} className="mr-3" />
-          <TextInput
+          <TextInput className="font-normal"
             value={value}
             onChangeText={(text) => updateForm(key, text)}
             keyboardType={keyboardType}

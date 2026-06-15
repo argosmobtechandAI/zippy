@@ -151,7 +151,7 @@ export default function SessionsScreen() {
           />
           <View className="absolute bottom-0 left-0 right-0 p-4 bg-black/40 pt-10">
             <Text className="text-white text-2xl font-bold mb-1 shadow-sm">Premium Riding Session</Text>
-            <Text className="text-[#fceddf] text-sm">Advanced Dressage & Show Jumping</Text>
+            <Text className="text-[#fceddf] text-sm font-normal">Advanced Dressage & Show Jumping</Text>
           </View>
         </View>
 
@@ -188,7 +188,7 @@ export default function SessionsScreen() {
               </View>
               <Text className="text-xl font-bold text-[#8C4A28]">Available Sessions</Text>
             </View>
-            <Text className="text-[#8C4A28] text-sm opacity-80">{filteredSessions.length} sessions found</Text>
+            <Text className="text-[#8C4A28] text-sm opacity-80 font-normal">{filteredSessions.length} sessions found</Text>
           </View>
 
           <View className="space-y-3">
@@ -200,7 +200,8 @@ export default function SessionsScreen() {
                 <Text className="text-[#64748b] mt-2 font-semibold">No sessions for this date</Text>
               </View>
             ) : filteredSessions.map((session, idx) => {
-              const seatsLeft = (session.totalSeats || 10) - (session.participants?.length || 0);
+              const dateParticipants = session.participants?.filter((p: any) => p.date === selectedDate) || [];
+              const seatsLeft = (session.totalSeats || 10) - dateParticipants.length;
               return (
                 <TouchableOpacity
                   key={idx}

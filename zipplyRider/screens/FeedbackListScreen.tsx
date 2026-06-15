@@ -62,7 +62,7 @@ export default function FeedbackListScreen() {
                 
                 <View className="bg-[#FAF3EC] rounded-2xl p-4">
                     <Text className="text-[#DA7347] text-[10px] font-black uppercase tracking-widest mb-1">Remark</Text>
-                    <Text className="text-[#5C2E0E] text-sm leading-5">"{participantData?.remark}"</Text>
+                    <Text className="text-[#5C2E0E] text-sm leading-5 font-normal">"{participantData?.remark}"</Text>
                 </View>
               </View>
             );

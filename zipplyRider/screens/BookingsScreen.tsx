@@ -199,7 +199,7 @@ export default function BookingsScreen() {
               {/* Handle */}
               <View className="w-12 h-1.5 bg-[#e2e8f0] rounded-full self-center mb-5" />
               <View className="flex-row justify-between items-center mb-5">
-                <Text className="text-[#8C4A28] font-bold text-xl">Cancellation {"&"} Rejection Policy</Text>
+                <Text className="text-[#8C4A28] font-bold text-xl font-normal">Booking {"&"} Cancellation Policy</Text>
                 <TouchableOpacity onPress={() => setPolicyVisible(false)} className="p-1">
                   <X color="#64748b" size={20} />
                 </TouchableOpacity>
@@ -208,39 +208,31 @@ export default function BookingsScreen() {
               <ScrollView showsVerticalScrollIndicator={false}>
                 {[
                   {
-                    title: '⏰ Cancellation Window',
-                    body: 'You may cancel a confirmed session up to 8:00 PM of the day before the session without any penalty. Cancellations made after this deadline will count as a used session.'
+                    title: '⏰ Booking & Cancellation Window',
+                    body: 'Riders may book, modify, or cancel sessions until 8:00 PM on the previous day of the scheduled session.'
                   },
                   {
-                    title: '💳 Refund Policy',
-                    body: 'Sessions cancelled within the allowed window will have the session credit restored to your plan balance. No monetary refunds are issued — credits are returned to your account only.'
-                  },
-                  {
-                    title: '❌ Rejection by Admin',
-                    body: 'If your booking request is rejected by an admin, the session credit is automatically restored to your plan balance within 24 hours. You may rebook any available slot.'
+                    title: '⏳ Cutoff Time',
+                    body: 'After 8:00 PM on the previous day, no booking, rescheduling, or cancellation requests will be accepted through the system.'
                   },
                   {
                     title: '🚨 No-Show Policy',
-                    body: 'If you do not attend a confirmed session without prior cancellation, it will be marked as a No-Show and the session credit will not be refunded.'
+                    body: 'Failure to attend a booked session without prior cancellation within the permitted timeframe will be treated as a No-Show, and the session will be considered utilized.'
                   },
                   {
-                    title: '🏥 Emergency Exceptions',
-                    body: 'In case of medical or personal emergencies, please contact our support team directly. Exceptions to the cancellation policy may be granted at management discretion with valid documentation.'
-                  },
-                  {
-                    title: '📅 Booking Deadline',
-                    body: 'New bookings must be made before 8:00 PM of the day prior to the session. Bookings cannot be made for sessions that have already started.'
-                  },
+                    title: '🌤 Zippy’s Rights & Rescheduling',
+                    body: 'Zippy reserves the right to modify or cancel sessions due to weather conditions, horse welfare requirements, safety concerns, instructor availability, or unforeseen circumstances.'
+                  }
                 ].map((section, i) => (
                   <View key={i} className={`mb-5 ${i > 0 ? 'pt-5 border-t border-[#f1f5f9]' : ''}`}>
-                    <Text className="text-[#1a202c] font-bold text-sm mb-1.5">{section.title}</Text>
-                    <Text className="text-[#64748b] text-xs leading-relaxed">{section.body}</Text>
+                    <Text className="text-[#1a202c] font-bold text-sm mb-1.5 font-normal">{section.title}</Text>
+                    <Text className="text-[#64748b] text-xs leading-relaxed font-normal">{section.body}</Text>
                   </View>
                 ))}
 
                 <View className="bg-[#fceddf] rounded-2xl p-4 mt-2">
                   <Text className="text-[#8C4A28] font-bold text-xs mb-1">Need help?</Text>
-                  <Text className="text-[#64748b] text-xs leading-relaxed">Contact our support team via the Help section in the app or email us at support@zippyequestrian.com</Text>
+                  <Text className="text-[#64748b] text-xs leading-relaxed font-normal">Contact our support team via the Help section in the app or email us at support@zippyequestrian.com</Text>
                 </View>
               </ScrollView>
             </View>
@@ -291,7 +283,7 @@ export default function BookingsScreen() {
                   </View>
                   <Text className="text-[#8C4A28] font-bold text-sm">Cancellation Policy</Text>
                 </View>
-                <Text className="text-[#64748b] text-xs leading-relaxed mb-2">
+                <Text className="text-[#64748b] text-xs leading-relaxed mb-2 font-normal">
                   Bookings and cancellations are allowed until 8:00 PM on the previous day. After this cutoff time, no booking changes will be permitted. No-shows will result in session deduction.
                 </Text>
                 <TouchableOpacity className="flex-row items-center" onPress={() => setPolicyVisible(true)}>
@@ -305,6 +297,8 @@ export default function BookingsScreen() {
                   value={date}
                   mode="date"
                   display="default"
+                  textColor="#000000"
+                  themeVariant="light"
                   onChange={(event: any, selectedDate?: Date) => {
                     if (Platform.OS === 'android') setShowDatePicker(null);
                     if (selectedDate) {
@@ -379,13 +373,13 @@ export default function BookingsScreen() {
                           <View className="w-6 items-center mr-1">
                             <Calendar color="#8C4A28" size={14} />
                           </View>
-                          <Text className="text-[#64748b] text-xs">{session.timing} • {bookedDate}</Text>
+                          <Text className="text-[#64748b] text-xs font-normal">{session.timing} • {bookedDate}</Text>
                         </View>
                         <View className="flex-row items-center mt-1">
                           <View className="w-6 items-center mr-1">
                             <UserIcon color="#8C4A28" size={14} />
                           </View>
-                          <Text className="text-[#64748b] text-xs">Location: {session.location}</Text>
+                          <Text className="text-[#64748b] text-xs font-normal">Location: {session.location}</Text>
                         </View>
                       </View>
 
@@ -405,7 +399,7 @@ export default function BookingsScreen() {
 
                           <View className="mb-3">
                             <Text className="text-[#94a3b8] text-[10px] font-bold tracking-widest uppercase mb-1 ml-1">Leave Reason</Text>
-                            <TextInput
+                            <TextInput className="font-normal"
                               value={leaveForm.reason}
                               onChangeText={t => setLeaveForm({ ...leaveForm, reason: t })}
                               placeholder="e.g. Vacation, Medical"
@@ -470,7 +464,7 @@ export default function BookingsScreen() {
                   <XCircle color="#dc2626" size={16} />
                   <Text className="text-red-700 font-bold text-sm ml-2">Rejection Policy</Text>
                 </View>
-                <Text className="text-[#64748b] text-xs leading-relaxed mb-2">
+                <Text className="text-[#64748b] text-xs leading-relaxed mb-2 font-normal">
                   When your booking is rejected by an admin, your session credit is automatically restored. You may rebook any available slot.
                 </Text>
                 <TouchableOpacity className="flex-row items-center" onPress={() => setPolicyVisible(true)}>
@@ -488,7 +482,7 @@ export default function BookingsScreen() {
                 <View className="p-8 items-center justify-center bg-white rounded-2xl border border-[#e2e8f0] mb-4">
                   <XCircle color="#94a3b8" size={28} />
                   <Text className="text-[#64748b] font-bold mt-3">No rejected sessions.</Text>
-                  <Text className="text-[#94a3b8] text-xs text-center mt-1">All your bookings are in good standing!</Text>
+                  <Text className="text-[#94a3b8] text-xs text-center mt-1 font-normal">All your bookings are in good standing!</Text>
                 </View>
               ) : rejectedSessions.map((session: any, idx: number) => {
                 const me = session.participants?.find((p: any) =>
@@ -513,13 +507,13 @@ export default function BookingsScreen() {
                         <View className="w-6 items-center mr-1">
                           <Calendar color="#8C4A28" size={14} />
                         </View>
-                        <Text className="text-[#64748b] text-xs">{session.timing} • {bookedDate}</Text>
+                        <Text className="text-[#64748b] text-xs font-normal">{session.timing} • {bookedDate}</Text>
                       </View>
                       <View className="flex-row items-center mt-1">
                         <View className="w-6 items-center mr-1">
                           <UserIcon color="#8C4A28" size={14} />
                         </View>
-                        <Text className="text-[#64748b] text-xs">Location: {session.location}</Text>
+                        <Text className="text-[#64748b] text-xs font-normal">Location: {session.location}</Text>
                       </View>
                     </View>
 
@@ -570,13 +564,13 @@ export default function BookingsScreen() {
                           <View className="w-6 items-center mr-1">
                             <Calendar color="#8C4A28" size={14} />
                           </View>
-                          <Text className="text-[#64748b] text-xs">{session.timing} • {bookedDate}</Text>
+                          <Text className="text-[#64748b] text-xs font-normal">{session.timing} • {bookedDate}</Text>
                         </View>
                         <View className="flex-row items-center mt-1">
                           <View className="w-6 items-center mr-1">
                             <UserIcon color="#8C4A28" size={14} />
                           </View>
-                          <Text className="text-[#64748b] text-xs">Location: {session.location}</Text>
+                          <Text className="text-[#64748b] text-xs font-normal">Location: {session.location}</Text>
                         </View>
                       </View>
 
@@ -599,7 +593,7 @@ export default function BookingsScreen() {
               <View className="flex-row items-center mb-6 mt-2">
                 <View>
                   <Text className="text-[#1a202c] font-bold text-xl">Past Sessions</Text>
-                  <Text className="text-[#64748b] text-sm">Review your previous rides and ratings.</Text>
+                  <Text className="text-[#64748b] text-sm font-normal">Review your previous rides and ratings.</Text>
                 </View>
               </View>
 
@@ -626,7 +620,7 @@ export default function BookingsScreen() {
 
                       <View className="flex-row items-center space-x-2 mb-4">
                         <Clock color="#64748b" size={16} />
-                        <Text className="text-[#64748b] text-sm ml-2">{session.timing} • {bookedDate}</Text>
+                        <Text className="text-[#64748b] text-sm ml-2 font-normal">{session.timing} • {bookedDate}</Text>
                       </View>
 
                       <View className="flex-row justify-between items-center bg-[#f8fafc] p-3 rounded-2xl mb-4">
@@ -644,7 +638,7 @@ export default function BookingsScreen() {
 
                       <View className="flex-row justify-between items-center border-t border-[#f1f5f9] pt-4">
                         <View className="flex-row items-center">
-                          <Text className="text-xs text-[#64748b] mr-2">Your Rating:</Text>
+                          <Text className="text-xs text-[#64748b] mr-2 font-normal">Your Rating:</Text>
                           <View className="flex-row">
                             {[...Array(5)].map((_, i) => (
                               <Star key={i} size={12} color={i < 5 ? '#f59e0b' : '#cbd5e1'} fill={i < 5 ? '#f59e0b' : 'transparent'} />
