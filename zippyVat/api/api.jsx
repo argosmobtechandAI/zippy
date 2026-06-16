@@ -7,6 +7,7 @@ export const getUserApi = `${baseURL}/users`;
 export const createUserApi = `${baseURL}/users`;
 export const getOTPApi = `${baseURL}/users/getOTP`;
 export const verifyOTPApi = `${baseURL}/users/verifyOTP`;
+export const loginApi = `${baseURL}/users/login`;
 export const uploadProfilePictureApi = (id) => `${baseURL}/users/profile-picture/${id}`;
 
 

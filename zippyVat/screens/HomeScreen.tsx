@@ -194,14 +194,10 @@ export default function HomeScreen() {
                         className="bg-white rounded-[32px] p-5 shadow-sm border border-brand-brown/5 flex-row items-center"
                      >
                         <View className="w-20 h-20 rounded-[22px] overflow-hidden bg-brand-beige/30 items-center justify-center border border-brand-brown/5 shadow-inner">
-                           {horse.imageUrl || horse.image ? (
-                              <Image
-                                 source={{ uri: getImageUrl(horse.imageUrl || horse.image) }}
-                                 className="w-full h-full"
-                              />
-                           ) : (
-                              <Stethoscope color="#85431E" size={24} opacity={0.2} />
-                           )}
+                           <Image
+                              source={{ uri: horse.imageUrl || horse.image ? getImageUrl(horse.imageUrl || horse.image) : "https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?auto=format&fit=crop&q=80&w=800" }}
+                              className="w-full h-full"
+                           />
                            <View className="absolute top-1 right-1 w-5 h-5 bg-emerald-500 rounded-full border-[3px] border-white" />
                         </View>
 
@@ -242,16 +238,10 @@ export default function HomeScreen() {
                      className="bg-white rounded-[40px] p-4 mr-6 shadow-xl shadow-brand-brown/5 border border-brand-brown/5 w-60"
                   >
                      <View className="relative">
-                        {horse.imageUrl || horse.image ? (
-                           <Image
-                              source={{ uri: getImageUrl(horse.imageUrl || horse.image) }}
-                              className="w-full h-72 rounded-[32px] border-2 border-white/50"
-                           />
-                        ) : (
-                           <View className="w-full h-72 rounded-[32px] border-2 border-white/50 bg-brand-beige items-center justify-center">
-                              <Stethoscope color="#85431E" size={48} opacity={0.2} />
-                           </View>
-                        )}
+                        <Image
+                           source={{ uri: horse.imageUrl || horse.image ? getImageUrl(horse.imageUrl || horse.image) : "https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?auto=format&fit=crop&q=80&w=800" }}
+                           className="w-full h-72 rounded-[32px] border-2 border-white/50"
+                        />
                         <View className="absolute bottom-4 left-4 right-4 bg-white/95 p-5 rounded-[24px] shadow-sm">
                            <Text className="text-brand-brown font-display text-lg tracking-tight leading-tight">{horse.name}</Text>
                            <Text className="text-brand-orange text-[9px] font-display uppercase tracking-[2px] mt-1">{horse.location}</Text>

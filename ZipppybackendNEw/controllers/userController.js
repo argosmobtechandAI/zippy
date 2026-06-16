@@ -320,6 +320,12 @@ const USERS_TABLE_COLUMNS = new Set([
 export const updateUser = async (req, res) => {
     const { id } = req.params;
     const { data } = req.body;
+    
+    // DEBUG DUMP
+    import('fs').then(fs => {
+        const logData = `[${new Date().toISOString()}] PUT /updateUser/${id} - Body: ${JSON.stringify(req.body)}\n`;
+        fs.appendFileSync('/tmp/updateUser.log', logData);
+    });
 
     // Destructure all non-users-table fields out first
     const {
@@ -382,7 +388,7 @@ export const updateUser = async (req, res) => {
             user = fetchedUser[0];
         }
 
-        if (user.type === "rider") {
+        if (user.type?.toLowerCase() === "rider") {
             const riderUpdateData = {};
             if (level !== undefined) riderUpdateData.level = level;
             if (medical !== undefined) riderUpdateData.medical = medical;
@@ -412,7 +418,7 @@ export const updateUser = async (req, res) => {
                 const currentTrophies = riderData && riderData.length > 0 ? (riderData[0].trophies || []) : [];
                 await supabase.from('rider').update({ trophies: [...currentTrophies, trophyItem] }).eq('user_id', id);
             }
-        } else if (user.type === "trainer") {
+        } else if (user.type?.toLowerCase() === "trainer") {
             const trainerUpdateData = {};
             if (title !== undefined) trainerUpdateData.title = title;
             if (experience !== undefined) trainerUpdateData.experience = experience;
@@ -464,11 +470,57 @@ export const updateUser = async (req, res) => {
                         await sendPushToUser(id, newNotif.title, newNotif.desc, { type: newNotif.type });
                 }
             }
-        } else if (user.type === "vet") {
-            const { data: existingVet } = await supabase.from('vet').select('*').eq('user_id', id).limit(1);
+        } else if (user.type?.toLowerCase() === "vet") {
+            const { data: existingVet } = await supabase.from('vet').select('id').eq('user_id', id).limit(1);
+            let vetId;
             if (!existingVet || existingVet.length === 0) {
-                await supabase.from('vet').insert({ user_id: id });
+                const { data: newVet } = await supabase.from('vet').insert({ user_id: id }).select();
+                vetId = newVet && newVet.length > 0 ? newVet[0].id : null;
+            } else {
+                vetId = existingVet[0].id;
             }
+
+            const horseIdsToAssign = data.addHorseIds || (addHorseId ? [addHorseId] : []);
+            const removeHorseId = data.removeHorseId;
+
+            let dbgLogs = { vetId, existingVet, newVetInsertTried: !existingVet || existingVet.length === 0, assignErrs: [] };
+
+            if (removeHorseId) {
+                const { error: removeErr } = await supabase.from('horse').update({ vat_id: null }).eq('id', removeHorseId);
+                if (removeErr) console.error("Remove Horse Error:", removeErr);
+            }
+
+            if (horseIdsToAssign.length > 0 && vetId) {
+                for (const hId of horseIdsToAssign) {
+                    const { error: assignErr } = await supabase.from('horse').update({ vat_id: vetId }).eq('id', hId);
+                    if (assignErr) dbgLogs.assignErrs.push({hId, error: assignErr});
+                    
+                    // Automate notification
+                    const { data: horseRes } = await supabase.from('horse').select('*').eq('id', hId).limit(1);
+                    const horseName = horseRes && horseRes.length > 0 ? horseRes[0].name : 'a new horse';
+                    const newNotif = {
+                        id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+                        title: "New Horse Assigned",
+                        desc: `${horseName} has been assigned to your veterinary care.`,
+                        time: "Just Now",
+                        type: "success",
+                        horseName: horseName,
+                        horseBreed: horseRes && horseRes.length > 0 ? horseRes[0].title : 'STANDARD BREED',
+                        unread: true
+                    };
+                    
+                    const { data: usr } = await supabase.from('users').select('notifications').eq('id', id).limit(1);
+                    if(usr && usr.length > 0) {
+                         const notifs = usr[0].notifications || [];
+                         await supabase.from('users').update({ notifications: [...notifs, newNotif] }).eq('id', id);
+                         if (typeof sendPushToUser === 'function') {
+                             await sendPushToUser(id, newNotif.title, newNotif.desc, { type: newNotif.type });
+                         }
+                    }
+                }
+            }
+
+            import('fs').then(fs => fs.writeFileSync('/tmp/debug-vet.log', JSON.stringify(dbgLogs, null, 2)));
         }
 
         return res.status(200).json({ user: user, message: 'User updated successfully', success: true });

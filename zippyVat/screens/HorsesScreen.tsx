@@ -95,7 +95,7 @@ export default function HorsesScreen() {
               <View className="flex-row -space-x-4">
                 {Array.isArray(horses) && horses.slice(0, 2).map((h, i) => (
                   <View key={i} className="w-10 h-10 rounded-full border-2 border-[#8C4A28] overflow-hidden bg-white shadow-sm items-center justify-center">
-                    {h.imageUrl ? <Image source={{ uri: getImageUrl(h.imageUrl) }} className="w-full h-full" /> : <Activity color="#8C4A28" size={20} opacity={0.5} />}
+                    <Image source={{ uri: h.imageUrl ? getImageUrl(h.imageUrl) : "https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?auto=format&fit=crop&q=80&w=800" }} className="w-full h-full" />
                   </View>
                 ))}
                 <View className="w-10 h-10 rounded-full border-2 border-white bg-[#FAF7F2] items-center justify-center z-10 shadow-sm">
@@ -126,16 +126,10 @@ export default function HorsesScreen() {
                 className="bg-white rounded-[2.5rem] p-5 shadow-xl shadow-gray-200 border border-white flex-row items-center"
               >
                 <View className="shadow-lg shadow-gray-200">
-                  {horse.imageUrl ? (
-                    <Image
-                      source={{ uri: getImageUrl(horse.imageUrl) }}
-                      className="w-24 h-24 rounded-[2rem] border-2 border-gray-50 bg-[#FAF7F2]"
-                    />
-                  ) : (
-                    <View className="w-24 h-24 rounded-[2rem] border-2 border-gray-50 bg-[#FAF7F2] items-center justify-center p-2">
-                      <Text className="text-[10px] font-bold text-[#94a3b8] text-center uppercase tracking-widest">No Preview Image</Text>
-                    </View>
-                  )}
+                  <Image
+                    source={{ uri: horse.imageUrl ? getImageUrl(horse.imageUrl) : "https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?auto=format&fit=crop&q=80&w=800" }}
+                    className="w-24 h-24 rounded-[2rem] border-2 border-gray-50 bg-[#FAF7F2]"
+                  />
                 </View>
 
                 <View className="flex-1 ml-5">
@@ -165,14 +159,7 @@ export default function HorsesScreen() {
         </View>
       </ScrollView>
 
-      {/* Floating Action Button */}
-      <TouchableOpacity
-        activeOpacity={0.9}
-        onPress={() => navigation.navigate('AddHorse')}
-        className="absolute bottom-10 right-8 w-20 h-20 bg-[#8C4A28] rounded-full items-center justify-center shadow-2xl shadow-[#8C4A28]/50 border-4 border-[#FDF5EA]"
-      >
-        <Plus color="white" size={32} strokeWidth={3} />
-      </TouchableOpacity>
+
     </View>
   );
 }

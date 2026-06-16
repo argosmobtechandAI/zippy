@@ -22,11 +22,13 @@ export const getHorseByVat = async (req, res) => {
     // 3. Process horses properly
     const updatedHorses = await Promise.all(
       horses.map(async (h) => {
-        const { data: healthStatus } = await supabase.from('health_status').select('*').eq('horse_id', h.id);
+        const { data: healthStatus, error: healthError } = await supabase.from('health_status').select('*').eq('horse', h.id);
+        console.log("healthStatus fetch for horse", h.id, ":", healthStatus, "error:", healthError);
 
         if (!healthStatus || healthStatus.length === 0) {
           return {
             ...h,
+            imageUrl: h.image_url,
             healthStatus: null,
           };
         }
@@ -34,9 +36,11 @@ export const getHorseByVat = async (req, res) => {
         const latestHealthStatus = healthStatus.reduce((a, b) =>
           b.date > a.date ? b : a
         );
+        console.log("latestHealthStatus for", h.id, ":", latestHealthStatus);
 
         return {
           ...h,
+          imageUrl: h.image_url,
           healthStatus: latestHealthStatus,
         };
       })

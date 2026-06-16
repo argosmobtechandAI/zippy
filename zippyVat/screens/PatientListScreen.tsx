@@ -102,17 +102,10 @@ export default function PatientListScreen({ navigation }: any) {
                                 className="bg-white rounded-3xl p-4 shadow-sm border border-[#e2e8f0] mb-4 flex-row items-center"
                             >
                                 <View className="w-[70px] h-[70px] rounded-xl mr-4 overflow-hidden bg-[#FAF7F2] items-center justify-center border border-[#8C4A28]/10">
-                                    {patient.image || patient.imageUrl ? (
-                                        <Image
-                                            source={{ uri: getImageUrl(patient.image || patient.imageUrl) }}
-                                            className="w-full h-full"
-                                        />
-                                    ) : (
-                                        <View className="items-center justify-center">
-                                            <Stethoscope color="#8C4A28" size={24} opacity={0.6} />
-                                            <Text className="text-[8px] font-bold text-[#8C4A28]/40 uppercase mt-1">Zippy</Text>
-                                        </View>
-                                    )}
+                                    <Image
+                                        source={{ uri: patient.image || patient.imageUrl ? getImageUrl(patient.image || patient.imageUrl) : "https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?auto=format&fit=crop&q=80&w=800" }}
+                                        className="w-full h-full"
+                                    />
                                 </View>
                                 <View className="flex-1">
                                     <View className="flex-row justify-between items-start mb-1">

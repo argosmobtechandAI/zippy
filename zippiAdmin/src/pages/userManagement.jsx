@@ -9,7 +9,7 @@ import {
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFunction } from '../api/apiFunction';
-import { createUserApi, getAllUsersApi, notifyUserApi, notifyAllUsersApi, updateUserApi, updateUserLeaveApi, getAllTrainersApi, updateTrainerApi, getAllStablesApi, deleteStableLogoApi, uploadFileApi, deleteUserApi, plansApi, assignPlanApi } from '../api/apis';
+import { createUserApi, getAllUsersApi, notifyUserApi, notifyAllUsersApi, updateUserApi, updateUserLeaveApi, getAllTrainersApi, updateTrainerApi, getAllStablesApi, deleteStableLogoApi, uploadFileApi, deleteUserApi, plansApi, assignPlanApi, getAllHorsesApi } from '../api/apis';
 import toast from 'react-hot-toast';
 import axios from 'axios';
 
@@ -124,7 +124,23 @@ const UserManagement = () => {
     const [trainers, setTrainers] = useState([])
     const [loading, setLoading] = useState(true)
     const [stables, setStables] = useState([])
+    const [horses, setHorses] = useState([])
     const navigate = useNavigate();
+
+    const fetchHorses = async () => {
+        try {
+            const res = await apiFunction(`${getAllHorsesApi}`, [], {}, 'GET', false);
+            if (res && res.success) {
+                setHorses(res.horses || []);
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    useEffect(() => {
+        fetchHorses();
+    }, []);
 
     const handleExportCSV = () => {
         if (!users || users.length === 0) {
@@ -652,8 +668,13 @@ const UserManagement = () => {
                     onApproveLeave={handleApproveRequest}
                     onUpdateSuccess={(updatedUser) => {
                         fetchUsers();
+                        if (fetchHorses) fetchHorses();
                         setViewUser(updatedUser);
                     }}
+                    horses={horses}
+                    fetchHorses={fetchHorses}
+                    users={users}
+                    fetchUsers={fetchUsers}
                 />
             )}
 
@@ -669,7 +690,7 @@ const UserManagement = () => {
 };
 
 
-const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave, onUpdateSuccess }) => {
+const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave, onUpdateSuccess, horses = [], fetchHorses, users, fetchUsers }) => {
     const [isEditingWallet, setIsEditingWallet] = useState(false);
     const [isAddingWallet, setIsAddingWallet] = useState(false);
     const [walletInput, setWalletInput] = useState('');
@@ -688,9 +709,60 @@ const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave, onUpdateSuc
     const [isAssigningPlan, setIsAssigningPlan] = useState(false);
     const [localUser, setLocalUser] = useState(user);
 
+    const [selectedHorseIds, setSelectedHorseIds] = useState([]);
+    const [isAssigningHorse, setIsAssigningHorse] = useState(false);
+
+    useEffect(() => {
+        if (user && users) {
+            const freshUser = users.find(u => u.id === user.id);
+            setLocalUser(freshUser || user);
+        }
+    }, [user, users]);
+
     useEffect(() => {
         setLocalUser(user);
     }, [user]);
+
+    const handleAssignHorse = async () => {
+        if (selectedHorseIds.length === 0) { toast.error('Please select at least one horse'); return; }
+        setIsAssigningHorse(true);
+        try {
+            const res = await apiFunction(`${updateUserApi}/${localUser.id}`, [], { addHorseIds: selectedHorseIds, type: 'vet' }, 'PUT', true);
+            if (res && res.success) {
+                toast.success('Horses assigned successfully');
+                setSelectedHorseIds([]);
+                if (fetchHorses) fetchHorses();
+                if (fetchUsers) fetchUsers();
+                if (onUpdateSuccess) onUpdateSuccess(res.user || localUser);
+            } else {
+                toast.error(res?.message || 'Failed to assign horses');
+            }
+        } catch (err) {
+            toast.error('Network error');
+        } finally {
+            setIsAssigningHorse(false);
+        }
+    };
+
+    const handleRemoveAssignedHorse = async (horseId) => {
+        if (!window.confirm("Are you sure you want to unassign this horse?")) return;
+        try {
+            const res = await apiFunction(`${updateUserApi}/${localUser.id}`, [], { removeHorseId: horseId, type: 'vet' }, 'PUT', true);
+            if (res && res.success) {
+                toast.success('Horse unassigned');
+                if (fetchHorses) fetchHorses();
+                if (fetchUsers) fetchUsers();
+            } else {
+                toast.error(res?.message || 'Failed to unassign horse');
+            }
+        } catch (err) {
+            toast.error('Network error');
+        }
+    };
+
+    const removeSelectedHorse = (id) => {
+        setSelectedHorseIds(prev => prev.filter(hId => hId !== id));
+    };
 
     useEffect(() => {
         if (localUser.type === 'rider') {
@@ -1165,7 +1237,88 @@ const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave, onUpdateSuc
                             </div>
                         );
                     })()}
-                    <div className="p-5 bg-[#F8F9FA] rounded-2xl border border-gray-100">
+                    {localUser.type === 'vet' && (
+                        <div className="p-5 bg-[#FAF3EC] rounded-2xl border border-[#964C2E]/20 mb-6 shadow-sm">
+                            <div className="flex justify-between items-start mb-4">
+                                <div>
+                                    <h4 className="text-[10px] font-black text-[#964C2E] tracking-widest uppercase mb-1">ASSIGN HORSE TO VET</h4>
+                                    <p className="text-[12px] font-bold text-gray-500">Select horses to add to this vet's assigned patient list.</p>
+                                </div>
+                            </div>
+                            
+                            <div className="bg-white rounded-xl border border-[#964C2E]/10 p-4 shadow-inner mb-4">
+                                <select 
+                                    className="w-full bg-white border border-[#964C2E]/20 text-gray-700 text-[13px] font-bold rounded-xl px-4 py-3 outline-none"
+                                    value=""
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val && !selectedHorseIds.includes(val)) {
+                                            setSelectedHorseIds([...selectedHorseIds, val]);
+                                        }
+                                    }}
+                                >
+                                    <option value="">Select a horse...</option>
+                                    {horses.filter(h => h.vatId !== localUser.vetId).map(h => (
+                                        <option key={h.id} value={h.id}>{h.name}</option>
+                                    ))}
+                                </select>
+
+                                {selectedHorseIds.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 pt-3">
+                                        {selectedHorseIds.map(id => {
+                                            const h = horses.find(horse => horse.id === id);
+                                            return (
+                                                <div key={id} className="flex items-center gap-1.5 bg-[#964C2E]/10 text-[#964C2E] px-3 py-1.5 rounded-lg text-xs font-bold border border-[#964C2E]/20">
+                                                    <span>{h?.name}</span>
+                                                    <button onClick={() => removeSelectedHorse(id)} className="hover:text-red-500 ml-1">
+                                                        <X className="w-3 h-3" />
+                                                    </button>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+
+                            <button
+                                onClick={handleAssignHorse}
+                                disabled={isAssigningHorse || selectedHorseIds.length === 0}
+                                className="w-full bg-[#964C2E] text-white rounded-xl py-3.5 text-[11px] font-black uppercase tracking-[0.1em] shadow-lg hover:bg-[#7D3F25] transition-all duration-300 disabled:opacity-50"
+                            >
+                                {isAssigningHorse ? "Assigning..." : "Assign Horses"}
+                            </button>
+                        </div>
+                    )}
+
+                    {localUser.type === 'vet' && horses.filter(h => h.vatId === localUser.vetId).length > 0 && (
+                        <div className="p-5 bg-[#F8F9FA] rounded-2xl border border-gray-100 mb-6">
+                            <h4 className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-4">ASSIGNED PATIENTS</h4>
+                            <div className="space-y-3 max-h-[250px] overflow-y-auto pr-2">
+                                {horses.filter(h => h.vatId === localUser.vetId).map(h => (
+                                    <div key={h.id} className="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-full bg-[#FAF3EC] flex items-center justify-center font-bold text-[#964C2E] text-sm">
+                                                {h.name.charAt(0)}
+                                            </div>
+                                            <div>
+                                                <p className="text-[13px] font-bold text-[#1e2330]">{h.name}</p>
+                                                {h.title && <p className="text-[10px] font-bold text-gray-400">{h.title}</p>}
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => handleRemoveAssignedHorse(h.id)}
+                                            className="text-red-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg transition-all"
+                                            title="Unassign Horse"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="p-5 bg-[#F8F9FA] rounded-2xl border border-gray-100 mb-6">
                         <h4 className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-4">CONTACT INFORMATION</h4>
                         <div className="space-y-4">
                             <div>

@@ -69,7 +69,7 @@ export default function HealthScreen({ navigation, route }: any) {
       }
 
       setSaving(true);
-      const status = health === 'Fit for Work' ? 'Fit' : health === 'Light Work' ? 'Light Work' : 'Unfit';
+      const status = health === 'Fit for Work' ? 'Fit' : health === 'Light Work' ? 'Light Work' : health === 'Rest Required' ? 'Rest Required' : 'Unfit';
       try {
          const res = await apiFunction(updateHealthStatusApi, [], {
             horseId: initialHorse.id,
@@ -130,17 +130,10 @@ export default function HealthScreen({ navigation, route }: any) {
             {/* Profile */}
             <View className="flex-row items-center mb-8">
                <View className="w-20 h-20 rounded-full border-4 border-white overflow-hidden mr-4 shadow-sm bg-[#FAF7F2] items-center justify-center">
-                  {currentHorse?.image || currentHorse?.imageUrl ? (
-                     <Image
-                        source={{ uri: currentHorse?.image || currentHorse?.imageUrl }}
-                        className="w-full h-full"
-                     />
-                  ) : (
-                     <View className="items-center justify-center">
-                        <Stethoscope color="#8C4A28" size={24} opacity={0.6} />
-                        <Text className="text-[8px] font-bold text-[#8C4A28]/40 uppercase mt-1">Zippy</Text>
-                     </View>
-                  )}
+                  <Image
+                     source={{ uri: currentHorse?.image || currentHorse?.imageUrl ? currentHorse.image || currentHorse.imageUrl : "https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?auto=format&fit=crop&q=80&w=800" }}
+                     className="w-full h-full"
+                  />
                </View>
                <View>
                   <Text className="text-xl font-bold text-[#1a202c] mb-1">{currentHorse?.name}</Text>
@@ -158,7 +151,7 @@ export default function HealthScreen({ navigation, route }: any) {
                <Text className="text-sm font-bold text-[#1a202c]">Current Health Status</Text>
             </View>
             <View className="bg-white rounded-xl flex-row p-1 mb-6 border border-[#e2e8f0]">
-               {['Fit for Work', 'Light Work', 'Rest Required'].map((status) => (
+               {['Fit for Work', 'Light Work', 'Rest Required', 'Unfit'].map((status) => (
                   <TouchableOpacity
                      key={status}
                      onPress={() => setHealth(status)}

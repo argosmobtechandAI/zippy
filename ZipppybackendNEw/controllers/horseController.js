@@ -100,8 +100,11 @@ export const getHorses = async (req, res) => {
 
             const trainingAvg = Math.min(100, Math.round((sessionsLast7Days / 7) * 100));
 
+            const horseObj = { ...horse };
+            delete horseObj.vaccination_records;
+
             return mapToClient({
-                ...horse,
+                ...horseObj,
                 sessionsToday: sessionsTodayCount,
                 weeklyTrainingAvg: trainingAvg,
                 trainer: trainer[0],
@@ -207,7 +210,7 @@ export const getHealthRecords = async (req, res) => {
     try {
         let query = supabase.from('health_status').select('*');
         if (horseId) {
-            query = query.or(`horse.eq.${horseId},horse_id.eq.${horseId}`);
+            query = query.eq('horse', horseId);
         }
         const { data: records, error } = await query;
         if (error) throw error;
@@ -222,7 +225,7 @@ export const getVaccinationRecords = async (req, res) => {
     try {
         let query = supabase.from('vaccination_records').select('*');
         if (horseId) {
-            query = query.or(`horse.eq.${horseId},horse_id.eq.${horseId}`);
+            query = query.eq('horse', horseId);
         }
         const { data: records, error } = await query;
         if (error) throw error;
