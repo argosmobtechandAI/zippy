@@ -151,7 +151,7 @@ export const getSessions = async (req, res) => {
         }
 
         if (horseId) {
-            query = query.contains('horse_id', [horseId]);
+            query = query.eq('horse', horseId);
         }
 
         if (location) {
