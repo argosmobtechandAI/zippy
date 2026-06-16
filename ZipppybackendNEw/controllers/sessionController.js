@@ -349,7 +349,7 @@ export const updateSession = async (req, res) => {
                 return res.status(404).json({ success: false, message: 'User not found' });
             }
             
-            const sessionCount = user[0].session_count || user[0].sessionCount;
+            const sessionCount = user[0].session_count ?? user[0].sessionCount ?? 0;
             if (sessionCount <= 0) {
                 return res.status(200).json({ success: false, message: 'Please purchase the plan first' });
             }
