@@ -302,15 +302,26 @@ const UserManagement = () => {
                 const createdTime = user.createdAt || user.created_at;
                 if (!createdTime) return false;
                 const createdDate = new Date(createdTime);
+                
+                const parseLocalDate = (dateStr) => {
+                    if (!dateStr) return null;
+                    const [year, month, day] = dateStr.split('-').map(Number);
+                    return new Date(year, month - 1, day);
+                };
+
                 if (startDateFilter) {
-                    const start = new Date(startDateFilter);
-                    start.setHours(0, 0, 0, 0);
-                    if (createdDate < start) return false;
+                    const start = parseLocalDate(startDateFilter);
+                    if (start) {
+                        start.setHours(0, 0, 0, 0);
+                        if (createdDate < start) return false;
+                    }
                 }
                 if (endDateFilter) {
-                    const end = new Date(endDateFilter);
-                    end.setHours(23, 59, 59, 999);
-                    if (createdDate > end) return false;
+                    const end = parseLocalDate(endDateFilter);
+                    if (end) {
+                        end.setHours(23, 59, 59, 999);
+                        if (createdDate > end) return false;
+                    }
                 }
             }
         }
