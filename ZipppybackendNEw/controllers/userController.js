@@ -207,7 +207,8 @@ export const createUser = async (req, res) => {
         const { data: newUser, error: userError } = await supabase.from('users').insert({
             name, mobile, type, email, dob, age, weight, 
             parent_name: finalParentName, emergency_contact: finalEmergencyContact, status,
-            password: hashedPassword
+            password: hashedPassword,
+            created_at: new Date().toISOString()
         }).select();
 
         if (userError || !newUser || newUser.length === 0) {
