@@ -113,6 +113,9 @@ const TrainerCard = ({ user, trainers, stables, onNotify, onEdit, onStatusUpdate
 const UserManagement = () => {
 
     const [userType, setUserType] = useState("all")
+    const [sessionFilter, setSessionFilter] = useState("all")
+    const [startDateFilter, setStartDateFilter] = useState("")
+    const [endDateFilter, setEndDateFilter] = useState("")
     const [createModal, setCreateModal] = useState(false)
     const [notifyModal, setNotifyModal] = useState(null)
     const [editingUser, setEditingUser] = useState(null)
@@ -279,7 +282,40 @@ const UserManagement = () => {
             (user.name?.toLowerCase() || "").includes(search) ||
             (user.email?.toLowerCase() || "").includes(search) ||
             (user.mobile || "").includes(searchQuery);
-        return matchesType && matchesSearch;
+        
+        if (!matchesType || !matchesSearch) return false;
+
+        // Rider-specific filters
+        if (userType === 'rider') {
+            // 1. Session count filter
+            if (sessionFilter !== 'all') {
+                const count = user.sessionCount || 0;
+                if (sessionFilter === '0' && count !== 0) return false;
+                if (sessionFilter === 'active' && count <= 0) return false;
+                if (sessionFilter === '1-5' && (count < 1 || count > 5)) return false;
+                if (sessionFilter === '6-10' && (count < 6 || count > 10)) return false;
+                if (sessionFilter === '10+' && count <= 10) return false;
+            }
+
+            // 2. Enrollment date filter
+            if (startDateFilter || endDateFilter) {
+                const createdTime = user.createdAt || user.created_at;
+                if (!createdTime) return false;
+                const createdDate = new Date(createdTime);
+                if (startDateFilter) {
+                    const start = new Date(startDateFilter);
+                    start.setHours(0, 0, 0, 0);
+                    if (createdDate < start) return false;
+                }
+                if (endDateFilter) {
+                    const end = new Date(endDateFilter);
+                    end.setHours(23, 59, 59, 999);
+                    if (createdDate > end) return false;
+                }
+            }
+        }
+
+        return true;
     });
 
     const counts = {
@@ -410,6 +446,59 @@ const UserManagement = () => {
                 </div>
             </div>
 
+            {userType === 'rider' && (
+                <div className="bg-[#FAF8F5] border border-[#EADED4] rounded-2xl p-5 mb-8 flex flex-wrap gap-6 items-end animate-in fade-in slide-in-from-top-4 duration-300">
+                    <div className="flex flex-col gap-2">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Session Count</label>
+                        <select
+                            value={sessionFilter}
+                            onChange={(e) => setSessionFilter(e.target.value)}
+                            className="bg-white border border-[#EADED4] rounded-xl px-4 py-2.5 text-sm font-bold text-[#1e2330] focus:outline-none focus:ring-2 focus:ring-[#964C2E]/20 focus:border-[#964C2E] transition-all min-w-[160px]"
+                        >
+                            <option value="all">All Sessions</option>
+                            <option value="0">No Sessions (0)</option>
+                            <option value="active">Active Sessions (&gt; 0)</option>
+                            <option value="1-5">1 - 5 Sessions</option>
+                            <option value="6-10">6 - 10 Sessions</option>
+                            <option value="10+">10+ Sessions</option>
+                        </select>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Enrollment Date (From)</label>
+                        <input
+                            type="date"
+                            value={startDateFilter}
+                            onChange={(e) => setStartDateFilter(e.target.value)}
+                            className="bg-white border border-[#EADED4] rounded-xl px-4 py-2.5 text-sm font-bold text-[#1e2330] focus:outline-none focus:ring-2 focus:ring-[#964C2E]/20 focus:border-[#964C2E] transition-all"
+                        />
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Enrollment Date (To)</label>
+                        <input
+                            type="date"
+                            value={endDateFilter}
+                            onChange={(e) => setEndDateFilter(e.target.value)}
+                            className="bg-white border border-[#EADED4] rounded-xl px-4 py-2.5 text-sm font-bold text-[#1e2330] focus:outline-none focus:ring-2 focus:ring-[#964C2E]/20 focus:border-[#964C2E] transition-all"
+                        />
+                    </div>
+
+                    {(sessionFilter !== 'all' || startDateFilter || endDateFilter) && (
+                        <button
+                            onClick={() => {
+                                setSessionFilter('all');
+                                setStartDateFilter('');
+                                setEndDateFilter('');
+                            }}
+                            className="text-[#964C2E] hover:text-[#7D3F25] text-xs font-black uppercase tracking-wider py-3.5 px-2 hover:underline transition-all"
+                        >
+                            Clear Filters
+                        </button>
+                    )}
+                </div>
+            )}
+
             {/* User Grid */}
             <div className="grid grid-cols-2 gap-6 mb-10">
                 {loading ? (
@@ -507,14 +596,29 @@ const UserManagement = () => {
                                     </div>
 
                                     <div className="grid grid-cols-3 gap-3">
-                                        <div className="bg-[#F8F9FA] rounded-xl p-4 border border-gray-100">
-                                            <h4 className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-1.5">AGE</h4>
-                                            <p className="text-[20px] font-black text-[#964C2E]">{user.age || '--'}</p>
-                                        </div>
-                                        <div className="bg-[#F8F9FA] rounded-xl p-4 border border-gray-100">
-                                            <h4 className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-1.5">WEIGHT</h4>
-                                            <p className="text-[20px] font-black text-[#964C2E]">{user.weight || '--'} <span className="text-[12px] font-bold text-gray-400">kg</span></p>
-                                        </div>
+                                        {user.type === 'rider' ? (
+                                            <>
+                                                <div className="bg-[#F8F9FA] rounded-xl p-4 border border-gray-100">
+                                                    <h4 className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-1.5">SESSIONS</h4>
+                                                    <p className="text-[20px] font-black text-[#964C2E]">{user.sessionCount !== undefined ? user.sessionCount : '--'}</p>
+                                                </div>
+                                                <div className="bg-[#F8F9FA] rounded-xl p-4 border border-gray-100">
+                                                    <h4 className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-1.5">PLAN TYPE</h4>
+                                                    <p className="text-[14px] mt-1.5 font-bold text-[#964C2E] truncate">{user.plan?.name || 'No Plan'}</p>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div className="bg-[#F8F9FA] rounded-xl p-4 border border-gray-100">
+                                                    <h4 className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-1.5">AGE</h4>
+                                                    <p className="text-[20px] font-black text-[#964C2E]">{user.age || '--'}</p>
+                                                </div>
+                                                <div className="bg-[#F8F9FA] rounded-xl p-4 border border-gray-100">
+                                                    <h4 className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-1.5">WEIGHT</h4>
+                                                    <p className="text-[20px] font-black text-[#964C2E]">{user.weight || '--'} <span className="text-[12px] font-bold text-gray-400">kg</span></p>
+                                                </div>
+                                            </>
+                                        )}
                                         <div className="bg-[#F8F9FA] rounded-xl p-4 border border-gray-100">
                                             <h4 className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-1.5">MOBILE</h4>
                                             <p className="text-[14px] mt-1.5 font-bold text-[#964C2E] truncate">{user.mobile}</p>
