@@ -48,8 +48,8 @@ const HorseDetail = () => {
         fetchDetails();
     }, [horse?.id]);
 
-    const lastVisit = healthRecords.length > 0 ? new Date(healthRecords[0].date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: '4-digit' }) : "No records";
-    const nextVaccination = vaccinationRecords.length > 0 ? new Date(vaccinationRecords[0].nextDueDate || vaccinationRecords[0].date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: '4-digit' }) : "Schedule Pending";
+    const lastVisit = healthRecords.length > 0 ? new Date(healthRecords[0].date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : "No records";
+    const nextVaccination = vaccinationRecords.length > 0 ? new Date(vaccinationRecords[0].nextDueDate || vaccinationRecords[0].date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : "Schedule Pending";
 
     if (!horse) {
         return (

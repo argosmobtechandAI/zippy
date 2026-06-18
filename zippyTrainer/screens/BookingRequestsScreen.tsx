@@ -99,14 +99,24 @@ export default function BookingRequestsScreen() {
     }
   };
 
-  const allParticipants = useMemo(() =>
-    sessions.flatMap(s => {
+  const allParticipants = useMemo(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    
+    return sessions.flatMap(s => {
+      if (s.date && s.date !== 'daily') {
+        const sessionDate = s.date.includes('T') ? s.date.split('T')[0] : s.date;
+        if (sessionDate < todayStr) {
+          return [];
+        }
+      }
+
       let parts = s.participants || [];
       if (typeof parts === 'string') {
         try { parts = JSON.parse(parts); } catch(e) {}
       }
       return parts.map((p: any) => ({ ...p, session: s }));
-    }), [sessions]);
+    });
+  }, [sessions]);
 
   const tabFiltered = useMemo(() => {
     return allParticipants.filter(p => p.status?.toUpperCase() === activeTab);

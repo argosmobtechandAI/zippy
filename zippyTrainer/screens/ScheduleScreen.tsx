@@ -217,10 +217,42 @@ export default function ScheduleScreen() {
    };
 
    // Filter sessions by the currently selected fullDate (compare only YYYY-MM-DD) and exclude blocked ones
-   const filteredSessions = sessions.filter(s => {
+   let filteredSessions = sessions.filter((s: any) => {
       if (!s.date || s.status === 'BLOCKED') return false;
       const sessionDate = s.date.includes('T') ? s.date.split('T')[0] : s.date;
       return sessionDate === selectedDate || sessionDate == "daily";
+   });
+
+   const now = new Date();
+   const todayDateStr = now.toISOString().split('T')[0];
+   if (selectedDate === todayDateStr) {
+       filteredSessions = filteredSessions.filter((s: any) => {
+           if (s.timing) {
+               let timeStr = s.timing.split('-')[0].trim();
+               if (timeStr.includes(':')) {
+                   let [hours, minutes] = timeStr.split(':').map(Number);
+                   if (timeStr.toUpperCase().includes('PM') && hours < 12) hours += 12;
+                   if (timeStr.toUpperCase().includes('AM') && hours === 12) hours = 0;
+                   const sessionTime = new Date();
+                   sessionTime.setHours(hours, minutes || 0, 0, 0);
+                   if (sessionTime <= now) return false;
+               }
+           }
+           return true;
+       });
+   }
+
+   filteredSessions.sort((a: any, b: any) => {
+       const getMinutes = (timing: string) => {
+           if (!timing) return 0;
+           let timeStr = timing.split('-')[0].trim();
+           if (!timeStr.includes(':')) return 0;
+           let [h, m] = timeStr.split(':').map((v) => parseInt(v, 10));
+           if (timeStr.toUpperCase().includes('PM') && h < 12) h += 12;
+           if (timeStr.toUpperCase().includes('AM') && h === 12) h = 0;
+           return (h * 60) + (m || 0);
+       };
+       return getMinutes(a.timing) - getMinutes(b.timing);
    });
 
    // Formatter for nicer date display - prevent UTC shifting

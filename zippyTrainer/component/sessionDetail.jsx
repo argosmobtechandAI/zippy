@@ -103,9 +103,6 @@ const SessionDetail = () => {
                     <View className="bg-[#8C4A28] px-3 py-1.5 rounded-lg">
                         <Text className="text-white text-[12px] font-bold">{session?.title || 'Training'}</Text>
                     </View>
-                    <View className="bg-[#e6d0b3] px-3 py-1.5 rounded-lg">
-                        <Text className="text-[#8C4A28] text-[12px] font-bold">{session?.status || 'Upcoming'}</Text>
-                    </View>
                 </View>
 
                 {/* Date & Time Info */}
@@ -165,16 +162,47 @@ const SessionDetail = () => {
                     </View>
                 )}
 
-                {/* Notes */}
-                <View className="bg-white rounded-3xl p-4 shadow-sm border border-[#e2e8f0] mb-8">
-                    <View className="flex-row items-center mb-3">
-                        <FileText color="#8C4A28" size={20} className="mr-2" />
-                        <Text className="text-[#1a202c] font-bold text-lg">Training Notes</Text>
-                    </View>
-                    <Text className="text-[#64748b] leading-relaxed">
-                        {session?.note || 'No specific notes recorded for this session yet.'}
-                    </Text>
+                {/* Rider List */}
+                <View className="flex-row justify-between items-center mb-3 mt-2">
+                    <Text className="text-lg font-bold text-[#1a202c]">Rider List</Text>
+                    <Text className="text-[#64748b] text-sm font-semibold">{(session?.participants || []).length} Total</Text>
                 </View>
+                
+                {session?.participants && session.participants.length > 0 ? (
+                    <View className="bg-white rounded-3xl p-4 shadow-sm border border-[#e2e8f0] mb-6">
+                        {session.participants.map((rider: any, index: number, arr: any[]) => (
+                            <View key={rider.riderId || index} className={`flex-row items-center py-3 ${index !== arr.length - 1 ? 'border-b border-[#e2e8f0]' : ''}`}>
+                                <Image source={{ uri: rider.image || rider.profilePicture || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop' }} className="w-12 h-12 rounded-full mr-3 bg-[#e2e8f0]" />
+                                <View className="flex-1">
+                                    <Text className="text-[#1a202c] font-bold text-[15px] mb-0.5">{rider.name || 'Unknown Rider'}</Text>
+                                    <Text className="text-[#94a3b8] text-xs font-semibold">
+                                        Role: <Text className="text-[#8C4A28]">{rider.type || 'Rider'}</Text>
+                                    </Text>
+                                </View>
+                                <View className={`px-3 py-1.5 rounded-lg border ${rider.status?.toUpperCase() === 'CONFIRMED' ? 'bg-[#f0fff4] border-[#c6f6d5]' : rider.status?.toUpperCase() === 'REJECTED' ? 'bg-red-50 border-red-100' : 'bg-[#fef08a]/40 border-[#fef08a]'}`}>
+                                    <Text className={`text-[10px] font-bold tracking-wider ${rider.status?.toUpperCase() === 'CONFIRMED' ? 'text-[#16a34a]' : rider.status?.toUpperCase() === 'REJECTED' ? 'text-red-600' : 'text-[#ca8a04]'}`}>{rider.status?.toUpperCase() || 'PENDING'}</Text>
+                                </View>
+                            </View>
+                        ))}
+                    </View>
+                ) : (
+                    <View className="bg-white rounded-3xl p-6 shadow-sm border border-[#e2e8f0] items-center justify-center mb-6">
+                        <Text className="text-[#64748b]">No riders registered for this session.</Text>
+                    </View>
+                )}
+
+                {/* Notes */}
+                {!!session?.note && (
+                    <View className="bg-white rounded-3xl p-4 shadow-sm border border-[#e2e8f0] mb-8">
+                        <View className="flex-row items-center mb-3">
+                            <FileText color="#8C4A28" size={20} className="mr-2" />
+                            <Text className="text-[#1a202c] font-bold text-lg">Training Notes</Text>
+                        </View>
+                        <Text className="text-[#64748b] leading-relaxed">
+                            {session.note}
+                        </Text>
+                    </View>
+                )}
             </ScrollView>
         </SafeAreaView>
     );

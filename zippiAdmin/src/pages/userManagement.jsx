@@ -114,6 +114,7 @@ const UserManagement = () => {
 
     const [userType, setUserType] = useState("all")
     const [sessionFilter, setSessionFilter] = useState("all")
+    const [centerFilter, setCenterFilter] = useState("all")
     const [startDateFilter, setStartDateFilter] = useState("")
     const [endDateFilter, setEndDateFilter] = useState("")
     const [createModal, setCreateModal] = useState(false)
@@ -151,13 +152,13 @@ const UserManagement = () => {
             return;
         }
 
-        const headers = ["ID", "Name", "Email", "Mobile", "Date of Birth", "Age", "Weight (kg)", "Type", "Status", "Emergency Contact", "Title", "Experience", "Rider Type"];
+        const headers = ["S.No", "Name", "Email", "Mobile", "Date of Birth", "Age", "Weight (kg)", "Type", "Status", "Emergency Contact", "Rider Type", "Session Count", "Membership Plan", "Rider Level"];
         
         const csvRows = [
             headers.join(","),
-            ...users.map(user => {
+            ...users.map((user, index) => {
                 const values = [
-                    user.id || "",
+                    index + 1,
                     user.name || "",
                     user.email || "",
                     user.mobile || "",
@@ -167,9 +168,10 @@ const UserManagement = () => {
                     user.type || "",
                     user.status || "",
                     user.emergencyContact || "",
-                    user.title || "",
-                    user.experience || "",
-                    user.riderType || ""
+                    user.riderType || "",
+                    user.sessionCount !== undefined ? user.sessionCount : "",
+                    user.plan?.name || "",
+                    user.level || ""
                 ];
                 return values.map(val => {
                     const escaped = String(val).replace(/"/g, '""');
@@ -285,6 +287,19 @@ const UserManagement = () => {
         
         if (!matchesType || !matchesSearch) return false;
 
+        if (centerFilter !== 'all') {
+            const centerStable = stables.find(s => s.id === centerFilter);
+            
+            if (user.type === 'stableStaff') {
+                const stable = stables.find(s => s.userId === user.id);
+                if (!stable || stable.id !== centerFilter) return false;
+            } else {
+                const matchesStableId = user.stableId === centerFilter;
+                const matchesCode = centerStable && user.code && user.code.startsWith(centerStable.code);
+                if (!matchesStableId && !matchesCode) return false;
+            }
+        }
+
         // Rider-specific filters
         if (userType === 'rider') {
             // 1. Session count filter
@@ -296,32 +311,32 @@ const UserManagement = () => {
                 if (sessionFilter === '6-10' && (count < 6 || count > 10)) return false;
                 if (sessionFilter === '10+' && count <= 10) return false;
             }
+        }
 
-            // 2. Enrollment date filter
-            if (startDateFilter || endDateFilter) {
-                const createdTime = user.createdAt || user.created_at;
-                if (!createdTime) return false;
-                const createdDate = new Date(createdTime);
-                
-                const parseLocalDate = (dateStr) => {
-                    if (!dateStr) return null;
-                    const [year, month, day] = dateStr.split('-').map(Number);
-                    return new Date(year, month - 1, day);
-                };
+        // 2. Enrollment date filter (Global)
+        if (startDateFilter || endDateFilter) {
+            const createdTime = user.createdAt || user.created_at;
+            if (!createdTime) return false;
+            const createdDate = new Date(createdTime);
+            
+            const parseLocalDate = (dateStr) => {
+                if (!dateStr) return null;
+                const [year, month, day] = dateStr.split('-').map(Number);
+                return new Date(year, month - 1, day);
+            };
 
-                if (startDateFilter) {
-                    const start = parseLocalDate(startDateFilter);
-                    if (start) {
-                        start.setHours(0, 0, 0, 0);
-                        if (createdDate < start) return false;
-                    }
+            if (startDateFilter) {
+                const start = parseLocalDate(startDateFilter);
+                if (start) {
+                    start.setHours(0, 0, 0, 0);
+                    if (createdDate < start) return false;
                 }
-                if (endDateFilter) {
-                    const end = parseLocalDate(endDateFilter);
-                    if (end) {
-                        end.setHours(23, 59, 59, 999);
-                        if (createdDate > end) return false;
-                    }
+            }
+            if (endDateFilter) {
+                const end = parseLocalDate(endDateFilter);
+                if (end) {
+                    end.setHours(23, 59, 59, 999);
+                    if (createdDate > end) return false;
                 }
             }
         }
@@ -457,8 +472,24 @@ const UserManagement = () => {
                 </div>
             </div>
 
-            {userType === 'rider' && (
-                <div className="bg-[#FAF8F5] border border-[#EADED4] rounded-2xl p-5 mb-8 flex flex-wrap gap-6 items-end animate-in fade-in slide-in-from-top-4 duration-300">
+            <div className="bg-[#FAF8F5] border border-[#EADED4] rounded-2xl p-5 mb-8 flex flex-wrap gap-6 items-end animate-in fade-in slide-in-from-top-4 duration-300">
+                {userType === 'rider' && (
+                    <div className="flex flex-col gap-2">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Center</label>
+                        <select
+                            value={centerFilter}
+                            onChange={(e) => setCenterFilter(e.target.value)}
+                            className="bg-white border border-[#EADED4] rounded-xl px-4 py-2.5 text-sm font-bold text-[#1e2330] focus:outline-none focus:ring-2 focus:ring-[#964C2E]/20 focus:border-[#964C2E] transition-all min-w-[160px]"
+                        >
+                            <option value="all">All Centers</option>
+                            {stables.map(stable => (
+                                <option key={stable.id} value={stable.id}>{stable.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                )}
+
+                {userType === 'rider' && (
                     <div className="flex flex-col gap-2">
                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Session Count</label>
                         <select
@@ -474,41 +505,42 @@ const UserManagement = () => {
                             <option value="10+">10+ Sessions</option>
                         </select>
                     </div>
+                )}
 
-                    <div className="flex flex-col gap-2">
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Enrollment Date (From)</label>
-                        <input
-                            type="date"
-                            value={startDateFilter}
-                            onChange={(e) => setStartDateFilter(e.target.value)}
-                            className="bg-white border border-[#EADED4] rounded-xl px-4 py-2.5 text-sm font-bold text-[#1e2330] focus:outline-none focus:ring-2 focus:ring-[#964C2E]/20 focus:border-[#964C2E] transition-all"
-                        />
-                    </div>
-
-                    <div className="flex flex-col gap-2">
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Enrollment Date (To)</label>
-                        <input
-                            type="date"
-                            value={endDateFilter}
-                            onChange={(e) => setEndDateFilter(e.target.value)}
-                            className="bg-white border border-[#EADED4] rounded-xl px-4 py-2.5 text-sm font-bold text-[#1e2330] focus:outline-none focus:ring-2 focus:ring-[#964C2E]/20 focus:border-[#964C2E] transition-all"
-                        />
-                    </div>
-
-                    {(sessionFilter !== 'all' || startDateFilter || endDateFilter) && (
-                        <button
-                            onClick={() => {
-                                setSessionFilter('all');
-                                setStartDateFilter('');
-                                setEndDateFilter('');
-                            }}
-                            className="text-[#964C2E] hover:text-[#7D3F25] text-xs font-black uppercase tracking-wider py-3.5 px-2 hover:underline transition-all"
-                        >
-                            Clear Filters
-                        </button>
-                    )}
+                <div className="flex flex-col gap-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Enrollment Date (From)</label>
+                    <input
+                        type="date"
+                        value={startDateFilter}
+                        onChange={(e) => setStartDateFilter(e.target.value)}
+                        className="bg-white border border-[#EADED4] rounded-xl px-4 py-2.5 text-sm font-bold text-[#1e2330] focus:outline-none focus:ring-2 focus:ring-[#964C2E]/20 focus:border-[#964C2E] transition-all"
+                    />
                 </div>
-            )}
+
+                <div className="flex flex-col gap-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Enrollment Date (To)</label>
+                    <input
+                        type="date"
+                        value={endDateFilter}
+                        onChange={(e) => setEndDateFilter(e.target.value)}
+                        className="bg-white border border-[#EADED4] rounded-xl px-4 py-2.5 text-sm font-bold text-[#1e2330] focus:outline-none focus:ring-2 focus:ring-[#964C2E]/20 focus:border-[#964C2E] transition-all"
+                    />
+                </div>
+
+                {(centerFilter !== 'all' || sessionFilter !== 'all' || startDateFilter || endDateFilter) && (
+                    <button
+                        onClick={() => {
+                            setCenterFilter('all');
+                            setSessionFilter('all');
+                            setStartDateFilter('');
+                            setEndDateFilter('');
+                        }}
+                        className="text-[#964C2E] hover:text-[#7D3F25] text-xs font-black uppercase tracking-wider py-3.5 px-2 hover:underline transition-all"
+                    >
+                        Clear Filters
+                    </button>
+                )}
+            </div>
 
             {/* User Grid */}
             <div className="grid grid-cols-2 gap-6 mb-10">
@@ -551,8 +583,11 @@ const UserManagement = () => {
                                             </div>
                                             <div>
                                                 <h3 className="text-[18px] font-black text-[#1e2330] mb-1.5">{user.name}</h3>
-                                                <div className="flex items-center gap-3">
+                                                <div className="flex items-center gap-3 mt-2">
                                                     <span className="bg-[#FAE9DB] text-[#964C2E] text-[9px] font-black tracking-widest uppercase px-2.5 py-1 rounded-sm">{user.type}</span>
+                                                    {user.type === 'rider' && user.plan?.name && (
+                                                        <span className="bg-[#E5F0FA] text-[#2E7496] text-[9px] font-black tracking-widest uppercase px-2.5 py-1 rounded-sm">{user.plan.name}</span>
+                                                    )}
                                                     <div className={`flex items-center gap-1.5 text-[11px] font-bold ${user.status === 'INACTIVE' ? 'text-red-500' : 'text-[#059669]'}`}>
                                                         <span className={`w-1.5 h-1.5 rounded-full ${user.status === 'INACTIVE' ? 'bg-red-500' : 'bg-[#059669]'}`}></span>
                                                         {user.status || 'ACTIVE'}
@@ -614,8 +649,8 @@ const UserManagement = () => {
                                                     <p className="text-[20px] font-black text-[#964C2E]">{user.sessionCount !== undefined ? user.sessionCount : '--'}</p>
                                                 </div>
                                                 <div className="bg-[#F8F9FA] rounded-xl p-4 border border-gray-100">
-                                                    <h4 className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-1.5">PLAN TYPE</h4>
-                                                    <p className="text-[14px] mt-1.5 font-bold text-[#964C2E] truncate">{user.plan?.name || 'No Plan'}</p>
+                                                    <h4 className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-1.5">RIDER LEVEL</h4>
+                                                    <p className="text-[14px] mt-1.5 font-bold text-[#964C2E] truncate">{user.level || 'Level 1'}</p>
                                                 </div>
                                             </>
                                         ) : (
@@ -816,6 +851,10 @@ const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave, onUpdateSuc
     const [sessionInput, setSessionInput] = useState('');
     const [isSavingSession, setIsSavingSession] = useState(false);
 
+    const [isEditingLevel, setIsEditingLevel] = useState(false);
+    const [levelInput, setLevelInput] = useState('');
+    const [isSavingLevel, setIsSavingLevel] = useState(false);
+
     // Plan assignment state
     const [plans, setPlans] = useState([]);
     const [showAssignPlan, setShowAssignPlan] = useState(false);
@@ -946,6 +985,30 @@ const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave, onUpdateSuc
         }
     };
 
+    const handleLevelUpdate = async () => {
+        if (!levelInput) return;
+        setIsSavingLevel(true);
+        try {
+            const res = await apiFunction(`${updateUserApi}/${localUser.id}`, [], { 
+                level: levelInput 
+            }, "PUT", true);
+
+            if (res && res.success) {
+                toast.success(`Rider level updated to ${levelInput}`);
+                setIsEditingLevel(false);
+                const updated = { ...localUser, level: levelInput };
+                setLocalUser(updated);
+                if (onUpdateSuccess) onUpdateSuccess(updated);
+            } else {
+                toast.error(res?.message || "Failed to update level");
+            }
+        } catch (err) {
+            toast.error("Network error. Please try again.");
+        } finally {
+            setIsSavingLevel(false);
+        }
+    };
+
     const handleSessionUpdate = async (type) => {
         const amount = parseInt(sessionInput);
         if (isNaN(amount) || (amount < 0 && type === 'set')) {
@@ -998,15 +1061,134 @@ const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave, onUpdateSuc
                         {localUser.name && localUser.name.charAt(0)}
                     </div>
                     <h3 className="text-2xl font-black text-[#1e2330] mb-1">{localUser.name}</h3>
-                    <span className="bg-[#FAE9DB] text-[#964C2E] text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-md mb-2">
-                        {localUser.type}
-                    </span>
+                    <div className="flex gap-2 mb-2 justify-center">
+                        <span className="bg-[#FAE9DB] text-[#964C2E] text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-md">
+                            {localUser.type}
+                        </span>
+                        {localUser.type === 'rider' && localUser.plan?.name && (
+                            <span className="bg-[#E5F0FA] text-[#2E7496] text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-md">
+                                {localUser.plan.name}
+                            </span>
+                        )}
+                    </div>
                     <div className="flex items-center gap-1.5 text-[12px] font-bold text-[#059669]">
                         <span className="w-2 h-2 rounded-full bg-[#059669]"></span> Active Account
                     </div>
                 </div>
 
                 <div className="space-y-6">
+                    {localUser.type === 'rider' && !isEditingSession && !isAddingSession && (
+                        <div className="p-5 bg-[#FAF3EC] rounded-2xl border border-[#964C2E]/20 flex flex-col gap-4 shadow-sm">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <h4 className="text-[10px] font-black text-[#964C2E] tracking-widest uppercase mb-1">Rider Sessions</h4>
+                                    <p className="text-[24px] font-black text-[#1e2330]">{localUser.sessionCount || 0}</p>
+                                </div>
+                                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-[#964C2E] border border-[#964C2E]/10 shadow-sm">
+                                    <Activity className="w-6 h-6" />
+                                </div>
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => {
+                                        setSessionInput((localUser.sessionCount || 0).toString());
+                                        setIsEditingSession(true);
+                                        setIsAddingSession(false);
+                                    }}
+                                    className="flex-1 bg-[#964C2E] hover:bg-[#804026] text-white text-[11px] font-black uppercase py-2.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 font-bold"
+                                >
+                                    <Edit className="w-3.5 h-3.5" /> Update Sessions
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setSessionInput('');
+                                        setIsAddingSession(true);
+                                        setIsEditingSession(false);
+                                    }}
+                                    className="flex-1 bg-white hover:bg-gray-50 text-[#964C2E] border border-[#964C2E]/20 text-[11px] font-black uppercase py-2.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 font-bold"
+                                >
+                                    <Plus className="w-3.5 h-3.5" /> Add Sessions
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {localUser.type === 'rider' && isEditingSession && (
+                        <div className="p-5 bg-[#FAF3EC] rounded-2xl border border-[#964C2E]/20 flex flex-col gap-4 shadow-sm animate-in fade-in duration-200">
+                            <div>
+                                <h4 className="text-[10px] font-black text-[#964C2E] tracking-widest uppercase mb-2">Update Session Count</h4>
+                                <div className="relative">
+                                    <input
+                                        type="number"
+                                        value={sessionInput}
+                                        onChange={(e) => setSessionInput(e.target.value)}
+                                        className="w-full bg-white border border-[#964C2E]/20 rounded-xl px-4 py-3 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]"
+                                        placeholder="Enter new session count"
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setIsEditingSession(false)}
+                                    className="flex-1 bg-white text-gray-500 border border-gray-200 hover:bg-gray-50 text-[11px] font-black uppercase py-2.5 rounded-xl transition-all font-bold"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={() => handleSessionUpdate('set')}
+                                    disabled={isSavingSession}
+                                    className="flex-1 bg-[#964C2E] hover:bg-[#804026] text-white text-[11px] font-black uppercase py-2.5 rounded-xl transition-all disabled:opacity-55 font-bold"
+                                >
+                                    {isSavingSession ? 'Saving...' : 'Save'}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {localUser.type === 'rider' && isAddingSession && (
+                        <div className="p-5 bg-[#FAF3EC] rounded-2xl border border-[#964C2E]/20 flex flex-col gap-4 shadow-sm animate-in fade-in duration-200">
+                            <div>
+                                <h4 className="text-[10px] font-black text-[#964C2E] tracking-widest uppercase mb-2">Add Sessions</h4>
+                                <div className="relative mb-3">
+                                    <input
+                                        type="number"
+                                        value={sessionInput}
+                                        onChange={(e) => setSessionInput(e.target.value)}
+                                        className="w-full bg-white border border-[#964C2E]/20 rounded-xl px-4 py-3 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]"
+                                        placeholder="Enter sessions to add"
+                                    />
+                                </div>
+                                <div className="flex gap-2">
+                                    {['1', '5', '10', '20'].map((amt) => (
+                                        <button
+                                            key={amt}
+                                            type="button"
+                                            onClick={() => setSessionInput(amt)}
+                                            className="flex-1 py-1.5 text-[11px] font-black rounded-lg bg-white border border-gray-200 hover:border-[#964C2E] text-gray-700 hover:text-[#964C2E] transition-all font-bold"
+                                        >
+                                            +{amt}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setIsAddingSession(false)}
+                                    className="flex-1 bg-white text-gray-500 border border-gray-200 hover:bg-gray-50 text-[11px] font-black uppercase py-2.5 rounded-xl transition-all font-bold"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={() => handleSessionUpdate('add')}
+                                    disabled={isSavingSession}
+                                    className="flex-1 bg-[#964C2E] hover:bg-[#804026] text-white text-[11px] font-black uppercase py-2.5 rounded-xl transition-all disabled:opacity-55 font-bold"
+                                >
+                                    {isSavingSession ? 'Adding...' : 'Add'}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                     {localUser.type === 'rider' && !isEditingWallet && !isAddingWallet && (
                         <div className="p-5 bg-[#FAF3EC] rounded-2xl border border-[#964C2E]/20 flex flex-col gap-4 shadow-sm">
                             <div className="flex justify-between items-center">
@@ -1121,113 +1303,63 @@ const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave, onUpdateSuc
                         </div>
                     )}
 
-                    {localUser.type === 'rider' && !isEditingSession && !isAddingSession && (
+                    {localUser.type === 'rider' && !isEditingLevel && (
                         <div className="p-5 bg-[#FAF3EC] rounded-2xl border border-[#964C2E]/20 flex flex-col gap-4 shadow-sm">
                             <div className="flex justify-between items-center">
                                 <div>
-                                    <h4 className="text-[10px] font-black text-[#964C2E] tracking-widest uppercase mb-1">Rider Sessions</h4>
-                                    <p className="text-[24px] font-black text-[#1e2330]">{localUser.sessionCount || 0}</p>
+                                    <h4 className="text-[10px] font-black text-[#964C2E] tracking-widest uppercase mb-1">Rider Experience Level</h4>
+                                    <p className="text-[20px] font-black text-[#1e2330]">{localUser.level || 'Level 1'}</p>
                                 </div>
                                 <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-[#964C2E] border border-[#964C2E]/10 shadow-sm">
-                                    <Activity className="w-6 h-6" />
+                                    <Shield className="w-6 h-6" />
                                 </div>
                             </div>
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={() => {
-                                        setSessionInput((localUser.sessionCount || 0).toString());
-                                        setIsEditingSession(true);
-                                        setIsAddingSession(false);
-                                    }}
-                                    className="flex-1 bg-[#964C2E] hover:bg-[#804026] text-white text-[11px] font-black uppercase py-2.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 font-bold"
-                                >
-                                    <Edit className="w-3.5 h-3.5" /> Update Sessions
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        setSessionInput('');
-                                        setIsAddingSession(true);
-                                        setIsEditingSession(false);
-                                    }}
-                                    className="flex-1 bg-white hover:bg-gray-50 text-[#964C2E] border border-[#964C2E]/20 text-[11px] font-black uppercase py-2.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 font-bold"
-                                >
-                                    <Plus className="w-3.5 h-3.5" /> Add Sessions
-                                </button>
-                            </div>
+                            <button
+                                onClick={() => {
+                                    setLevelInput(localUser.level || 'Level 1');
+                                    setIsEditingLevel(true);
+                                }}
+                                className="w-full bg-[#964C2E] hover:bg-[#804026] text-white text-[11px] font-black uppercase py-2.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 font-bold"
+                            >
+                                <Edit className="w-3.5 h-3.5" /> Change Level
+                            </button>
                         </div>
                     )}
 
-                    {localUser.type === 'rider' && isEditingSession && (
+                    {localUser.type === 'rider' && isEditingLevel && (
                         <div className="p-5 bg-[#FAF3EC] rounded-2xl border border-[#964C2E]/20 flex flex-col gap-4 shadow-sm animate-in fade-in duration-200">
                             <div>
-                                <h4 className="text-[10px] font-black text-[#964C2E] tracking-widest uppercase mb-2">Update Session Count</h4>
-                                <div className="relative">
-                                    <input
-                                        type="number"
-                                        value={sessionInput}
-                                        onChange={(e) => setSessionInput(e.target.value)}
-                                        className="w-full bg-white border border-[#964C2E]/20 rounded-xl px-4 py-3 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]"
-                                        placeholder="Enter new session count"
-                                    />
-                                </div>
+                                <h4 className="text-[10px] font-black text-[#964C2E] tracking-widest uppercase mb-2">Update Rider Level</h4>
+                                <select
+                                    value={levelInput}
+                                    onChange={(e) => setLevelInput(e.target.value)}
+                                    className="w-full bg-white border border-[#964C2E]/20 rounded-xl px-4 py-3 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]"
+                                >
+                                    <option value="Level 1">Level 1</option>
+                                    <option value="Level 2">Level 2</option>
+                                    <option value="Level 3">Level 3</option>
+                                    <option value="NCR 1">NCR 1</option>
+                                    <option value="NCR 2">NCR 2</option>
+                                    <option value="CR 1">CR 1</option>
+                                    <option value="CR 2">CR 2</option>
+                                    <option value="FL">FL</option>
+                                    <option value="PL">PL</option>
+                                    <option value="PH">PH</option>
+                                </select>
                             </div>
                             <div className="flex gap-2">
                                 <button
-                                    onClick={() => setIsEditingSession(false)}
+                                    onClick={() => setIsEditingLevel(false)}
                                     className="flex-1 bg-white text-gray-500 border border-gray-200 hover:bg-gray-50 text-[11px] font-black uppercase py-2.5 rounded-xl transition-all font-bold"
                                 >
                                     Cancel
                                 </button>
                                 <button
-                                    onClick={() => handleSessionUpdate('set')}
-                                    disabled={isSavingSession}
+                                    onClick={handleLevelUpdate}
+                                    disabled={isSavingLevel}
                                     className="flex-1 bg-[#964C2E] hover:bg-[#804026] text-white text-[11px] font-black uppercase py-2.5 rounded-xl transition-all disabled:opacity-55 font-bold"
                                 >
-                                    {isSavingSession ? 'Saving...' : 'Save'}
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
-                    {localUser.type === 'rider' && isAddingSession && (
-                        <div className="p-5 bg-[#FAF3EC] rounded-2xl border border-[#964C2E]/20 flex flex-col gap-4 shadow-sm animate-in fade-in duration-200">
-                            <div>
-                                <h4 className="text-[10px] font-black text-[#964C2E] tracking-widest uppercase mb-2">Add Sessions</h4>
-                                <div className="relative mb-3">
-                                    <input
-                                        type="number"
-                                        value={sessionInput}
-                                        onChange={(e) => setSessionInput(e.target.value)}
-                                        className="w-full bg-white border border-[#964C2E]/20 rounded-xl px-4 py-3 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]"
-                                        placeholder="Enter sessions to add"
-                                    />
-                                </div>
-                                <div className="flex gap-2">
-                                    {['1', '5', '10', '20'].map((amt) => (
-                                        <button
-                                            key={amt}
-                                            type="button"
-                                            onClick={() => setSessionInput(amt)}
-                                            className="flex-1 py-1.5 text-[11px] font-black rounded-lg bg-white border border-gray-200 hover:border-[#964C2E] text-gray-700 hover:text-[#964C2E] transition-all font-bold"
-                                        >
-                                            +{amt}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={() => setIsAddingSession(false)}
-                                    className="flex-1 bg-white text-gray-500 border border-gray-200 hover:bg-gray-50 text-[11px] font-black uppercase py-2.5 rounded-xl transition-all font-bold"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={() => handleSessionUpdate('add')}
-                                    disabled={isSavingSession}
-                                    className="flex-1 bg-[#964C2E] hover:bg-[#804026] text-white text-[11px] font-black uppercase py-2.5 rounded-xl transition-all disabled:opacity-55 font-bold"
-                                >
-                                    {isSavingSession ? 'Adding...' : 'Add'}
+                                    {isSavingLevel ? 'Saving...' : 'Save'}
                                 </button>
                             </div>
                         </div>
@@ -1518,7 +1650,7 @@ const UserActionModal = ({ userType, setCreateModal, onSuccess, initialData, sta
         password: "",
         riderType: initialData?.riderType || "Regular",
         code: initialData?.code || "",
-        level: initialData?.level || "Novice",
+        level: initialData?.level || "Level 1",
         parentName: initialData?.parentName || "",
         allergies: initialData?.allergies || "",
         medical: initialData?.medical || "",
@@ -1756,10 +1888,16 @@ const UserActionModal = ({ userType, setCreateModal, onSuccess, initialData, sta
                                         onChange={handleChange}
                                         className={`w-full border ${errors.level ? 'border-red-400 bg-red-50' : 'border-gray-100'} bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold transition-all focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E] focus:bg-white`}
                                     >
-                                        <option value="Novice">Novice</option>
-                                        <option value="Beginner">Beginner</option>
-                                        <option value="Intermediate">Intermediate</option>
-                                        <option value="Advanced">Advanced</option>
+                                        <option value="Level 1">Level 1</option>
+                                        <option value="Level 2">Level 2</option>
+                                        <option value="Level 3">Level 3</option>
+                                        <option value="NCR 1">NCR 1</option>
+                                        <option value="NCR 2">NCR 2</option>
+                                        <option value="CR 1">CR 1</option>
+                                        <option value="CR 2">CR 2</option>
+                                        <option value="FL">FL</option>
+                                        <option value="PL">PL</option>
+                                        <option value="PH">PH</option>
                                     </select>
                                 </div>
                                 <div className="col-span-1">

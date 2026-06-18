@@ -453,11 +453,7 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
     <SafeAreaView className="flex-1 bg-[#F5EDDF]">
       {/* Custom Header */}
       <View className="flex-row items-center justify-start px-4 py-4 mb-2">
-        <TouchableOpacity onPress={onBack} className="p-2">
-          <ArrowLeft color="#8C4A28" size={24} />
-        </TouchableOpacity>
         <Text className="text-lg font-bold text-[#1a202c]">Session Attendance</Text>
-
       </View>
 
       <View className="flex-row border-b border-[#e2e8f0] mb-6">

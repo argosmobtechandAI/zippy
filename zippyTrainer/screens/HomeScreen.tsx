@@ -60,8 +60,8 @@ export default function HomeScreen() {
                       const allSessions = (sessionRes.sessions || []).filter((s: any) => s.status !== 'BLOCKED');
                       
                       // Filter today's sessions
-                      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-                      const todayDateStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+                      const now = new Date();
+                      const todayDateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
                       
                       const todaySessions = allSessions.filter((s: any) => {
                          if (s.date === 'daily') return true;
@@ -69,7 +69,39 @@ export default function HomeScreen() {
                          return false;
                       });
 
-                      setSessions(todaySessions.slice(0, 3));
+                      const upcomingSessions = todaySessions.filter((s: any) => {
+                         if (s.timing) {
+                             let timeStr = s.timing.split('-')[0].trim();
+                             if (timeStr.includes(':')) {
+                                 let [hours, minutes] = timeStr.split(':').map(Number);
+                                 
+                                 // Handle potential AM/PM just in case some old data has it
+                                 if (timeStr.toUpperCase().includes('PM') && hours < 12) hours += 12;
+                                 if (timeStr.toUpperCase().includes('AM') && hours === 12) hours = 0;
+
+                                 const sessionTime = new Date();
+                                 sessionTime.setHours(hours, minutes || 0, 0, 0);
+                                 
+                                 if (sessionTime <= now) return false;
+                             }
+                         }
+                         return true;
+                      });
+
+                      upcomingSessions.sort((a: any, b: any) => {
+                         const getMinutes = (timing: string) => {
+                             if (!timing) return 0;
+                             let timeStr = timing.split('-')[0].trim();
+                             if (!timeStr.includes(':')) return 0;
+                             let [h, m] = timeStr.split(':').map((v) => parseInt(v, 10));
+                             if (timeStr.toUpperCase().includes('PM') && h < 12) h += 12;
+                             if (timeStr.toUpperCase().includes('AM') && h === 12) h = 0;
+                             return (h * 60) + (m || 0);
+                         };
+                         return getMinutes(a.timing) - getMinutes(b.timing);
+                      });
+
+                      setSessions(upcomingSessions.slice(0, 3));
                       setStats(prev => ({
                          ...prev,
                          todaySessions: todaySessions.length,
