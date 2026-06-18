@@ -1,4 +1,4 @@
-import { uploadLogo } from '../../../controllers/stableController';
+import { uploadLogo } from '../../../../controllers/stableController';
 
 // IMPORTANT: File uploads need special handling in Next.js.
 // We disable the default body parser to let formidable or a custom parser handle it.

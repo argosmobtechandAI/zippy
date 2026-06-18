@@ -152,14 +152,18 @@ const UserManagement = () => {
             return;
         }
 
-        const headers = ["S.No", "Name", "Email", "Mobile", "Date of Birth", "Age", "Weight (kg)", "Type", "Status", "Emergency Contact", "Rider Type", "Session Count", "Membership Plan", "Rider Level"];
+        const headers = ["S.No", "Name", "DOJ", "Email", "Mobile", "Date of Birth", "Age", "Weight (kg)", "Type", "Status", "Emergency Contact", "Rider Type", "Session Count", "Membership Plan", "Rider Level"];
         
         const csvRows = [
             headers.join(","),
             ...users.map((user, index) => {
+                const createdTime = user.createdAt || user.created_at;
+                const doj = createdTime ? new Date(createdTime).toLocaleDateString() : "";
+                
                 const values = [
                     index + 1,
                     user.name || "",
+                    doj,
                     user.email || "",
                     user.mobile || "",
                     user.dob || "",
