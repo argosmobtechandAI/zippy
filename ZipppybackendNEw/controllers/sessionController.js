@@ -349,18 +349,24 @@ export const updateSession = async (req, res) => {
                 return res.status(404).json({ success: false, message: 'User not found' });
             }
             
-            const sessionCount = user[0].session_count ?? user[0].sessionCount ?? 0;
-            if (sessionCount <= 0) {
-                return res.status(200).json({ success: false, message: 'Please purchase the plan first' });
-            }
-
+            // 1. Membership Date Validity Check (First check)
             const planLastDate = user[0].plan_end_date || user[0].planEndDate;
             if (planLastDate) {
-                const lastDate = new Date(planLastDate).getTime();
-                if (lastDate < Date.now()) {
+                const lastDate = new Date(planLastDate);
+                // Set to end of the expiration day to prevent premature expiration
+                lastDate.setHours(23, 59, 59, 999);
+                if (lastDate.getTime() < Date.now()) {
                     await supabase.from('rider').update({ session_count: 0, plan_end_date: null }).eq('user_id', userId);
-                    return res.status(200).json({ success: false, message: 'Please renew your plan' });
+                    return res.status(200).json({ success: false, message: 'Your membership has expired. Please renew your plan.' });
                 }
+            } else {
+                return res.status(200).json({ success: false, message: 'Please purchase a membership plan first' });
+            }
+
+            // 2. Session Balance Check (Second check)
+            const sessionCount = user[0].session_count ?? user[0].sessionCount ?? 0;
+            if (sessionCount <= 0) {
+                return res.status(200).json({ success: false, message: 'You have no remaining sessions. Please add more sessions.' });
             }
 
             const { data: session, error: sessionError } = await supabase.from('sessions').select('*').eq('id', id).limit(1);

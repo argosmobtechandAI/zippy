@@ -23,13 +23,16 @@ export const getRider = async (req, res) => {
         const planLastDate = rider[0].plan_end_date || rider[0].planEndDate;
 
         if (planLastDate) {
-            const lastDate = new Date(planLastDate).getTime();
+            const lastDate = new Date(planLastDate);
+            // Set to end of the expiration day to prevent premature expiration
+            lastDate.setHours(23, 59, 59, 999);
+            const lastDateTime = lastDate.getTime();
             const currentDate = Date.now();
 
-            console.log("Last:", lastDate, "Current:", currentDate);
+            console.log("Last:", lastDateTime, "Current:", currentDate);
 
             // Expired
-            if (lastDate < currentDate) {
+            if (lastDateTime < currentDate) {
                 await supabase
                     .from('rider')
                     .update({

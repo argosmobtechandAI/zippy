@@ -212,14 +212,21 @@ export const assignPlanToRider = async (req, res) => {
         const endDate = addMonths(start, validityMonths);
         const endDateStr = endDate.toISOString().split('T')[0];
 
-        // Update rider record with plan info + session count
+        // Update rider record with plan info + session count (only if session count is defined in the plan)
+        const updateData = {
+            plan: selectedPlan,
+            plan_end_date: endDateStr
+        };
+        if (selectedPlan.sessions_count !== undefined && selectedPlan.sessions_count !== null && selectedPlan.sessions_count !== '') {
+            const parsedSessions = Number(selectedPlan.sessions_count);
+            if (!isNaN(parsedSessions) && parsedSessions > 0) {
+                updateData.session_count = parsedSessions;
+            }
+        }
+
         const { error: riderUpdateError } = await supabase
             .from('rider')
-            .update({
-                plan: selectedPlan,
-                plan_end_date: endDateStr,
-                session_count: selectedPlan.sessions_count
-            })
+            .update(updateData)
             .eq('user_id', userId);
 
         if (riderUpdateError) throw riderUpdateError;
