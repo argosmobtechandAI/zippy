@@ -205,20 +205,39 @@ export default function DashboardHomeScreen() {
         </TouchableOpacity>}
 
         {/* Remaining Sessions Card */}
-        <TouchableOpacity onPress={() => navigation.navigate("Sessions")} className="bg-[#8C4A28] rounded-3xl p-6 mb-8 flex-row justify-between items-center shadow-md">
-          <View>
-            <Text className="text-[#fceddf] opacity-80 text-[10px] font-bold tracking-wider mb-1">
-              REMAINING SESSIONS
-            </Text>
-            <Text className="text-white text-4xl font-bold">{sessionCount}</Text>
+        <TouchableOpacity onPress={() => navigation.navigate("Sessions")} className="bg-[#8C4A28] rounded-3xl p-6 mb-8 shadow-md">
+          <View className="flex-row justify-between items-start mb-6">
+            <View>
+              <Text className="text-[#fceddf] opacity-80 text-[10px] font-bold tracking-wider mb-1 uppercase">
+                REMAINING SESSIONS
+              </Text>
+              <Text className="text-white text-4xl font-bold">{sessionCount}</Text>
+            </View>
+            <View className="items-end">
+              <Text className="text-[#fceddf] opacity-80 text-[10px] font-bold tracking-wider mb-1 uppercase">
+                PLAN
+              </Text>
+              <Text className="text-white text-lg font-bold">
+                {activePlanName}
+              </Text>
+            </View>
           </View>
-          <View className="items-end">
-            <Text className="text-[#fceddf] opacity-80 text-[10px] font-bold tracking-wider mb-1">
-              PLAN EXPIRY: {planEndDate}
-            </Text>
-            <Text className="text-white text-lg font-bold">
-              {activePlanName}
-            </Text>
+          
+          <View className="flex-row justify-between items-end pt-4 border-t border-white/20">
+            <View>
+              <Text className="text-[#fceddf] opacity-80 text-[10px] font-bold tracking-wider mb-1 uppercase">
+                PLAN EXPIRY
+              </Text>
+              <Text className="text-white text-sm font-bold">{planEndDate}</Text>
+            </View>
+            <View className="items-end">
+              <Text className="text-[#fceddf] opacity-80 text-[10px] font-bold tracking-wider mb-1 uppercase">
+                RIDER LEVEL
+              </Text>
+              <Text className="text-white text-sm font-bold capitalize">
+                {rider?.level || 'Beginner'}
+              </Text>
+            </View>
           </View>
         </TouchableOpacity>
 
