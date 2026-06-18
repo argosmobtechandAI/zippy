@@ -33,14 +33,6 @@ export const getRider = async (req, res) => {
 
             // Expired
             if (lastDateTime < currentDate) {
-                await supabase
-                    .from('rider')
-                    .update({
-                        session_count: 0,
-                        plan_end_date: null,
-                    })
-                    .eq('user_id', userId);
-
                 await supabase.from('revenue').update({ status: "expired" }).eq('purchaser_id', userId);
             }
         }

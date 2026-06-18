@@ -356,7 +356,6 @@ export const updateSession = async (req, res) => {
                 // Set to end of the expiration day to prevent premature expiration
                 lastDate.setHours(23, 59, 59, 999);
                 if (lastDate.getTime() < Date.now()) {
-                    await supabase.from('rider').update({ session_count: 0, plan_end_date: null }).eq('user_id', userId);
                     return res.status(200).json({ success: false, message: 'Your membership has expired. Please renew your plan.' });
                 }
             } else {
