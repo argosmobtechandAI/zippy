@@ -1,4 +1,4 @@
-package com.zippy
+package com.zippyEquestrian
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
