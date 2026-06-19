@@ -9,7 +9,7 @@ import {
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFunction } from '../api/apiFunction';
-import { createUserApi, getAllUsersApi, notifyUserApi, notifyAllUsersApi, updateUserApi, updateUserLeaveApi, getAllTrainersApi, updateTrainerApi, getAllStablesApi, deleteStableLogoApi, uploadFileApi, deleteUserApi, plansApi, assignPlanApi, getAllHorsesApi } from '../api/apis';
+import { createUserApi, getAllUsersApi, notifyUserApi, notifyAllUsersApi, updateUserApi, updateUserLeaveApi, getAllTrainersApi, updateTrainerApi, getAllStablesApi, deleteStableLogoApi, uploadFileApi, deleteUserApi, plansApi, assignPlanApi, getAllHorsesApi, getLevelsApi } from '../api/apis';
 import toast from 'react-hot-toast';
 import axios from 'axios';
 
@@ -861,6 +861,7 @@ const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave, onUpdateSuc
 
     // Plan assignment state
     const [plans, setPlans] = useState([]);
+    const [levels, setLevels] = useState([]);
     const [showAssignPlan, setShowAssignPlan] = useState(false);
     const [selectedPlanId, setSelectedPlanId] = useState('');
     const [planStartDate, setPlanStartDate] = useState(new Date().toISOString().split('T')[0]);
@@ -926,6 +927,9 @@ const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave, onUpdateSuc
         if (localUser.type === 'rider') {
             apiFunction(plansApi, [], {}, 'GET', true).then(res => {
                 if (res && res.success) setPlans(res.plans || []);
+            });
+            apiFunction(getLevelsApi, [], {}, 'GET', true).then(res => {
+                if (res && res.success) setLevels(res.levels || []);
             });
         }
     }, [localUser.type]);
@@ -1000,7 +1004,7 @@ const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave, onUpdateSuc
             if (res && res.success) {
                 toast.success(`Rider level updated to ${levelInput}`);
                 setIsEditingLevel(false);
-                const updated = { ...localUser, level: levelInput };
+                const updated = res.user || { ...localUser, level: levelInput };
                 setLocalUser(updated);
                 if (onUpdateSuccess) onUpdateSuccess(updated);
             } else {
@@ -1340,16 +1344,11 @@ const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave, onUpdateSuc
                                     className="w-full bg-white border border-[#964C2E]/20 rounded-xl px-4 py-3 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]"
                                 >
                                     <option value="Trial Pack">Trial Pack</option>
-                                    <option value="Level 1">Level 1</option>
-                                    <option value="Level 2">Level 2</option>
-                                    <option value="Level 3">Level 3</option>
-                                    <option value="Non Competitive 1">Non Competitive 1</option>
-                                    <option value="Non Competitive 2">Non Competitive 2</option>
-                                    <option value="Competitive 1">Competitive 1</option>
-                                    <option value="Competitive 2">Competitive 2</option>
-                                    <option value="Full Lease">Full Lease</option>
-                                    <option value="Partial Lease">Partial Lease</option>
-                                    <option value="Private Horse">Private Horse</option>
+                                    {levels.map(l => (
+                                        <option key={l.id} value={l.name}>
+                                            {l.name} {l.sessions ? `- ${l.sessions} sessions` : ''}
+                                        </option>
+                                    ))}
                                 </select>
                             </div>
                             <div className="flex gap-2">
