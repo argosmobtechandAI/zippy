@@ -1,35 +1,59 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ImageBackground, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft, Bell, CheckCircle2, Gavel, Calendar, CalendarClock, Ban, Clock, Wallet } from 'lucide-react-native';
+import { CheckCircle2, Gavel, Calendar, CalendarClock, Ban, Clock, Wallet } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSelector, useDispatch } from 'react-redux';
-import { fetchRider } from '../redux/getDataSlice';
+import { fetchRider, fetchUser } from '../redux/getDataSlice';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiFunction } from '../api/apifunction';
-import { getAllPlansApi, enrollPackApi } from '../api/api';
+import { getAllPlansApi, enrollPackApi, getLevelsApi, createOrderApi, verifyRazorPayOrderApi, createLevelOrderApi, verifyLevelOrderApi } from '../api/api';
 import Toast from 'react-native-toast-message';
+import RazorpayCheckout from 'react-native-razorpay';
+import { Modal } from 'react-native';
 
 export default function CompetitiveRiderPacksScreen() {
     const navigation = useNavigation();
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     const [plans, setPlans] = useState([]);
+    const [levels, setLevels] = useState([]);
+    const [activeTab, setActiveTab] = useState('Membership Plan');
     const [enrolling, setEnrolling] = useState(null);
+    const [levelEnrolling, setLevelEnrolling] = useState(null);
+    const [pricingModalVisible, setPricingModalVisible] = useState(false);
+    const [selectedLevelForPricing, setSelectedLevelForPricing] = useState(null);
     const dispatch = useDispatch();
+
+    const onRefresh = React.useCallback(async () => {
+        setRefreshing(true);
+        await Promise.all([
+            fetchPlans(true),
+            fetchLevelsData(),
+            dispatch(fetchUser()),
+            dispatch(fetchRider())
+        ]);
+        setRefreshing(false);
+    }, []);
     const { user, rider } = useSelector((state: any) => state.getData);
     const walletBalance = (rider?.wallet || user?.riderWallet || 0).toLocaleString();
     const activePlanObj = rider?.plan || user?.plan;
     let activePlanName = '';
-    if (Array.isArray(activePlanObj) && activePlanObj.length > 0) {
-        activePlanName = activePlanObj[activePlanObj.length - 1].name;
-    } else if (activePlanObj && typeof activePlanObj === 'object') {
-        activePlanName = activePlanObj.name;
-    } else if (typeof activePlanObj === 'string') {
-        activePlanName = activePlanObj;
+    const planEndDateStr = rider?.plan_end_date || user?.plan_end_date;
+    const isPlanExpired = planEndDateStr ? new Date(planEndDateStr) < new Date() : true;
+
+    if (!isPlanExpired) {
+        if (Array.isArray(activePlanObj) && activePlanObj.length > 0) {
+            activePlanName = activePlanObj[activePlanObj.length - 1].name;
+        } else if (activePlanObj && typeof activePlanObj === 'object') {
+            activePlanName = activePlanObj.name;
+        } else if (typeof activePlanObj === 'string') {
+            activePlanName = activePlanObj;
+        }
     }
 
     const isPackActive = (packName) => {
-        if (!activePlanObj) return false;
+        if (!activePlanObj || isPlanExpired) return false;
         if (Array.isArray(activePlanObj)) {
             return activePlanObj.some(p => p.name === packName);
         } else if (typeof activePlanObj === 'object') {
@@ -42,10 +66,13 @@ export default function CompetitiveRiderPacksScreen() {
 
     useEffect(() => {
         fetchPlans();
+        fetchLevelsData();
+        dispatch(fetchUser());
+        dispatch(fetchRider());
     }, []);
 
-    const fetchPlans = async () => {
-        setLoading(true);
+    const fetchPlans = async (isRefreshing = false) => {
+        if (!isRefreshing) setLoading(true);
         try {
             const res = await apiFunction(getAllPlansApi, [], {}, "GET", true);
             if (res && res.success) {
@@ -54,65 +81,79 @@ export default function CompetitiveRiderPacksScreen() {
         } catch (error) {
             console.error("Fetch plans error:", error);
         } finally {
-            setLoading(false);
+            if (!isRefreshing) setLoading(false);
         }
     };
 
-    const handleEnrollment = async (packId) => {
-        setEnrolling(packId);
+    const fetchLevelsData = async () => {
         try {
-            const res = await apiFunction(enrollPackApi, [], { planId: packId }, "POST", true);
+            const res = await apiFunction(getLevelsApi, [], {}, "GET", true);
             if (res && res.success) {
-                // Update local storage and redux
-                const userData = await AsyncStorage.getItem('user');
-                if (userData) {
-                    const user = JSON.parse(userData);
-                    user.sessionCount = res.rider?.session_count;
-                    user.plan = res.rider?.plan;
-                    await AsyncStorage.setItem('user', JSON.stringify(user));
-                }
-                
-                dispatch(fetchRider());
-                
-                Toast.show({
-                    type: 'success',
-                    text1: res.message || "Enrollment successful",
-                });
-                navigation.navigate('Home');
-            } else {
-                Toast.show({
-                    type: 'error',
-                    text1: res.message || "Enrollment failed",
-                });
+                setLevels(res.levels || []);
             }
         } catch (error) {
-            console.error("Enrollment error:", error);
-            Toast.show({
-                type: 'error',
-                text1: "An error occurred during enrollment.",
-            });
-        } finally {
-            setEnrolling(null);
+            console.error("Fetch levels error:", error);
         }
+    };
+
+    const handleEnrollment = async (packId, name, amount) => {
+        navigation.navigate('Checkout', {
+            type: 'pack',
+            id: packId,
+            name: name,
+            amount: amount
+        });
+    };
+
+    const handleLevelClick = (level) => {
+        if (level.weekdays_price && level.weekend_price) {
+            setSelectedLevelForPricing(level);
+            setPricingModalVisible(true);
+        } else if (level.monthly_price) {
+            handleLevelEnrollment(level, 'monthlyPrice');
+        } else {
+            Toast.show({ type: 'error', text1: "No valid pricing found for this level." });
+        }
+    };
+
+    const handleLevelEnrollment = async (level, pricingOption) => {
+        setPricingModalVisible(false);
+        let amount = 0;
+        if (pricingOption === 'monthlyPrice') amount = level.monthly_price;
+        else if (pricingOption === 'weekdaysPrice') amount = level.weekdays_price;
+        else if (pricingOption === 'weekendPrice') amount = level.weekend_price;
+
+        navigation.navigate('Checkout', {
+            type: 'level',
+            id: level.id,
+            name: level.name,
+            amount: amount,
+            pricingOption: pricingOption
+        });
     };
 
     return (
         <SafeAreaView className="flex-1 bg-[#F5EDDF]">
-            <View className="px-6 pt-6 pb-2 flex-row items-center justify-between">
-                <View className="flex-row items-center">
-                    <TouchableOpacity
-                        className="w-10 h-10 items-center justify-center mr-2"
-                        onPress={() => {
-                            if (navigation.canGoBack()) navigation.goBack();
-                        }}
+            <View className="px-6 pt-6 pb-4">
+                <Text className="text-[#1a202c] text-[24px] font-black">Programs</Text>
+                
+                {/* Custom Tabs */}
+                <View className="flex-row mt-4 bg-[#e2d5c3]/50 p-1 rounded-2xl">
+                    <TouchableOpacity 
+                        className={`flex-1 py-3 rounded-xl items-center justify-center ${activeTab === 'Membership Plan' ? 'bg-white' : ''}`}
+                        style={activeTab === 'Membership Plan' ? { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 2 } : {}}
+                        onPress={() => setActiveTab('Membership Plan')}
                     >
-                        <ChevronLeft color="#8C4A28" size={24} />
+                        <Text className={`text-[13px] font-black ${activeTab === 'Membership Plan' ? 'text-[#8C4A28]' : 'text-gray-500'}`}>Membership Plan</Text>
                     </TouchableOpacity>
-                    <Text className="text-[#1a202c] text-[16px] font-bold">Competitive Rider Packs</Text>
+                    <TouchableOpacity 
+                        className={`flex-1 py-3 rounded-xl items-center justify-center ${activeTab === 'Rider Level' ? 'bg-white' : ''}`}
+                        style={activeTab === 'Rider Level' ? { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 2 } : {}}
+                        onPress={() => setActiveTab('Rider Level')}
+                    >
+                        <Text className={`text-[13px] font-black ${activeTab === 'Rider Level' ? 'text-[#8C4A28]' : 'text-gray-500'}`}>Rider Level</Text>
+                    </TouchableOpacity>
                 </View>
-                <TouchableOpacity className="w-10 h-10 items-center justify-center">
-                    <Bell color="#1a202c" size={20} />
-                </TouchableOpacity>
             </View>
 
             {loading ? (
@@ -120,9 +161,17 @@ export default function CompetitiveRiderPacksScreen() {
                     <ActivityIndicator size="large" color="#8C4A28" />
                 </View>
             ) : (
-                <ScrollView className="flex-1 px-5" showsVerticalScrollIndicator={false}>
-                    {/* Hero Banner */}
-                    <View className="w-full h-[150px] rounded-[24px] overflow-hidden mt-3 shadow-md bg-[#8C4A28]">
+                <ScrollView 
+                    className="flex-1 px-5" 
+                    showsVerticalScrollIndicator={false}
+                    refreshControl={
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8C4A28" colors={['#8C4A28']} />
+                    }
+                >
+                    {activeTab === 'Membership Plan' ? (
+                        <>
+                            {/* Hero Banner */}
+                            <View className="w-full h-[150px] rounded-[24px] overflow-hidden mt-3 shadow-md bg-[#8C4A28]">
                         {/* Decorative background elements */}
                         <View className="absolute -top-12 -right-12 w-48 h-48 bg-white/10 rounded-full" />
                         <View className="absolute -bottom-8 -left-8 w-32 h-32 bg-black/10 rounded-full" />
@@ -196,21 +245,21 @@ export default function CompetitiveRiderPacksScreen() {
                                     <View className="w-full py-4 rounded-xl items-center justify-center mb-6 bg-[#4ade80]/20 border border-[#4ade80]">
                                         <Text className="font-black text-[13px] text-[#064e3b] uppercase tracking-widest">Currently Active</Text>
                                     </View>
-                                ) : null /* (
+                                ) : (
                                     <TouchableOpacity
                                         className={`w-full py-4 rounded-xl items-center justify-center mb-6 shadow-sm ${enrolling === pack.id ? 'bg-[#8C4A28]/70' : 'bg-[#8C4A28]'}`}
-                                        onPress={() => handleEnrollment(pack.id)}
+                                        onPress={() => handleEnrollment(pack.id, pack.name, pack.amount)}
                                         disabled={enrolling !== null}
                                     >
                                         {enrolling === pack.id ? (
                                             <ActivityIndicator size="small" color="white" />
                                         ) : (
                                             <Text className={`font-black text-[13px] text-white`}>
-                                                {pack.amount > 0 ? `Enroll for ${pack.amount}` : 'Enroll for Free'}
+                                                {pack.amount > 0 ? `Buy for ₹${pack.amount.toLocaleString()}` : 'Enroll for Free'}
                                             </Text>
                                         )}
                                     </TouchableOpacity>
-                                ) */}
+                                )}
 
                                 <View>
                                     {(pack.rules || ['Professional training', 'Stable access', 'Competition prep']).map((feature: string, idx: number) => (
@@ -253,9 +302,144 @@ export default function CompetitiveRiderPacksScreen() {
                             <Text className="text-[#475569] text-[10px] font-bold ml-3">Sessions auto-expire at month end</Text>
                         </View>
                     </View>
+                        </>
+                    ) : (
+                        <View className="pb-8 mt-3">
+                            <View className="mb-4">
+                                <Text className="text-[#1a202c] text-lg font-black mb-[2px]">Explore Rider Levels</Text>
+                                <Text className="text-[#64748b] text-[11px] font-semibold">Structured programs designed for your growth</Text>
+                            </View>
 
+                            {levels.length === 0 ? (
+                                <View className="py-10 items-center">
+                                    <Text className="text-[#64748b] font-bold">No levels available right now.</Text>
+                                </View>
+                            ) : levels.map((l) => {
+                                const currentLevel = rider?.level || user?.level || '';
+                                const isLevelActive = currentLevel?.toLowerCase().trim() === (l.name || '')?.toLowerCase().trim();
+                                return (
+                                <View 
+                                    key={l.id} 
+                                    className={`bg-white rounded-[20px] p-5 mb-4 border ${isLevelActive ? 'border-[#4ade80] border-2 bg-[#f0fdf4]' : 'border-[#e2d5c3]'}`}
+                                    style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 2 }}
+                                >
+                                    <View className="flex-row justify-between items-start mb-3">
+                                        <View className="flex-1 pr-2">
+                                            <Text className="text-[#1a202c] text-[18px] font-black">{l.name}</Text>
+                                            <Text className="text-[#8C4A28] text-[10px] font-black uppercase tracking-widest mt-1">{l.category || 'Level'}</Text>
+                                        </View>
+                                    </View>
+
+                                    {l.description ? (
+                                        <Text className="text-[#64748b] text-[13px] font-semibold mb-4 leading-snug">{l.description}</Text>
+                                    ) : null}
+
+                                    <View className="bg-[#fcfaf8] rounded-xl p-4 border border-gray-100 mb-2">
+                                        <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Pricing & Details</Text>
+                                        
+                                        {l.monthly_price ? (
+                                            <View className="flex-row justify-between items-center mb-2">
+                                                <Text className="text-[#1a202c] font-bold text-[13px]">Monthly Fee</Text>
+                                                <Text className="text-[#8C4A28] font-black text-[15px]">₹{l.monthly_price.toLocaleString()}</Text>
+                                            </View>
+                                        ) : (
+                                            <>
+                                                {l.weekdays_price ? (
+                                                    <View className="flex-row justify-between items-center mb-2">
+                                                        <Text className="text-[#1a202c] font-bold text-[13px]">Weekdays Price</Text>
+                                                        <Text className="text-[#8C4A28] font-black text-[15px]">₹{l.weekdays_price.toLocaleString()}</Text>
+                                                    </View>
+                                                ) : null}
+                                                {l.weekend_price ? (
+                                                    <View className="flex-row justify-between items-center mb-2">
+                                                        <Text className="text-[#1a202c] font-bold text-[13px]">Weekend Price</Text>
+                                                        <Text className="text-[#8C4A28] font-black text-[15px]">₹{l.weekend_price.toLocaleString()}</Text>
+                                                    </View>
+                                                ) : null}
+                                            </>
+                                        )}
+
+                                        {l.sessions ? (
+                                            <View className="flex-row justify-between items-center mt-2 pt-2 border-t border-gray-100">
+                                                <Text className="text-[#1a202c] font-bold text-[13px]">Sessions Included</Text>
+                                                <Text className="text-[#1a202c] font-black text-[14px]">{l.sessions}</Text>
+                                            </View>
+                                        ) : null}
+                                    </View>
+
+                                    {isLevelActive ? (
+                                        <View className="w-full py-3 mt-2 rounded-xl items-center justify-center bg-[#4ade80]/20 border border-[#4ade80]">
+                                            <Text className="font-black text-[13px] text-[#064e3b] uppercase tracking-widest">Currently Active</Text>
+                                        </View>
+                                    ) : (
+                                        <TouchableOpacity
+                                            className={`w-full py-4 rounded-xl items-center justify-center mt-2 shadow-sm ${levelEnrolling === l.id ? 'bg-[#8C4A28]/70' : 'bg-[#8C4A28]'}`}
+                                            onPress={() => handleLevelClick(l)}
+                                            disabled={levelEnrolling !== null}
+                                        >
+                                            {levelEnrolling === l.id ? (
+                                                <ActivityIndicator size="small" color="white" />
+                                            ) : (
+                                                <Text className={`font-black text-[13px] text-white`}>
+                                                    Buy Level
+                                                </Text>
+                                            )}
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
+                            )})}
+                        </View>
+                    )}
                 </ScrollView>
             )}
+
+            {/* Pricing Selection Modal */}
+            <Modal
+                animationType="slide"
+                transparent={true}
+                visible={pricingModalVisible}
+                onRequestClose={() => setPricingModalVisible(false)}
+            >
+                <View className="flex-1 justify-end bg-black/50">
+                    <View className="bg-white rounded-t-3xl p-6">
+                        <Text className="text-[#1a202c] text-xl font-black mb-2">Select Pricing Option</Text>
+                        <Text className="text-[#64748b] text-[13px] mb-6">Choose how you want to purchase {selectedLevelForPricing?.name}</Text>
+                        
+                        {selectedLevelForPricing?.weekdays_price ? (
+                            <TouchableOpacity
+                                className="bg-[#fcfaf8] border border-[#e2d5c3] p-4 rounded-2xl mb-4 flex-row justify-between items-center shadow-sm"
+                                onPress={() => handleLevelEnrollment(selectedLevelForPricing, 'weekdaysPrice')}
+                            >
+                                <View>
+                                    <Text className="text-[#1a202c] font-black text-[16px]">Weekdays</Text>
+                                    <Text className="text-[#64748b] text-[12px] font-semibold mt-1">Access to weekday sessions</Text>
+                                </View>
+                                <Text className="text-[#8C4A28] font-black text-[18px]">₹{selectedLevelForPricing.weekdays_price.toLocaleString()}</Text>
+                            </TouchableOpacity>
+                        ) : null}
+
+                        {selectedLevelForPricing?.weekend_price ? (
+                            <TouchableOpacity
+                                className="bg-[#fcfaf8] border border-[#e2d5c3] p-4 rounded-2xl mb-6 flex-row justify-between items-center shadow-sm"
+                                onPress={() => handleLevelEnrollment(selectedLevelForPricing, 'weekendPrice')}
+                            >
+                                <View>
+                                    <Text className="text-[#1a202c] font-black text-[16px]">Weekends</Text>
+                                    <Text className="text-[#64748b] text-[12px] font-semibold mt-1">Access to weekend sessions</Text>
+                                </View>
+                                <Text className="text-[#8C4A28] font-black text-[18px]">₹{selectedLevelForPricing.weekend_price.toLocaleString()}</Text>
+                            </TouchableOpacity>
+                        ) : null}
+
+                        <TouchableOpacity
+                            className="w-full py-4 rounded-xl items-center justify-center bg-gray-100"
+                            onPress={() => setPricingModalVisible(false)}
+                        >
+                            <Text className="font-black text-[14px] text-[#64748b]">Cancel</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 }

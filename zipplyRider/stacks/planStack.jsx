@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import RiderPlanManagementScreen from '../screens/RiderPlanManagementScreen';
 import EnrolmentScreen from '../screens/EnrolmentScreen';
 import CompetitiveRiderPacksScreen from '../screens/CompetitiveRiderPacksScreen';
+import CheckoutScreen from '../screens/CheckoutScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -18,6 +19,7 @@ const PlanStack = () => {
             <Stack.Screen name="CompetitiveRiderPacks" component={CompetitiveRiderPacksScreen} />
             <Stack.Screen name="RiderPlanManagement" component={RiderPlanManagementScreen} />
             <Stack.Screen name="Enrolment" component={EnrolmentScreen} />
+            <Stack.Screen name="Checkout" component={CheckoutScreen} />
         </Stack.Navigator>
     );
 };

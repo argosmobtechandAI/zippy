@@ -1,6 +1,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
+import SuccessScreen from '../screens/SuccessScreen';
 import BookingsScreen from '../screens/BookingsScreen';
 import HomePageStack from './homePageStack';
 

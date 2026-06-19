@@ -16,6 +16,7 @@ import NotificationScreen from '../screens/notificationScreen'
 import PrivacySecurityScreen from '../screens/PrivacySecurityScreen'
 import HelpCenterScreen from '../screens/HelpCenterScreen'
 import FeedbackListScreen from '../screens/FeedbackListScreen'
+import PaymentHistoryScreen from '../screens/PaymentHistoryScreen'
 
 const Stack = createNativeStackNavigator()
 
@@ -36,6 +37,7 @@ const WelcomStack = () => {
             <Stack.Screen name="PrivacySecurity" component={PrivacySecurityScreen} />
             <Stack.Screen name="HelpCenter" component={HelpCenterScreen} />
             <Stack.Screen name="PersonalInformation" component={PersonalInformationScreen} />
+            <Stack.Screen name="PaymentHistory" component={PaymentHistoryScreen} />
             <Stack.Screen name="Tabs" component={MainTabsStack} />
         </Stack.Navigator>
     )

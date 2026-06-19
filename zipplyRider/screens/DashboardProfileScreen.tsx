@@ -167,6 +167,16 @@ export default function DashboardProfileScreen() {
               </TouchableOpacity>
             );
           })}
+
+          <TouchableOpacity onPress={() => navigation.navigate('PaymentHistory')} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 20, padding: 16, marginBottom: 12, shadowColor: '#85431E', shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 }}>
+            <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: `#5C2E0E15`, alignItems: 'center', justifyContent: 'center', marginRight: 14, flexShrink: 0 }}>
+              <Wallet color="#5C2E0E" size={22} strokeWidth={2.5} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text className="font-normal" style={{ fontSize: 13, fontWeight: '700', color: '#5C2E0E', marginBottom: 3 }}>Purchase History</Text>
+              <Text className="font-normal" style={{ fontSize: 12, color: 'rgba(133,67,30,0.5)', lineHeight: 18 }}>View your past transactions and payments.</Text>
+            </View>
+          </TouchableOpacity>
         </View>
 
         {/* Trainer Feedback */}

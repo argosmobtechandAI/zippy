@@ -48,8 +48,8 @@ export const apiFunction = async (api, params = [], data = {}, method, withAuth)
       return null;
     }
   } catch (error) {
-    console.error('API Function Error:', error);
-    const errorMessage = error.response?.data?.message || error.message || 'An unknown error occurred';
+    console.log('API Function Error:', error?.response?.data || error);
+    const errorMessage = error?.response?.data?.message || error.message || 'An unknown error occurred';
     return { success: false, message: errorMessage };
   }
 
