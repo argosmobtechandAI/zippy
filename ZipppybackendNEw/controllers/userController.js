@@ -394,7 +394,7 @@ export const updateUser = async (req, res) => {
             if (level !== undefined) {
                 riderUpdateData.level = level;
                 try {
-                    const { data: levelData } = await supabase.from('levels').select('id, monthly_price, weekdays_price').eq('name', level).limit(1);
+                    const { data: levelData } = await supabase.from('levels').select('id, monthly_price, weekdays_price, sessions').eq('name', level).limit(1);
                     if (levelData && levelData.length > 0) {
                         const amount = levelData[0].monthly_price || levelData[0].weekdays_price || 0;
                         await supabase.from('payments').insert({
@@ -551,6 +551,45 @@ export const updateUser = async (req, res) => {
             }
 
             import('fs').then(fs => fs.writeFileSync('/tmp/debug-vet.log', JSON.stringify(dbgLogs, null, 2)));
+        }
+
+        const { data: finalDbUser } = await supabase.from('users').select('*, trainers(*), rider(*), vet(*)').eq('id', id).limit(1);
+        if (finalDbUser && finalDbUser.length > 0) {
+            const rawUser = finalDbUser[0];
+            const mappedUser = {
+                id: rawUser.id,
+                name: rawUser.name,
+                email: rawUser.email,
+                mobile: rawUser.mobile,
+                type: rawUser.type,
+                dob: rawUser.dob,
+                age: rawUser.age,
+                weight: rawUser.weight,
+                parentName: rawUser.parent_name,
+                emergencyContact: rawUser.emergency_contact,
+                createdAt: rawUser.created_at,
+                status: rawUser.status,
+                trainerId: rawUser.trainers && rawUser.trainers.length > 0 ? rawUser.trainers[0].id : null,
+                riderId: rawUser.rider && rawUser.rider.length > 0 ? rawUser.rider[0].id : null,
+                vetId: rawUser.vet && rawUser.vet.length > 0 ? rawUser.vet[0].id : null,
+                profilePicture: rawUser.profile_picture,
+                leaves: rawUser.leaves,
+                notifications: rawUser.notifications || [],
+                riderType: rawUser.rider && rawUser.rider.length > 0 ? rawUser.rider[0].rider_type : null,
+                riderWallet: rawUser.rider && rawUser.rider.length > 0 ? (rawUser.rider[0].wallet || 0) : 0,
+                sessionCount: rawUser.rider && rawUser.rider.length > 0 ? (rawUser.rider[0].session_count || 0) : 0,
+                code: rawUser.rider && rawUser.rider.length > 0 ? rawUser.rider[0].code : "",
+                level: rawUser.rider && rawUser.rider.length > 0 ? rawUser.rider[0].level : "",
+                allergies: rawUser.rider && rawUser.rider.length > 0 ? rawUser.rider[0].allergies : "",
+                medical: rawUser.rider && rawUser.rider.length > 0 ? rawUser.rider[0].medical : "",
+                instructions: rawUser.rider && rawUser.rider.length > 0 ? rawUser.rider[0].instructions : "",
+                plan: rawUser.rider && rawUser.rider.length > 0 ? (rawUser.rider[0].plan || null) : null,
+                planEndDate: rawUser.rider && rawUser.rider.length > 0 ? (rawUser.rider[0].plan_end_date || null) : null,
+                stableId: (rawUser.rider && rawUser.rider.length > 0 && rawUser.rider[0].stable_id) ? rawUser.rider[0].stable_id : (rawUser.trainers && rawUser.trainers.length > 0 ? rawUser.trainers[0].stable_id : null),
+                title: rawUser.trainers && rawUser.trainers.length > 0 ? rawUser.trainers[0].title : "",
+                experience: rawUser.trainers && rawUser.trainers.length > 0 ? rawUser.trainers[0].experience : ""
+            };
+            return res.status(200).json({ user: mappedUser, message: 'User updated successfully', success: true });
         }
 
         return res.status(200).json({ user: user, message: 'User updated successfully', success: true });
