@@ -95,6 +95,7 @@ export const riderTable = pgTable("rider", {
   code: varchar("code", { length: 50 }).notNull().unique(),
   planEndDate: varchar("plan_end_date", { length: 50 }).default(""),
   stableId: uuid("stable_id").references(() => stableTable.id),
+  wallet: integer("wallet").default(0),
 });
 
 export const planTable = pgTable("plan", {
@@ -191,4 +192,39 @@ export const broadcastNotificationsTable = pgTable("broadcast_notifications", {
   targetType: varchar("target_type", { length: 50 }),
   image: varchar("image", { length: 255 }),
   createdAt: varchar("created_at", { length: 50 }).default(new Date().toISOString()),
+});
+
+export const couponTable = pgTable("coupons", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  code: varchar("code", { length: 255 }).notNull().unique(),
+  discountType: varchar("discount_type", { length: 50 }).notNull(), // 'percentage' or 'flat'
+  discountValue: integer("discount_value").notNull(),
+  targetUsers: jsonb("target_users").default([]), // UUID array or 'ALL' logic managed in frontend/app
+  usageLimit: integer("usage_limit"), // null means unlimited
+  usedCount: integer("used_count").default(0),
+  expiryDate: varchar("expiry_date", { length: 50 }),
+  status: varchar("status", { length: 50 }).default("ACTIVE"),
+  createdAt: varchar("created_at", { length: 50 }).default(new Date().toISOString()),
+});
+
+export const levelTable = pgTable("levels", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull().unique(),
+  description: varchar("description", { length: 1000 }),
+  category: varchar("category", { length: 50 }).default("Level"),
+  monthlyPrice: integer("monthly_price"),
+  weekdaysPrice: integer("weekdays_price"),
+  weekendPrice: integer("weekend_price"),
+  sessions: integer("sessions"),
+  status: varchar("status", { length: 50 }).default("ACTIVE"),
+});
+
+export const userLevelsTable = pgTable("user_levels", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => userTable.id),
+  levelId: uuid("level_id").notNull().references(() => levelTable.id),
+  sessionsRemaining: integer("sessions_remaining").default(0),
+  status: varchar("status", { length: 50 }).default("ACTIVE"), // ACTIVE, COMPLETED
+  purchasedAt: varchar("purchased_at", { length: 50 }).default(new Date().toISOString()),
+  validUntil: varchar("valid_until", { length: 50 }),
 });

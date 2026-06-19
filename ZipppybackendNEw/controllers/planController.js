@@ -2,6 +2,7 @@ import { supabase } from '../supabaseClient.js';
 import { sendPushToUser } from '../firebaseAdmin.js';
 import { instance } from '../razorpay.js';
 import dotenv from 'dotenv';
+import crypto from 'crypto';
 dotenv.config();
 
 export const createPlan = async (req, res) => {
@@ -109,16 +110,41 @@ export const deletePlan = async (req, res) => {
 };
 
 export const createRazorPayOrder = async (req, res) => {
-    const userId = req.userId
+    const userId = req.userId;
     const { data } = req.body;
-    const { planId } = data;
+    const { planId, couponCode, useWallet } = data;
 
     try {
         const { data: plan, error: planError } = await supabase.from('plan').select('*').eq('id', planId).limit(1);
         if (planError || !plan || !plan.length) {
             return res.status(404).json({ success: false, message: 'Plan not found' });
         }
-        const amount = plan[0].amount;
+        let amount = plan[0].amount;
+
+        // Apply Coupon
+        if (couponCode) {
+            const { data: coupons } = await supabase.from('coupons').select('*').eq('code', couponCode.toUpperCase()).limit(1);
+            if (coupons && coupons.length > 0) {
+                const appliedCoupon = coupons[0];
+                let discount = appliedCoupon.discount_type === 'percentage' 
+                    ? (amount * appliedCoupon.discount_value) / 100 
+                    : appliedCoupon.discount_value;
+                amount = Math.max(0, amount - discount);
+            }
+        }
+
+        // Apply Wallet
+        if (useWallet) {
+            const { data: rider } = await supabase.from('rider').select('wallet').eq('user_id', userId).limit(1);
+            const walletBalance = rider && rider.length > 0 ? (rider[0].wallet || 0) : 0;
+            const walletDeduction = Math.min(walletBalance, amount);
+            amount = Math.max(0, amount - walletDeduction);
+        }
+
+        if (amount === 0) {
+            return res.status(200).json({ success: true, bypassedRazorpay: true });
+        }
+
         const currency = 'INR';
         const receipt = `order_${Date.now()}`;
 
@@ -128,7 +154,7 @@ export const createRazorPayOrder = async (req, res) => {
         }
 
         const options = {
-            amount,
+            amount: amount * 100,
             currency,
             receipt,
         };
@@ -146,9 +172,9 @@ const addMonths = (date, months) => {
 };
 
 export const verifyRazorPayOrder = async (req, res) => {
-    const userId = req.userId
+    const userId = req.userId;
     const { data } = req.body;
-    const { orderId, paymentId, planId } = data;
+    const { orderId, paymentId, signature, planId, couponCode, useWallet } = data;
 
     try {
         const { data: plan, error: planError } = await supabase.from('plan').select('*').eq('id', planId).limit(1);
@@ -160,30 +186,129 @@ export const verifyRazorPayOrder = async (req, res) => {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
 
-        if (orderId && paymentId) {
-            const revenue = {
-                amount: plan[0].amount,
-                type: "plan",
-                date: new Date(),
-                purchaserId: userId,
-                purchaseType: "plan",
-                planId: planId,
-                plan_key: paymentId,
-                status: "Active",
-                end_date: addMonths(new Date(), Number(plan[0].validity)),
+        // Calculate amount to deduct wallet and coupon
+        let originalAmount = plan[0].amount;
+        let finalAmount = originalAmount;
+        let discount = 0;
+        let appliedCoupon = null;
+        
+        if (couponCode) {
+            const { data: coupons } = await supabase.from('coupons').select('*').eq('code', couponCode.toUpperCase()).limit(1);
+            if (coupons && coupons.length > 0) {
+                appliedCoupon = coupons[0];
+                discount = appliedCoupon.discount_type === 'percentage' 
+                    ? (finalAmount * appliedCoupon.discount_value) / 100 
+                    : appliedCoupon.discount_value;
+                finalAmount = Math.max(0, finalAmount - discount);
             }
-
-            // Payment is verified
-            // Create the subscription
-            const { data: subscription, error: subError } = await supabase.from('revenue').insert(revenue).select();
-            if (subError || !subscription || !subscription.length) {
-                return res.status(500).json({ success: false, message: 'Failed to create subscription' });
-            }
-
-            res.status(200).json({ success: true, subscription: subscription[0] });
-        } else {
-            res.status(400).json({ success: false, message: 'Invalid signature' });
         }
+
+        const { data: rider, error: riderError } = await supabase.from('rider').select('*').eq('user_id', userId).limit(1);
+        let walletBalance = rider && rider.length > 0 ? (rider[0].wallet || 0) : 0;
+        let walletDeduction = 0;
+
+        if (useWallet) {
+            walletDeduction = Math.min(walletBalance, finalAmount);
+            finalAmount = Math.max(0, finalAmount - walletDeduction);
+        }
+
+        // Verify Razorpay signature if amount > 0
+        if (finalAmount > 0) {
+            if (!orderId || !paymentId || !signature) {
+                return res.status(400).json({ success: false, message: 'Missing razorpay details' });
+            }
+            const body = orderId + "|" + paymentId;
+            const expectedSignature = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+                                            .update(body.toString())
+                                            .digest('hex');
+                                            
+            if (expectedSignature !== signature) {
+                return res.status(400).json({ success: false, message: 'Invalid payment signature' });
+            }
+        }
+
+        const actualPaymentId = paymentId || `wallet_${Date.now()}`;
+        const actualOrderId = orderId || `bypassed_${Date.now()}`;
+
+        let paymentMethod = 'wallet';
+        if (finalAmount > 0 && paymentId) {
+            try {
+                const paymentDetails = await instance.payments.fetch(paymentId);
+                paymentMethod = paymentDetails.method || 'unknown';
+            } catch (err) {
+                console.error("Failed to fetch payment details:", err);
+                paymentMethod = 'razorpay';
+            }
+        }
+
+        const revenue = {
+            amount: originalAmount,
+            type: "plan",
+            date: new Date(),
+            purchaserid: userId,
+            purchasetype: "plan",
+            planid: planId,
+            plan_key: actualPaymentId,
+            status: "Active",
+            end_date: addMonths(new Date(), Number(plan[0].validity)),
+        };
+
+        // Proceed to update rider
+        if (useWallet && walletDeduction > 0) {
+            await supabase.from('rider').update({ wallet: walletBalance - walletDeduction }).eq('user_id', userId);
+        }
+
+        if (appliedCoupon) {
+            await supabase.from('coupons').update({ used_count: (appliedCoupon.used_count || 0) + 1 }).eq('id', appliedCoupon.id);
+        }
+
+        if (!riderError && rider && rider.length > 0) {
+            const currentPlans = Array.isArray(rider[0].plan) ? rider[0].plan : (rider[0].plan ? [rider[0].plan] : []);
+            const plans = [...currentPlans, plan[0]];
+            const sessionsCount = (rider[0].session_count || rider[0].sessionCount || 0) + (plan[0].sessions_count || plan[0].sessionsCount || 0);
+            
+            let monthsToAdd = 1;
+            if (!isNaN(Number(plan[0].validity))) {
+                monthsToAdd = Number(plan[0].validity);
+            }
+            
+            let baseDate = new Date();
+            if (rider[0].plan_end_date) {
+                const currentEndDate = new Date(rider[0].plan_end_date);
+                if (currentEndDate > baseDate) {
+                    baseDate = currentEndDate;
+                }
+            }
+            const paymentEndDate = addMonths(baseDate, monthsToAdd).toISOString();
+
+            await supabase.from('rider').update({
+                plan: plans,
+                session_count: sessionsCount,
+                plan_end_date: paymentEndDate
+            }).eq('user_id', userId);
+        }
+
+        // Create the subscription / revenue
+        const { data: subscription, error: subError } = await supabase.from('revenue').insert(revenue).select();
+        if (subError || !subscription || !subscription.length) {
+            return res.status(500).json({ success: false, message: 'Failed to create subscription' });
+        }
+
+        // Log raw payment details
+        await supabase.from('payments').insert({
+            order_id: actualOrderId,
+            payment_id: actualPaymentId,
+            amount: originalAmount,
+            coupon_code: appliedCoupon ? appliedCoupon.code : null,
+            wallet_amount_used: walletDeduction,
+            payment_method: paymentMethod,
+            status: 'captured',
+            date: new Date().toISOString(),
+            user_id: userId,
+            plan_id: planId
+        });
+
+        res.status(200).json({ success: true, subscription: subscription[0] });
     } catch (error) {
         res.status(500).json({ success: false, message: `Error: ${error.message}` });
     }

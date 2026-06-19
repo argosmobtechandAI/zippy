@@ -87,7 +87,7 @@ export const enrollPack = async (req, res) => {
         const newWalletBalance = walletBalance - planAmount;
 
         // 4. Update Rider Plan and Session Count
-        const currentPlans = rider[0].plan || [];
+        const currentPlans = Array.isArray(rider[0].plan) ? rider[0].plan : (rider[0].plan ? [rider[0].plan] : []);
         const plans = [...currentPlans, p];
         const sessionsCount = (rider[0].session_count || rider[0].sessionCount || 0) + (p.sessions_count || p.sessionsCount || 0);
         
