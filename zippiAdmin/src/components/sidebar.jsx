@@ -72,6 +72,18 @@ const Sidebar = () => {
                     <Settings className="w-5 h-5" />
                     Help Center
                 </NavLink>
+                <NavLink to="/levels" className={({ isActive }) => `flex items-center gap-4 px-4 py-3.5 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
+                    <ClipboardList className="w-5 h-5" />
+                    Level Management
+                </NavLink>
+                <NavLink to="/coupons" className={({ isActive }) => `flex items-center gap-4 px-4 py-3.5 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
+                    <Tag className="w-5 h-5" />
+                    Coupons & Offers
+                </NavLink>
+                <NavLink to="/payments" className={({ isActive }) => `flex items-center gap-4 px-4 py-3.5 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
+                    <BarChart2 className="w-5 h-5" />
+                    Payment Logs
+                </NavLink>
             </nav>
 
             {/* Bottom Section */}

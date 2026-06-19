@@ -1,5 +1,5 @@
-// export const baseUrl = import.meta.env.VITE_API_BASE_URL ? `${import.meta.env.VITE_API_BASE_URL}/api` : "https://api.zippyapp.online/api";
-export const baseUrl = "https://api.zippyapp.online/api";
+// export const baseUrl = import.meta.env.VITE_API_BASE_URL ? `${import.meta.env.VITE_API_BASE_URL}/api` : "http://localhost:3000/api";
+export const baseUrl = "http://localhost:3000/api";
 export const getAllUsersApi = `${baseUrl}/users/all`;
 export const getUserApi = `${baseUrl}/users`;
 export const createUserApi = `${baseUrl}/users`;
@@ -59,3 +59,14 @@ export const deleteHelpCenterApi = `${baseUrl}/help-center`;
 export const getCategoriesApi = `${baseUrl}/categories`;
 export const createCategoryApi = `${baseUrl}/categories`;
 export const deleteCategoryApi = `${baseUrl}/categories`;
+
+export const getCouponsApi = `${baseUrl}/coupons`;
+export const createCouponApi = `${baseUrl}/coupons`;
+export const updateCouponApi = (id) => `${baseUrl}/coupons/${id}`;
+export const deleteCouponApi = (id) => `${baseUrl}/coupons/${id}`;
+
+export const getLevelsApi = `${baseUrl}/levels`;
+export const createLevelApi = `${baseUrl}/levels`;
+export const updateLevelApi = (id) => `${baseUrl}/levels/${id}`;
+export const deleteLevelApi = (id) => `${baseUrl}/levels/${id}`;
+export const getPaymentsApi = `${baseUrl}/payments`;

@@ -1312,7 +1312,7 @@ const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave, onUpdateSuc
                             <div className="flex justify-between items-center">
                                 <div>
                                     <h4 className="text-[10px] font-black text-[#964C2E] tracking-widest uppercase mb-1">Rider Experience Level</h4>
-                                    <p className="text-[20px] font-black text-[#1e2330]">{localUser.level || 'Level 1'}</p>
+                                    <p className="text-[20px] font-black text-[#1e2330]">{localUser.level || 'Trial Pack'}</p>
                                 </div>
                                 <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-[#964C2E] border border-[#964C2E]/10 shadow-sm">
                                     <Shield className="w-6 h-6" />
@@ -1320,7 +1320,7 @@ const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave, onUpdateSuc
                             </div>
                             <button
                                 onClick={() => {
-                                    setLevelInput(localUser.level || 'Level 1');
+                                    setLevelInput(localUser.level || 'Trial Pack');
                                     setIsEditingLevel(true);
                                 }}
                                 className="w-full bg-[#964C2E] hover:bg-[#804026] text-white text-[11px] font-black uppercase py-2.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 font-bold"
@@ -1339,16 +1339,17 @@ const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave, onUpdateSuc
                                     onChange={(e) => setLevelInput(e.target.value)}
                                     className="w-full bg-white border border-[#964C2E]/20 rounded-xl px-4 py-3 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]"
                                 >
+                                    <option value="Trial Pack">Trial Pack</option>
                                     <option value="Level 1">Level 1</option>
                                     <option value="Level 2">Level 2</option>
                                     <option value="Level 3">Level 3</option>
-                                    <option value="NCR 1">NCR 1</option>
-                                    <option value="NCR 2">NCR 2</option>
-                                    <option value="CR 1">CR 1</option>
-                                    <option value="CR 2">CR 2</option>
-                                    <option value="FL">FL</option>
-                                    <option value="PL">PL</option>
-                                    <option value="PH">PH</option>
+                                    <option value="Non Competitive 1">Non Competitive 1</option>
+                                    <option value="Non Competitive 2">Non Competitive 2</option>
+                                    <option value="Competitive 1">Competitive 1</option>
+                                    <option value="Competitive 2">Competitive 2</option>
+                                    <option value="Full Lease">Full Lease</option>
+                                    <option value="Partial Lease">Partial Lease</option>
+                                    <option value="Private Horse">Private Horse</option>
                                 </select>
                             </div>
                             <div className="flex gap-2">
@@ -1654,7 +1655,7 @@ const UserActionModal = ({ userType, setCreateModal, onSuccess, initialData, sta
         password: "",
         riderType: initialData?.riderType || "Regular",
         code: initialData?.code || "",
-        level: initialData?.level || "Level 1",
+        level: initialData?.level || "Trial Pack",
         parentName: initialData?.parentName || "",
         allergies: initialData?.allergies || "",
         medical: initialData?.medical || "",
@@ -1892,16 +1893,17 @@ const UserActionModal = ({ userType, setCreateModal, onSuccess, initialData, sta
                                         onChange={handleChange}
                                         className={`w-full border ${errors.level ? 'border-red-400 bg-red-50' : 'border-gray-100'} bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold transition-all focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E] focus:bg-white`}
                                     >
+                                        <option value="Trial Pack">Trial Pack</option>
                                         <option value="Level 1">Level 1</option>
                                         <option value="Level 2">Level 2</option>
                                         <option value="Level 3">Level 3</option>
-                                        <option value="NCR 1">NCR 1</option>
-                                        <option value="NCR 2">NCR 2</option>
-                                        <option value="CR 1">CR 1</option>
-                                        <option value="CR 2">CR 2</option>
-                                        <option value="FL">FL</option>
-                                        <option value="PL">PL</option>
-                                        <option value="PH">PH</option>
+                                        <option value="Non Competitive 1">Non Competitive 1</option>
+                                        <option value="Non Competitive 2">Non Competitive 2</option>
+                                        <option value="Competitive 1">Competitive 1</option>
+                                        <option value="Competitive 2">Competitive 2</option>
+                                        <option value="Full Lease">Full Lease</option>
+                                        <option value="Partial Lease">Partial Lease</option>
+                                        <option value="Private Horse">Private Horse</option>
                                     </select>
                                 </div>
                                 <div className="col-span-1">

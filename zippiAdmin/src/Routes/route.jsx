@@ -16,6 +16,9 @@ import AttendanceReport from "../pages/attendanceReport"
 import Categories from "../pages/categories"
 import MedicalRecords from "../pages/medicalRecords"
 import Marketing from "../pages/Marketing"
+import Coupons from "../pages/coupons"
+import Levels from "../pages/levels"
+import Payments from "../pages/payments"
 
 const ProtectedRoute = ({ children }) => {
     const token = localStorage.getItem('token');
@@ -59,6 +62,9 @@ const AppRoutes = () => {
                 <Route path="categories" element={<Categories />} />
                 <Route path="medical-records" element={<MedicalRecords />} />
                 <Route path="marketing" element={<Marketing />} />
+                <Route path="coupons" element={<Coupons />} />
+                <Route path="levels" element={<Levels />} />
+                <Route path="payments" element={<Payments />} />
             </Route>
 
             {/* Catch all redirect */}
