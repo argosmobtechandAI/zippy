@@ -391,7 +391,36 @@ export const updateUser = async (req, res) => {
 
         if (user.type?.toLowerCase() === "rider") {
             const riderUpdateData = {};
-            if (level !== undefined) riderUpdateData.level = level;
+            if (level !== undefined) {
+                riderUpdateData.level = level;
+                try {
+                    const { data: levelData } = await supabase.from('levels').select('id, monthly_price, weekdays_price').eq('name', level).limit(1);
+                    if (levelData && levelData.length > 0) {
+                        const amount = levelData[0].monthly_price || levelData[0].weekdays_price || 0;
+                        await supabase.from('payments').insert({
+                            order_id: `admin_level_${Date.now()}`,
+                            amount: amount,
+                            status: 'captured',
+                            date: new Date().toISOString(),
+                            user_id: id,
+                            plan_id: levelData[0].id,
+                            payment_method: 'admin',
+                            coupon_code: null,
+                            wallet_amount_used: 0
+                        });
+                        
+                        // Add sessions
+                        const sessionsToAdd = Number(levelData[0].sessions) || 0;
+                        if (sessionsToAdd > 0) {
+                            const { data: currentRider } = await supabase.from('rider').select('session_count').eq('user_id', id).limit(1);
+                            const currentSessions = currentRider && currentRider.length > 0 ? (currentRider[0].session_count || 0) : 0;
+                            riderUpdateData.session_count = currentSessions + sessionsToAdd;
+                        }
+                    }
+                } catch (err) {
+                    console.error("Error logging admin level payment:", err);
+                }
+            }
             if (medical !== undefined) riderUpdateData.medical = medical;
             if (instructions !== undefined) riderUpdateData.instructions = instructions;
             if (allergies !== undefined) riderUpdateData.allergies = allergies;

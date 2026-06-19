@@ -369,6 +369,19 @@ export const assignPlanToRider = async (req, res) => {
             end_date: endDateStr
         });
 
+        // Add payment log for admin plan assignment
+        await supabase.from('payments').insert({
+            order_id: `admin_plan_${Date.now()}`,
+            amount: 0,
+            status: 'captured',
+            date: new Date().toISOString(),
+            user_id: userId,
+            plan_id: planId,
+            payment_method: 'admin',
+            coupon_code: null,
+            wallet_amount_used: 0
+        });
+
         return res.status(200).json({
             success: true,
             message: `Plan "${selectedPlan.name}" assigned successfully`,
