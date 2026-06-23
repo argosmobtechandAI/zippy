@@ -43,14 +43,7 @@ async function processMidnightCashback() {
         let newWalletBalance = rider.wallet || 0;
         let unusedSessions = rider.session_count || 0;
 
-        // Step A: Cashback
-        if (unusedSessions > 0) {
-            const cashbackAmount = unusedSessions * 500;
-            newWalletBalance += cashbackAmount;
-            console.log(`  Added ₹${cashbackAmount} to wallet for ${unusedSessions} unused sessions.`);
-        }
-
-        // Check for queued plans
+        // Check for queued plans early to determine cashback amount
         const { data: queuedPlans, error: qError } = await supabase
             .from('queued_plans')
             .select('*')
@@ -64,7 +57,17 @@ async function processMidnightCashback() {
             continue;
         }
 
-        if (queuedPlans && queuedPlans.length > 0) {
+        const hasQueuedPlan = queuedPlans && queuedPlans.length > 0;
+
+        // Step A: Cashback
+        if (unusedSessions > 0) {
+            const cashbackPerClass = hasQueuedPlan ? 1000 : 500;
+            const cashbackAmount = unusedSessions * cashbackPerClass;
+            newWalletBalance += cashbackAmount;
+            console.log(`  Added ₹${cashbackAmount} to wallet for ${unusedSessions} unused sessions (Renewed before expiry: ${hasQueuedPlan}).`);
+        }
+
+        if (hasQueuedPlan) {
             // Step B: Activate Queued Plan
             const nextPlanRecord = queuedPlans[0];
             
