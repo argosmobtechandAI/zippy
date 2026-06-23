@@ -228,3 +228,11 @@ export const userLevelsTable = pgTable("user_levels", {
   purchasedAt: varchar("purchased_at", { length: 50 }).default(new Date().toISOString()),
   validUntil: varchar("valid_until", { length: 50 }),
 });
+export const queuedPlansTable = pgTable("queued_plans", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => userTable.id),
+  planId: uuid("plan_id"),
+  planType: varchar("plan_type", { length: 50 }),
+  status: varchar("status", { length: 50 }).default("Queued"),
+  createdAt: varchar("created_at", { length: 50 }).default(new Date().toISOString()),
+});

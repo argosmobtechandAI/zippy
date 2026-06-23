@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, RefreshControl, Image } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, RefreshControl, Image, AppState } from 'react-native';
 import { Config } from '../api/config';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Leaf, Bell, AlertTriangle, Calendar, Clock, Activity, Plus, User } from 'lucide-react-native';
@@ -45,6 +45,22 @@ export default function DashboardHomeScreen() {
     if (user?.riderId) {
       dispatch(fetchRiderSessions(user.riderId));
     }
+  }, [dispatch, user?.riderId]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', nextAppState => {
+      if (nextAppState === 'active') {
+        dispatch(fetchUser());
+        dispatch(fetchRider());
+        if (user?.riderId) {
+          dispatch(fetchRiderSessions(user.riderId));
+        }
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
   }, [dispatch, user?.riderId]);
 
   useEffect(() => {

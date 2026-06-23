@@ -241,6 +241,15 @@ export const verifyRazorPayOrder = async (req, res) => {
             }
         }
 
+        let baseDate = new Date();
+        let isAdvanceRenewal = false;
+        if (!riderError && rider && rider.length > 0 && rider[0].plan_end_date) {
+            const currentEndDate = new Date(rider[0].plan_end_date);
+            if (currentEndDate > baseDate) {
+                isAdvanceRenewal = true;
+            }
+        }
+
         const revenue = {
             amount: originalAmount,
             type: "plan",
@@ -249,7 +258,7 @@ export const verifyRazorPayOrder = async (req, res) => {
             purchasetype: "plan",
             planid: planId,
             plan_key: actualPaymentId,
-            status: "Active",
+            status: isAdvanceRenewal ? "Queued" : "Active",
             end_date: addMonths(new Date(), Number(plan[0].validity)),
         };
 
@@ -263,29 +272,33 @@ export const verifyRazorPayOrder = async (req, res) => {
         }
 
         if (!riderError && rider && rider.length > 0) {
-            const currentPlans = Array.isArray(rider[0].plan) ? rider[0].plan : (rider[0].plan ? [rider[0].plan] : []);
-            const plans = [...currentPlans, plan[0]];
-            const sessionsCount = (rider[0].session_count || rider[0].sessionCount || 0) + (plan[0].sessions_count || plan[0].sessionsCount || 0);
-            
-            let monthsToAdd = 1;
-            if (!isNaN(Number(plan[0].validity))) {
-                monthsToAdd = Number(plan[0].validity);
-            }
-            
-            let baseDate = new Date();
-            if (rider[0].plan_end_date) {
-                const currentEndDate = new Date(rider[0].plan_end_date);
-                if (currentEndDate > baseDate) {
-                    baseDate = currentEndDate;
+            if (isAdvanceRenewal) {
+                // Queue the plan
+                await supabase.from('queued_plans').insert({
+                    user_id: userId,
+                    plan_id: planId,
+                    plan_type: 'monthly_plan',
+                    status: 'Queued'
+                });
+            } else {
+                // Activate immediately
+                const currentPlans = Array.isArray(rider[0].plan) ? rider[0].plan : (rider[0].plan ? [rider[0].plan] : []);
+                const plans = [...currentPlans, plan[0]];
+                const sessionsCount = (rider[0].session_count || rider[0].sessionCount || 0) + (plan[0].sessions_count || plan[0].sessionsCount || 0);
+                
+                let monthsToAdd = 1;
+                if (!isNaN(Number(plan[0].validity))) {
+                    monthsToAdd = Number(plan[0].validity);
                 }
-            }
-            const paymentEndDate = addMonths(baseDate, monthsToAdd).toISOString();
+                
+                const paymentEndDate = addMonths(new Date(), monthsToAdd).toISOString();
 
-            await supabase.from('rider').update({
-                plan: plans,
-                session_count: sessionsCount,
-                plan_end_date: paymentEndDate
-            }).eq('user_id', userId);
+                await supabase.from('rider').update({
+                    plan: plans,
+                    session_count: sessionsCount,
+                    plan_end_date: paymentEndDate
+                }).eq('user_id', userId);
+            }
         }
 
         // Create the subscription / revenue

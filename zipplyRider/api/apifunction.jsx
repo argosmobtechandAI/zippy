@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import * as NavigationService from '../utils/NavigationService';
 
 export const apiFunction = async (api, params = [], data = {}, method, withAuth) => {
 
@@ -50,6 +51,13 @@ export const apiFunction = async (api, params = [], data = {}, method, withAuth)
   } catch (error) {
     console.log('API Function Error:', error?.response?.data || error);
     const errorMessage = error?.response?.data?.message || error.message || 'An unknown error occurred';
+    
+    if (error?.response?.status === 401 || error?.response?.data?.message === 'jwt expired' || errorMessage.toLowerCase().includes('token')) {
+      AsyncStorage.removeItem('token').then(() => {
+        NavigationService.resetAndNavigate('Login');
+      }).catch(err => console.log('Error removing token:', err));
+    }
+    
     return { success: false, message: errorMessage };
   }
 

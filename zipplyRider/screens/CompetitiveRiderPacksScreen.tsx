@@ -132,6 +132,34 @@ export default function CompetitiveRiderPacksScreen() {
         });
     };
 
+    const isEligibleForPackRenewal = (pack) => {
+        if (!activePlanObj) return false;
+        const sessionsCount = pack.sessionsCount || pack.sessions_count || 0;
+        const currentSessions = rider?.session_count || 0;
+        
+        // Condition 1: 20% sessions left
+        const isLowSessions = sessionsCount > 0 && currentSessions <= (0.2 * sessionsCount);
+        
+        // Condition 2: 10 days left
+        let isExpiringSoon = false;
+        if (planEndDateStr) {
+            const endDate = new Date(planEndDateStr);
+            const today = new Date();
+            const diffTime = endDate.getTime() - today.getTime();
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+            if (diffDays <= 10) {
+                isExpiringSoon = true;
+            }
+        }
+        
+        return isLowSessions || isExpiringSoon;
+    };
+
+    const isEligibleForLevelRenewal = () => {
+        const currentSessions = rider?.session_count || 0;
+        return currentSessions <= 3;
+    };
+
     return (
         <SafeAreaView className="flex-1 bg-[#F5EDDF]">
             <View className="px-6 pt-6 pb-4">
@@ -242,9 +270,26 @@ export default function CompetitiveRiderPacksScreen() {
                                 </View>
 
                                 {isActive ? (
-                                    <View className="w-full py-4 rounded-xl items-center justify-center mb-6 bg-[#4ade80]/20 border border-[#4ade80]">
-                                        <Text className="font-black text-[13px] text-[#064e3b] uppercase tracking-widest">Currently Active</Text>
-                                    </View>
+                                    <>
+                                        <View className={`w-full py-4 rounded-xl items-center justify-center bg-[#4ade80]/20 border border-[#4ade80] ${isEligibleForPackRenewal(pack) ? 'mb-3' : 'mb-6'}`}>
+                                            <Text className="font-black text-[13px] text-[#064e3b] uppercase tracking-widest">Currently Active</Text>
+                                        </View>
+                                        {isEligibleForPackRenewal(pack) && (
+                                            <TouchableOpacity
+                                                className={`w-full py-4 rounded-xl items-center justify-center mb-6 shadow-sm ${enrolling === pack.id ? 'bg-[#8C4A28]/70' : 'bg-[#8C4A28]'}`}
+                                                onPress={() => handleEnrollment(pack.id, pack.name, pack.amount)}
+                                                disabled={enrolling !== null}
+                                            >
+                                                {enrolling === pack.id ? (
+                                                    <ActivityIndicator size="small" color="white" />
+                                                ) : (
+                                                    <Text className={`font-black text-[13px] text-white`}>
+                                                        Renew Pack for ₹{pack.amount.toLocaleString()}
+                                                    </Text>
+                                                )}
+                                            </TouchableOpacity>
+                                        )}
+                                    </>
                                 ) : (
                                     <TouchableOpacity
                                         className={`w-full py-4 rounded-xl items-center justify-center mb-6 shadow-sm ${enrolling === pack.id ? 'bg-[#8C4A28]/70' : 'bg-[#8C4A28]'}`}
@@ -368,9 +413,26 @@ export default function CompetitiveRiderPacksScreen() {
                                     </View>
 
                                     {isLevelActive ? (
-                                        <View className="w-full py-3 mt-2 rounded-xl items-center justify-center bg-[#4ade80]/20 border border-[#4ade80]">
-                                            <Text className="font-black text-[13px] text-[#064e3b] uppercase tracking-widest">Currently Active</Text>
-                                        </View>
+                                        <>
+                                            <View className={`w-full py-3 mt-2 rounded-xl items-center justify-center bg-[#4ade80]/20 border border-[#4ade80] ${isEligibleForLevelRenewal() ? 'mb-2' : ''}`}>
+                                                <Text className="font-black text-[13px] text-[#064e3b] uppercase tracking-widest">Currently Active</Text>
+                                            </View>
+                                            {isEligibleForLevelRenewal() && (
+                                                <TouchableOpacity
+                                                    className={`w-full py-4 rounded-xl items-center justify-center mt-2 shadow-sm ${levelEnrolling === l.id ? 'bg-[#8C4A28]/70' : 'bg-[#8C4A28]'}`}
+                                                    onPress={() => handleLevelClick(l)}
+                                                    disabled={levelEnrolling !== null}
+                                                >
+                                                    {levelEnrolling === l.id ? (
+                                                        <ActivityIndicator size="small" color="white" />
+                                                    ) : (
+                                                        <Text className={`font-black text-[13px] text-white`}>
+                                                            Renew Level
+                                                        </Text>
+                                                    )}
+                                                </TouchableOpacity>
+                                            )}
+                                        </>
                                     ) : (
                                         <TouchableOpacity
                                             className={`w-full py-4 rounded-xl items-center justify-center mt-2 shadow-sm ${levelEnrolling === l.id ? 'bg-[#8C4A28]/70' : 'bg-[#8C4A28]'}`}

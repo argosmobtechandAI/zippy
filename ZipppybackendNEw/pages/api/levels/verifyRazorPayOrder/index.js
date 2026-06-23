@@ -103,7 +103,7 @@ export default async function handler(req, res) {
             planid: levelId,
             plan_key: actualPaymentId,
             status: "Active",
-            end_date: addMonths(new Date(), 1),
+            end_date: null,
         };
 
         // Proceed to update rider wallet
@@ -117,12 +117,10 @@ export default async function handler(req, res) {
 
         if (!riderError && rider && rider.length > 0) {
             const sessionsCount = (rider[0].session_count || rider[0].sessionCount || 0) + (level[0].sessions || 0);
-            const paymentEndDate = addMonths(new Date(), 1).toISOString();
 
             await supabase.from('rider').update({
                 level: level[0].name,
-                session_count: sessionsCount,
-                plan_end_date: paymentEndDate
+                session_count: sessionsCount
             }).eq('user_id', userId);
         }
 
