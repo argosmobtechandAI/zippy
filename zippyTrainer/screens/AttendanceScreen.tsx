@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, ActivityIndicator, Alert, Platform, RefreshControl, Modal, Linking } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, ActivityIndicator, Alert, Platform, RefreshControl, Modal, Linking, Animated } from 'react-native';
 import RNFS from 'react-native-fs';
 import Share from 'react-native-share';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -56,6 +56,9 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
   const [showLeaveForm, setShowLeaveForm] = useState(false);
   const [leaveRequests, setLeaveRequests] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const progressAnim = useRef(new Animated.Value(0)).current;
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -88,12 +91,20 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
     }
   });
 
+  filteredSessions = filteredSessions.sort((a, b) => {
+    if (a.date === "daily" && b.date !== "daily") return -1;
+    if (b.date === "daily" && a.date !== "daily") return 1;
+    
+    const dateCompare = (a.date || "").localeCompare(b.date || "");
+    if (dateCompare !== 0) return dateCompare;
+    
+    const timeA = a.timing ? a.timing.split(',')[a.timing.includes(',') ? 1 : 0].split('-')[0].trim() : "23:59";
+    const timeB = b.timing ? b.timing.split(',')[b.timing.includes(',') ? 1 : 0].split('-')[0].trim() : "23:59";
+    return timeA.localeCompare(timeB);
+  });
+
   if (!selectedAttendanceDate) {
-    filteredSessions = filteredSessions.sort((a, b) => {
-      if (a.date === "daily") return -1;
-      if (b.date === "daily") return 1;
-      return a.date.localeCompare(b.date);
-    }).slice(0, 9);
+    filteredSessions = filteredSessions.slice(0, 9);
   }
 
   useEffect(() => {
@@ -333,56 +344,129 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
     }
   };
 
-  const handleShareWhatsApp = async () => {
-    if (!currentSession) return;
-    
+  const animateProgress = (toValue: number) => {
+    Animated.timing(progressAnim, {
+      toValue,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+    setExportProgress(toValue);
+  };
+
+  const handleExportCSV = async (type: 'slot' | 'date' = 'slot') => {
+    const sessionsToExport = type === 'date' ? filteredSessions : (currentSession ? [currentSession] : []);
+    if (sessionsToExport.length === 0) return;
+
+    setShowExportModal(true);
+    progressAnim.setValue(0);
+    setExportProgress(0);
+    animateProgress(10);
+
     try {
-      const headers = ["Session Title", "Date", "Time", "Location", "Rider Name", "Horse Name", "Attendance", "Individual Remark"];
+      const headers = ["Date", "time", "rider name", "horse name", "Role", "attendance", "remark"];
       let csvContent = headers.join(",") + "\n";
 
-      const escapedTitle = `"${(currentSession.title || '').replace(/"/g, '""')}"`;
-      const escapedLocation = `"${(currentSession.location || '').replace(/"/g, '""')}"`;
-      const timing = `"${currentSession.timing || currentSession.time || ''}"`;
-      const date = `"${currentSession.date || ''}"`;
+      sessionsToExport.forEach(session => {
+        const timing = session.timing || session.time || '';
+        const sessionDate = session.date || '';
 
-      if (!currentSession.participants || currentSession.participants.length === 0) {
-        const row = [escapedTitle, date, timing, escapedLocation, '""', '""', '""', '""'];
-        csvContent += row.join(",") + "\n";
-      } else {
-        currentSession.participants.forEach((p: any) => {
-          const horseId = individualHorses[p.riderId] || p.horse;
-          const assignedHorse = allHorses.find((h: any) => h.id === horseId);
-          const horseName = assignedHorse ? assignedHorse.name : '';
-          
-          const row = [
-            escapedTitle,
-            date,
-            timing,
-            escapedLocation,
-            `"${(p.name || '').replace(/"/g, '""')}"`,
-            `"${horseName.replace(/"/g, '""')}"`,
-            `"${(attendance[p.riderId] || p.attendance || 'Pending').replace(/"/g, '""')}"`,
-            `"${(individualRemarks[p.riderId] !== undefined ? individualRemarks[p.riderId] : (p.remark || '')).replace(/"/g, '""').replace(/\n/g, ' ')}"`
-          ];
-          csvContent += row.join(",") + "\n";
-        });
-      }
-
-      const fileName = `session_${(currentSession.title || 'report').replace(/\s+/g, '_')}_${currentSession.date || 'date'}.csv`;
-      const path = `${RNFS.DocumentDirectoryPath}/${fileName}`;
-      await RNFS.writeFile(path, csvContent, 'utf8');
-
-      await Share.open({
-        title: 'Share Session CSV',
-        url: `file://${path}`,
-        type: 'text/csv',
-        social: Share.Social.WHATSAPP
+        if (!session.participants || session.participants.length === 0) {
+          csvContent += `"${sessionDate}","${timing}","","","","",""\n`;
+        } else {
+          session.participants.forEach((p: any) => {
+            const isCurrentSession = session.id === currentSession?.id;
+            const att = isCurrentSession 
+              ? (attendance[p.riderId] || p.attendance || 'Pending').replace(/"/g, '""')
+              : (p.attendance || 'Pending').replace(/"/g, '""');
+              
+            const horseId = isCurrentSession ? (individualHorses[p.riderId] || p.horse) : p.horse;
+            const assignedHorse = allHorses.find((h: any) => h.id === horseId);
+            const horseName = assignedHorse ? assignedHorse.name : '';
+            
+            const rem = isCurrentSession 
+              ? (individualRemarks[p.riderId] !== undefined ? individualRemarks[p.riderId] : (p.remark || '')) 
+              : (p.remark || '');
+              
+            const riderName = (p.name || '').replace(/"/g, '""');
+            const horseSafe = horseName.replace(/"/g, '""');
+            const role = (p.type || 'Rider').replace(/"/g, '""');
+            const remark = rem.replace(/"/g, '""').replace(/\n/g, ' ');
+            
+            csvContent += `"${sessionDate}","${timing}","${riderName}","${horseSafe}","${role}","${att}","${remark}"\n`;
+          });
+        }
       });
 
+      animateProgress(40);
+
+      // Write to CachesDirectoryPath — always writable on both Android and iOS
+      const cacheDir = RNFS.CachesDirectoryPath;
+      await RNFS.mkdir(cacheDir).catch(() => {});
+      const dateStr = selectedAttendanceDate || 'All_Dates';
+      const safeTitle = (currentSession?.title || 'report').replace(/[^a-zA-Z0-9_\-]/g, '_');
+      const fileName = type === 'date' 
+        ? `daily_report_${dateStr}.csv` 
+        : `session_${safeTitle}_${currentSession?.date || 'date'}.csv`;
+      const filePath = `${cacheDir}/${fileName}`;
+      await RNFS.writeFile(filePath, csvContent, 'utf8');
+
+      animateProgress(60);
+
+      // Also save locally to Downloads (Android) or Documents (iOS)
+      const localDir = Platform.OS === 'android'
+        ? RNFS.DownloadDirectoryPath
+        : RNFS.DocumentDirectoryPath;
+      await RNFS.mkdir(localDir).catch(() => {});
+      const localPath = `${localDir}/${fileName}`;
+      await RNFS.copyFile(filePath, localPath).catch(() => {});
+
+      animateProgress(80);
+
+      animateProgress(95);
+      await Share.open({
+        title: type === 'date' ? 'Export Daily CSV' : 'Export Session CSV',
+        url: `file://${filePath}`,
+        type: 'text/csv'
+      });
+
+      animateProgress(100);
+      setTimeout(() => {
+        setShowExportModal(false);
+        Alert.alert(
+          '✅ CSV Exported',
+          `File saved to your ${Platform.OS === 'android' ? 'Downloads' : 'Documents'} folder:\n${fileName}`,
+          [
+            {
+              text: 'Open',
+              onPress: () => {
+                const openPath = Platform.OS === 'android'
+                  ? `file://${localPath}`
+                  : `file://${localPath}`;
+                Linking.openURL(openPath).catch(() =>
+                  Alert.alert('Cannot Open', 'No app available to open CSV files.')
+                );
+              }
+            },
+            {
+              text: 'Share',
+              onPress: () => {
+                Share.open({
+                  title: type === 'date' ? 'Daily CSV' : 'Session CSV',
+                  url: `file://${filePath}`,
+                  type: 'text/csv'
+                }).catch(() => {});
+              }
+            },
+            { text: 'Done', style: 'cancel' }
+          ]
+        );
+      }, 500);
+
     } catch (error: any) {
-      if (error.message !== 'User did not share') {
-        console.error("Error sharing CSV:", error);
-        Alert.alert("Share Error", "Could not share the file. Ensure WhatsApp is installed.");
+      setShowExportModal(false);
+      if (error?.message !== 'User did not share') {
+        console.error("Error exporting CSV:", error);
+        Alert.alert("Export Error", "Could not export the file.");
       }
     }
   };
@@ -707,12 +791,22 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
           </TouchableOpacity>
         )}
         
-        <TouchableOpacity
-          className="w-full py-4 rounded-xl items-center flex-row justify-center mb-3 bg-[#25D366]"
-          onPress={handleShareWhatsApp}
-        >
-          <Text className="text-white font-bold text-lg">Share CSV to WhatsApp</Text>
-        </TouchableOpacity>
+        <View className="flex-row justify-between mb-3 gap-2">
+          <TouchableOpacity
+            className="flex-1 py-4 rounded-xl items-center flex-row justify-center bg-[#1a202c]"
+            onPress={() => handleExportCSV('slot')}
+            disabled={showExportModal}
+          >
+            <Text className="text-white font-bold text-sm">Export Slot CSV</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="flex-1 py-4 rounded-xl items-center flex-row justify-center bg-[#8C4A28]"
+            onPress={() => handleExportCSV('date')}
+            disabled={showExportModal}
+          >
+            <Text className="text-white font-bold text-sm">Export Daily CSV</Text>
+          </TouchableOpacity>
+        </View>
 
           <Text className="text-center text-[#94a3b8] text-xs font-semibold mb-6">
             {currentSession.status === 'COMPLETED'
@@ -723,6 +817,32 @@ export default function AttendanceScreen({ onBack }: { onBack?: () => void }) {
         )}
 
       </ScrollView>}
+
+      {/* Export Progress Modal */}
+      <Modal transparent animationType="fade" visible={showExportModal}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 }}>
+          <View style={{ backgroundColor: 'white', borderRadius: 20, padding: 28, width: '100%' }}>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: '#1a202c', marginBottom: 6 }}>Exporting CSV...</Text>
+            <Text style={{ fontSize: 13, color: '#64748b', marginBottom: 20 }}>
+              {exportProgress < 40 ? 'Building data...' : exportProgress < 70 ? 'Writing file...' : exportProgress < 95 ? 'Preparing share...' : 'Done!'}
+            </Text>
+
+            {/* Track */}
+            <View style={{ height: 10, backgroundColor: '#f1f5f9', borderRadius: 999, overflow: 'hidden', marginBottom: 10 }}>
+              <Animated.View
+                style={{
+                  height: 10,
+                  borderRadius: 999,
+                  backgroundColor: '#8C4A28',
+                  width: progressAnim.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] })
+                }}
+              />
+            </View>
+
+            <Text style={{ fontSize: 13, fontWeight: '700', color: '#8C4A28', textAlign: 'right' }}>{exportProgress}%</Text>
+          </View>
+        </View>
+      </Modal>
 
 
       {activeTab === "Apply Leave" &&
