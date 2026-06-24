@@ -131,6 +131,11 @@ export const getSessions = async (req, res) => {
             query = query.neq('status', 'ARCHIVED');
         }
 
+        // Hide BLOCKED and CANCELLED sessions for non-admins
+        if (req.userType !== 'admin' && req.userType !== 'Admin' && req.userType !== 'ADMIN') {
+            query = query.neq('status', 'BLOCKED').neq('status', 'CANCELLED');
+        }
+
         if (trainerId) {
             const { data: trainer } = await supabase.from('trainers').select('*').eq('id', trainerId).limit(1);
             if (!trainer || trainer.length === 0) {
