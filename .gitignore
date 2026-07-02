@@ -12,3 +12,9 @@
 # Firebase Secrets
 serviceAccountKey.json
 google-services.json
+
+# Backup & archive files
+*.tar.gz
+*.zip
+*_backup/
+*_backup.tar.gz
