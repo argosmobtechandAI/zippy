@@ -8,7 +8,7 @@ import { apiFunction } from '../api/apiFunction';
 import {
     getAllSessionsApi, createSessionApi, bulkCreateSessionsApi, updateSessionApi, deleteSessionApi,
     getAllUsersApi, getAllStablesApi, getAllHorsesApi, getAllTrainersApi,
-    approveSessionApi, cancelFullSessionApi
+    approveSessionApi, cancelFullSessionApi, getUserApi, updateUserApi
 } from '../api/apis';
 import toast from 'react-hot-toast';
 import { X, XCircle } from 'lucide-react';
@@ -735,6 +735,8 @@ const GuestBookingModal = ({ session, allUsers, setShowModal, onSuccess }) => {
     const [userSearch, setUserSearch] = useState('');
     const [selectedUser, setSelectedUser] = useState(null);
     const [showUserDropdown, setShowUserDropdown] = useState(false);
+    const [riderSessionCount, setRiderSessionCount] = useState(null); // live session count for selected rider
+    const [fetchingCount, setFetchingCount] = useState(false);
     const [formData, setFormData] = useState({
         guestName: '',
         guestPhone: '',
@@ -753,10 +755,50 @@ const GuestBookingModal = ({ session, allUsers, setShowModal, onSuccess }) => {
         u.phone?.includes(userSearch)
     );
 
+    // Fetch live session count when a registered rider is selected
+    const handleSelectUser = async (u) => {
+        setSelectedUser(u);
+        setUserSearch('');
+        setShowUserDropdown(false);
+        setRiderSessionCount(null);
+        setFetchingCount(true);
+        try {
+            const res = await apiFunction(`${getUserApi}/${u.id}`, [], {}, 'GET', true);
+            if (res?.success && res.user) {
+                setRiderSessionCount(res.user.sessionCount ?? 0);
+            }
+        } catch (err) {
+            console.error('Failed to fetch rider session count:', err);
+        } finally {
+            setFetchingCount(false);
+        }
+    };
+
+    // Switch to guest — reset membership-only fields
+    const handleSwitchToGuest = () => {
+        setGuestType('guest');
+        setSelectedUser(null);
+        setRiderSessionCount(null);
+        // If membership was selected, reset to CASH since guest can't use membership
+        if (formData.paymentMode === 'MEMBERSHIP') {
+            setFormData(prev => ({ ...prev, paymentMode: 'CASH' }));
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsSubmitting(true);
         try {
+            // --- Membership Deduction Guard ---
+            if (guestType === 'registered' && formData.paymentMode === 'MEMBERSHIP') {
+                const currentCount = riderSessionCount ?? 0;
+                if (currentCount <= 0) {
+                    toast.error(`${selectedUser.name}'s session count is 0. Cannot book using Membership Deduction.`);
+                    setIsSubmitting(false);
+                    return;
+                }
+            }
+
             // Fetch current session to get existing participants
             const sessionRes = await apiFunction(`${getAllSessionsApi}/${session.id}`, [], {}, 'GET', true);
             const currentSession = sessionRes?.session || session;
@@ -804,11 +846,24 @@ const GuestBookingModal = ({ session, allUsers, setShowModal, onSuccess }) => {
             );
 
             if (res?.success) {
-                toast.success(
-                    guestType === 'registered'
-                        ? `Booking confirmed for ${selectedUser.name}!`
-                        : `Guest booking confirmed for ${formData.guestName}!`
-                );
+                // --- Deduct 1 session from rider if Membership Deduction ---
+                if (guestType === 'registered' && formData.paymentMode === 'MEMBERSHIP' && selectedUser) {
+                    const newCount = (riderSessionCount ?? 1) - 1;
+                    await apiFunction(
+                        `${updateUserApi}/${selectedUser.id}`,
+                        [],
+                        { data: { sessionCount: newCount } },
+                        'PUT',
+                        true
+                    );
+                    toast.success(`Booking confirmed for ${selectedUser.name}! Session count: ${riderSessionCount} → ${newCount}`);
+                } else {
+                    toast.success(
+                        guestType === 'registered'
+                            ? `Booking confirmed for ${selectedUser.name}!`
+                            : `Guest booking confirmed for ${formData.guestName}!`
+                    );
+                }
                 setShowModal(false);
                 if (onSuccess) onSuccess();
             } else {
@@ -850,7 +905,7 @@ const GuestBookingModal = ({ session, allUsers, setShowModal, onSuccess }) => {
                         <div className="flex bg-[#F3F1EF] p-1.5 rounded-2xl gap-2">
                             <button
                                 type="button"
-                                onClick={() => { setGuestType('guest'); setSelectedUser(null); }}
+                                onClick={() => handleSwitchToGuest()}
                                 className={`flex-1 py-2.5 rounded-xl text-[13px] font-bold transition-all ${guestType === 'guest' ? 'bg-[#964C2E] text-white shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
                             >
                                 🚶 Walk-in Guest
@@ -887,7 +942,7 @@ const GuestBookingModal = ({ session, allUsers, setShowModal, onSuccess }) => {
                                         <button
                                             key={u.id}
                                             type="button"
-                                            onClick={() => { setSelectedUser(u); setUserSearch(''); setShowUserDropdown(false); }}
+                                            onClick={() => handleSelectUser(u)}
                                             className="w-full text-left px-4 py-3 hover:bg-[#FFF5F2] transition-colors border-b border-gray-50 last:border-0"
                                         >
                                             <p className="text-[13px] font-bold text-[#1e2330]">{u.name}</p>
@@ -901,8 +956,16 @@ const GuestBookingModal = ({ session, allUsers, setShowModal, onSuccess }) => {
                                     <div>
                                         <p className="text-[13px] font-bold text-[#964C2E]">{selectedUser.name}</p>
                                         <p className="text-[11px] text-gray-500">{selectedUser.email}</p>
+                                        {fetchingCount ? (
+                                            <p className="text-[11px] text-gray-400 mt-1">Fetching session balance...</p>
+                                        ) : riderSessionCount !== null ? (
+                                            <p className={`text-[12px] font-black mt-1 ${riderSessionCount === 0 ? 'text-red-500' : 'text-green-600'}`}>
+                                                🎟️ {riderSessionCount} session{riderSessionCount !== 1 ? 's' : ''} remaining
+                                                {riderSessionCount === 0 && ' — Cannot use Membership Deduction'}
+                                            </p>
+                                        ) : null}
                                     </div>
-                                    <button type="button" onClick={() => setSelectedUser(null)} className="text-gray-400 hover:text-red-500"><X className="w-4 h-4" /></button>
+                                    <button type="button" onClick={() => { setSelectedUser(null); setRiderSessionCount(null); }} className="text-gray-400 hover:text-red-500"><X className="w-4 h-4" /></button>
                                 </div>
                             )}
                         </div>
@@ -974,7 +1037,9 @@ const GuestBookingModal = ({ session, allUsers, setShowModal, onSuccess }) => {
                             >
                                 <option value="CASH">💵 Cash (Collected)</option>
                                 <option value="ONLINE">💳 Online / UPI</option>
-                                <option value="MEMBERSHIP">🎟️ Membership Deduction</option>
+                                {guestType === 'registered' && (
+                                    <option value="MEMBERSHIP">🎟️ Membership Deduction</option>
+                                )}
                                 <option value="PENDING">⏳ Pending / Collect Later</option>
                                 <option value="TRIAL">🆓 Trial Ride</option>
                                 <option value="FREE">🎁 Free / Complimentary</option>
