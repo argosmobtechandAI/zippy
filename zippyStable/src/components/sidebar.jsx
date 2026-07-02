@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, CloudLightning, ClipboardList, BarChart2, MapPin, Package, Tag, HeartPulse, Calendar, Settings, LogOut, BookOpen, BookOpenCheck } from 'lucide-react';
+import { LayoutDashboard, Users, CloudLightning, ClipboardList, BarChart2, MapPin, Package, Tag, HeartPulse, Calendar, Settings, LogOut, BookOpen, BookOpenCheck, Activity } from 'lucide-react';
 import toast from "react-hot-toast";
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
@@ -59,9 +59,9 @@ const Sidebar = () => {
                     <Users className="w-5 h-5" />
                     Member Directory
                 </NavLink>
-                <NavLink to="/inventory" className={({ isActive }) => `flex items-center gap-4 px-4 py-3 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
-                    <ClipboardList className="w-5 h-5" />
-                    Health & Workload
+                <NavLink to="/horse-health" className={({ isActive }) => `flex items-center gap-4 px-4 py-3 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
+                    <Activity className="w-5 h-5" />
+                    Horse Health & Workload
                 </NavLink>
                 <NavLink to="/attendanceReport" className={({ isActive }) => `flex items-center gap-4 px-4 py-3 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
                     <ClipboardList className="w-5 h-5" />

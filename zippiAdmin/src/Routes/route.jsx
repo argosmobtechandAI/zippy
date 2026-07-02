@@ -19,6 +19,7 @@ import Marketing from "../pages/Marketing"
 import Coupons from "../pages/coupons"
 import Levels from "../pages/levels"
 import Payments from "../pages/payments"
+import HorseHealth from "../pages/horseHealth"
 
 const ProtectedRoute = ({ children }) => {
     const token = localStorage.getItem('token');
@@ -65,6 +66,7 @@ const AppRoutes = () => {
                 <Route path="coupons" element={<Coupons />} />
                 <Route path="levels" element={<Levels />} />
                 <Route path="payments" element={<Payments />} />
+                <Route path="horse-health" element={<HorseHealth />} />
             </Route>
 
             {/* Catch all redirect */}

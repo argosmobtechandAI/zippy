@@ -20,6 +20,7 @@ import Marketing from "../pages/Marketing";
 import Coupons from "../pages/coupons";
 import Payments from "../pages/payments";
 import HelpCenter from "../pages/HelpCenter";
+import HorseHealth from "../pages/horseHealth";
 
 const Layout = () => {
     return (
@@ -55,6 +56,7 @@ export const AppRoutes = () => {
                 <Route path="/payments" element={<Payments />} />
                 <Route path="/trainer-management" element={<TrainerManagement />} />
                 <Route path="/lessons" element={<Lessons />} />
+                <Route path="/horse-health" element={<HorseHealth />} />
             </Route>
             <Route path="/login" element={<Login />} />
             <Route path="/choose-stable" element={<ChooseStable />} />

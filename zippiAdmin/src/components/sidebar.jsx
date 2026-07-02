@@ -1,4 +1,4 @@
-import { LayoutDashboard, BarChart2, MapPin, Users, Settings, Plus, CloudLightning, LogOut, Package, Calendar, ClipboardList, Tag, HeartPulse } from 'lucide-react';
+import { LayoutDashboard, BarChart2, MapPin, Users, Settings, Plus, CloudLightning, LogOut, Package, Calendar, ClipboardList, Tag, HeartPulse, Activity } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
 const Sidebar = () => {
@@ -59,6 +59,10 @@ const Sidebar = () => {
                 <NavLink to="/medical-records" className={({ isActive }) => `flex items-center gap-4 px-4 py-3.5 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
                     <HeartPulse className="w-5 h-5" />
                     Medical Registry
+                </NavLink>
+                <NavLink to="/horse-health" className={({ isActive }) => `flex items-center gap-4 px-4 py-3.5 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
+                    <Activity className="w-5 h-5" />
+                    Horse Health & Workload
                 </NavLink>
                 <NavLink to="/leaveRequests" className={({ isActive }) => `flex items-center gap-4 px-4 py-3.5 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
                     <Calendar className="w-5 h-5" />
