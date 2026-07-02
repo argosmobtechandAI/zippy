@@ -1,7 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
-    selectedStable: null,
+    selectedStable: localStorage.getItem('selectedStable') || null,
 }
 
 const getDataSlice = createSlice({

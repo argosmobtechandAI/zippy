@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Plus, Activity, CheckCircle2, AlertTriangle, AlertCircle, X, ChevronDown, BellRing, Wrench, Eye, BedDouble, UserPlus, User, Ban, Camera, Info, HeartPulse, ChevronLeft, ChevronRight, Trash2, Pencil } from 'lucide-react';
 import { apiFunction } from '../api/apiFunction';
 import { getStableStatsApi, getAllStablesApi, getAllHorsesApi, createHorseApi, getHorsesByStableApi, getAllUsersApi, getAllVatsApi, assignVetApi, baseUrl } from '../api/apis';
@@ -23,20 +23,41 @@ const Inventory = () => {
     const [vats, setVats] = useState([]);
     const [allUsers, setAllUsers] = useState([]);
     const [trainers, setTrainers] = useState([]);
+    const [stables, setStables] = useState([]);
     const [showAddModal, setShowAddModal] = useState(false);
     const [showAllVetsModal, setShowAllVetsModal] = useState(false);
     const [selectedHorse, setSelectedHorse] = useState(null);
     const [horseToEdit, setHorseToEdit] = useState(null);
     const [showProfileModal, setShowProfileModal] = useState(false);
 
+    const getImageUrl = (url) => {
+        if (!url) return 'https://images.unsplash.com/photo-1553531580-6520e78089c8?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80';
+        if (url.startsWith('http')) return url;
+        const cleanBaseUrl = baseUrl.endsWith('/api') ? baseUrl.slice(0, -4) : baseUrl;
+        return `${cleanBaseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+    };
 
+    const categories = useMemo(() => {
+        const uniqueTitles = new Set();
+        horses.forEach(h => {
+            if (h.title) uniqueTitles.add(h.title);
+        });
+        return ['All Horses', ...Array.from(uniqueTitles)];
+    }, [horses]);
 
     const fetchAllData = async () => {
         try {
-            const horseRes = await apiFunction(getHorsesByStableApi, [selectedStable], {}, "GET", true);
+            const [horseRes, usersRes, vatsRes, stableRes] = await Promise.all([
+                apiFunction(getHorsesByStableApi, [selectedStable], {}, "GET", true),
+                apiFunction(getAllUsersApi, [], {}, "GET", true),
+                apiFunction(getAllVatsApi, [], {}, "GET", true),
+                apiFunction(getAllStablesApi, [], {}, "GET", true)
+            ]);
 
-            const usersRes = await apiFunction(getAllUsersApi, [], {}, "GET", true);
-            const vatsRes = await apiFunction(getAllVatsApi, [], {}, "GET", true);
+            if (stableRes && stableRes.success) {
+                setStables(stableRes.stables || []);
+            }
+
             if (horseRes && horseRes.success) {
                 const fetchedHorses = horseRes.horses || [];
                 setHorses(fetchedHorses);
@@ -63,8 +84,10 @@ const Inventory = () => {
     }
 
     useEffect(() => {
-        fetchAllData();
-    }, []);
+        if (selectedStable) {
+            fetchAllData();
+        }
+    }, [selectedStable]);
 
 
     const getVatName = (id) => {
@@ -233,25 +256,27 @@ const Inventory = () => {
             </div>
 
             {/* Filter Tabs */}
-            <div className="flex items-center gap-3 mb-6">
-                {[
-                    { label: 'All Horses', icon: <ChevronDown className="w-4 h-4" /> },
-                    { label: 'Schooling', icon: <span className="text-[10px]">🐴</span> },
-                    { label: 'Bridging', icon: <span className="text-[10px]">🔗</span> },
-                    { label: 'Competitive', icon: <span className="text-[10px]">🏆</span> },
-                    { label: 'Show Jumping', icon: <span className="text-[10px]">🐎</span> }
-                ].map((cat) => (
-                    <button
-                        key={cat.label}
-                        onClick={() => applyFilter(cat.label)}
-                        className={`px-6 py-2.5 rounded-full text-[13px] font-bold shadow-sm flex items-center gap-2 transition-all ${activeCategory === cat.label
-                            ? 'bg-[#964C2E] text-white'
-                            : 'bg-white text-gray-600 border border-[#EACDBA]/40 hover:bg-white/70'
-                            }`}
-                    >
-                        {cat.label} {cat.icon}
-                    </button>
-                ))}
+            <div className="flex items-center gap-3 mb-6 flex-wrap">
+                {categories.map((cat) => {
+                    let icon = <span className="text-[10px]">🐴</span>;
+                    if (cat === 'All Horses') icon = <ChevronDown className="w-4 h-4" />;
+                    else if (cat === 'Show Jumping') icon = <span className="text-[10px]">🐎</span>;
+                    else if (cat === 'Schooling') icon = <span className="text-[10px]">🐴</span>;
+                    else if (cat === 'Beginner Friendly') icon = <span className="text-[10px]">👶</span>;
+
+                    return (
+                        <button
+                            key={cat}
+                            onClick={() => applyFilter(cat)}
+                            className={`px-6 py-2.5 rounded-full text-[13px] font-bold shadow-sm flex items-center gap-2 transition-all ${activeCategory === cat
+                                ? 'bg-[#964C2E] text-white'
+                                : 'bg-white text-gray-600 border border-[#EACDBA]/40 hover:bg-white/70'
+                                }`}
+                        >
+                            {cat} {icon}
+                        </button>
+                    );
+                })}
             </div>
 
             {/* Main Table Card */}
@@ -261,7 +286,7 @@ const Inventory = () => {
                     <div className="text-[11px] font-black text-[#964C2E] tracking-widest uppercase">HORSE NAME</div>
                     <div className="text-[11px] font-black text-[#964C2E] tracking-widest uppercase">CATEGORY</div>
                     <div className="text-[11px] font-black text-[#964C2E] tracking-widest uppercase text-center leading-tight">SESSIONS</div>
-                    <div className="text-[11px] font-black text-[#964C2E] tracking-widest uppercase text-left leading-tight">Assigned Vat</div>
+                    <div className="text-[11px] font-black text-[#964C2E] tracking-widest uppercase text-left leading-tight">Assigned Vet</div>
                     <div className="text-[11px] font-black text-[#964C2E] tracking-widest uppercase pl-4">HEALTH STATUS</div>
 
                     <div className="text-[11px] font-black text-[#964C2E] tracking-widest uppercase">ACTIONS</div>
@@ -287,11 +312,11 @@ const Inventory = () => {
                                 <div key={horse.id || idx} className="grid grid-cols-[250px_1fr_120px_200px_1fr_180px] gap-4 items-center py-6 px-8 border-b border-gray-100 hover:bg-[#FAFAFA]/50 transition-colors">
                                     <div className="flex items-center gap-4">
                                         <div className="w-[50px] h-[50px] rounded-full overflow-hidden border border-gray-200 shadow-sm flex-shrink-0">
-                                            <img src={(horse.imageUrl && horse.imageUrl.trim()) ? horse.imageUrl : "https://images.unsplash.com/photo-1553531580-6520e78089c8?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80"} alt={horse.name} className="w-full h-full object-cover" onError={e => { e.target.src = "https://images.unsplash.com/photo-1553531580-6520e78089c8?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80"; }} />
+                                            <img src={getImageUrl(horse.imageUrl)} alt={horse.name} className="w-full h-full object-cover" onError={e => { e.target.src = "https://images.unsplash.com/photo-1553531580-6520e78089c8?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80"; }} />
                                         </div>
                                         <div>
                                             <h4 className="text-[15px] font-black text-[#1e2330] leading-tight mb-1">{horse.name}</h4>
-                                            <div className="text-[11px] font-bold text-gray-400">{horse.location || 'Stall N/A'}</div>
+                                            <div className="text-[11px] font-bold text-gray-400">{stables.find(s => s.id === selectedStable)?.name || 'Equestrian Center'} • {horse.location || 'Stall N/A'}</div>
                                         </div>
                                     </div>
                                     <div>
@@ -360,7 +385,7 @@ const Inventory = () => {
                 {/* Pagination */}
                 <div className="px-8 py-5 flex justify-between items-center border-t border-gray-100 bg-[#FAFAFA]/30 rounded-b-[24px]">
                     <div className="text-[12px] font-semibold text-gray-400 tracking-wide">
-                        Showing <span className="text-[#964C2E] font-bold">4</span> of <span className="text-[#964C2E] font-bold">{horses?.length}</span> horses
+                        Showing <span className="text-[#964C2E] font-bold">{filteredHorses.length}</span> of <span className="text-[#964C2E] font-bold">{horses?.length}</span> horses
                     </div>
                     <div className="flex items-center gap-2">
                         <button className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50 transition-colors bg-white shadow-sm">

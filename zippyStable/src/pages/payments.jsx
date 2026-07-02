@@ -10,7 +10,10 @@ import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import * as XLSX from 'xlsx';
 
+import { useSelector } from 'react-redux';
+
 const Payments = () => {
+    const { selectedStable } = useSelector((state) => state.getDataReducer);
     const [payments, setPayments] = useState([]);
     const [plans, setPlans] = useState([]);
     const [levels, setLevels] = useState([]);
@@ -83,6 +86,12 @@ const Payments = () => {
     };
 
     const filteredPayments = payments.filter((payment) => {
+        const paymentUser = users.find(u => u.id === payment.userId || u.id === payment.user_id);
+        const userStableId = paymentUser?.stableId || paymentUser?.stable_id || payment.user?.stableId || payment.user?.stable_id;
+        const riderStables = payment.user?.rider?.map(r => r.stableId || r.stable_id || r.stable?.id) || [];
+        const isThisStable = userStableId === selectedStable || riderStables.includes(selectedStable);
+        if (selectedStable && !isThisStable) return false;
+
         let matchesSearch = true;
         if (searchTerm) {
             const term = searchTerm.toLowerCase();
@@ -248,15 +257,7 @@ const Payments = () => {
                         {uniqueUserLevels.map(lvl => <option key={lvl} value={lvl}>{lvl}</option>)}
                     </select>
 
-                    <span className="text-sm font-bold text-gray-600 ml-3">Center:</span>
-                    <select
-                        value={centerLevelFilter}
-                        onChange={(e) => setCenterLevelFilter(e.target.value)}
-                        className="bg-[#F3F1EF] rounded-lg py-2 px-3 text-sm outline-none focus:ring-2 focus:ring-[#964C2E] min-w-[140px] border-r-[8px] border-transparent"
-                    >
-                        <option value="">All Centers</option>
-                        {uniqueCenters.map(center => <option key={center} value={center}>{center}</option>)}
-                    </select>
+
 
                     {(startDate || endDate || userLevelFilter || centerLevelFilter || userFilter || planFilter) && (
                         <button 

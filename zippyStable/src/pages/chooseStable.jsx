@@ -43,6 +43,16 @@ const ChooseStable = () => {
                 if (stablesRes && stablesRes.success) {
                     const userStables = (stablesRes.stables || []);
                     setStables(userStables);
+                    
+                    const persistedStable = localStorage.getItem('selectedStable');
+                    if (userStables.length === 1) {
+                        dispatch(setSelectedStable(userStables[0].id));
+                        localStorage.setItem('selectedStable', userStables[0].id);
+                        navigate('/');
+                    } else if (persistedStable && userStables.some(s => s.id === persistedStable)) {
+                        dispatch(setSelectedStable(persistedStable));
+                        navigate('/');
+                    }
                 } else {
                     toast.error("Failed to fetch stables data.");
                 }
@@ -55,10 +65,11 @@ const ChooseStable = () => {
         };
 
         fetchData();
-    }, [navigate]);
+    }, [navigate, dispatch]);
 
     const handleSelectStable = (stableId) => {
         dispatch(setSelectedStable(stableId));
+        localStorage.setItem('selectedStable', stableId);
         toast.success("Stable selected successfully!");
         navigate('/');
     };

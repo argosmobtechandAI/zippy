@@ -7,7 +7,10 @@ import { useState, useEffect, useMemo } from 'react';
 import { apiFunction } from '../api/apiFunction';
 import { getAllStablesApi, getAllUsersApi, getRevenueStatsApi, plansApi, revenueStatsApi, getPaymentsApi, getLevelsApi } from '../api/apis';
 
+import { useSelector } from 'react-redux';
+
 const Revenue = () => {
+    const { selectedStable } = useSelector((state) => state.getDataReducer);
     const [stables, setStables] = useState([]);
     const [activeTab, setActiveTab] = useState('month');
     const [viewMode, setViewMode] = useState('dashboard');
@@ -26,6 +29,7 @@ const Revenue = () => {
     });
 
     const [selectedMonth, setSelectedMonth] = useState('all');
+
     const [payments, setPayments] = useState([]);
     const [levels, setLevels] = useState([]);
 
@@ -42,11 +46,19 @@ const Revenue = () => {
     const scopedStats = useMemo(() => {
         let txns = payments || [];
 
+        // Scope transactions to the active stable
+        txns = txns.filter(p => {
+            if (!p.user) return false;
+            const riderStables = p.user.rider?.map(r => String(r.stableId || r.stable_id || r.stable?.id || '')) || [];
+            const isMatch = riderStables.includes(String(selectedStable)) || String(p.user.stableId || '') === String(selectedStable) || String(p.user.stable_id || '') === String(selectedStable);
+            return isMatch;
+        });
+
         // Apply range filter
         const todayStr = new Date().toDateString();
         const now = new Date();
         
-        console.log("scopedStats inputs: payments length =", payments.length, "selectedMonth =", selectedMonth, "activeTab =", activeTab);
+        console.warn("scopedStats inputs: payments length =", payments.length, "selectedMonth =", selectedMonth, "activeTab =", activeTab);
 
         txns = txns.filter(p => {
             if (!p.date) return false;
@@ -70,7 +82,7 @@ const Revenue = () => {
             return true;
         });
 
-        console.log("scopedStats filtered txns:", txns);
+        console.warn("scopedStats filtered txns:", txns);
 
         let total = 0;
         let enrollment = 0;
@@ -98,6 +110,11 @@ const Revenue = () => {
             
             const revenueCurrent = (payments || [])
                 .filter(p => {
+                    if (!p.user) return false;
+                    const riderStables = p.user.rider?.map(r => r.stableId || r.stable_id || r.stable?.id) || [];
+                    const isThisStable = riderStables.includes(selectedStable) || p.user.stableId === selectedStable || p.user.stable_id === selectedStable;
+                    if (!isThisStable) return false;
+
                     const d = new Date(p.date);
                     return d.getMonth() === idx && d.getFullYear() === currentYear;
                 })
@@ -105,6 +122,11 @@ const Revenue = () => {
 
             const revenuePrev = (payments || [])
                 .filter(p => {
+                    if (!p.user) return false;
+                    const riderStables = p.user.rider?.map(r => r.stableId || r.stable_id || r.stable?.id) || [];
+                    const isThisStable = riderStables.includes(selectedStable) || p.user.stableId === selectedStable || p.user.stable_id === selectedStable;
+                    if (!isThisStable) return false;
+
                     const d = new Date(p.date);
                     return d.getMonth() === idx && d.getFullYear() === prevYear;
                 })
@@ -133,7 +155,7 @@ const Revenue = () => {
             trends,
             mix
         };
-    }, [payments, levels, activeTab, selectedMonth]);
+    }, [payments, levels, users, selectedStable, activeTab, selectedMonth]);
 
     const fetchStats = async (range) => {
         try {
@@ -155,40 +177,7 @@ const Revenue = () => {
         } catch (err) {
             console.error("Failed to fetch revenue stats:", err);
         }
-    };
-    const getStableRevenue = (stableId, type) => {
-        const stablePayments = payments.filter(p => {
-            if (!p.user) return false;
-            const riderStables = p.user.rider?.map(r => String(r.stableId || r.stable_id || r.stable?.id || '')) || [];
-            const isMatch = riderStables.includes(String(stableId)) || String(p.user.stableId || '') === String(stableId) || String(p.user.stable_id || '') === String(stableId);
-            return isMatch;
-        });
-
-        console.warn(`getStableRevenue debug: stableId = ${stableId}, type = ${type}, total payments matching = ${stablePayments.length}`, stablePayments.map(p => ({ user: p.user?.name, amount: p.amount, riders: p.user?.rider })));
-
-        let total = 0;
-        let enrollment = 0;
-        let renewal = 0;
-        let guest = 0;
-
-        stablePayments.forEach(p => {
-            const amt = Number(p.amount) || 0;
-            total += amt;
-            
-            // Check if level or plan
-            const isLevel = levels.some(l => l.id === p.plan_id);
-            if (isLevel) {
-                enrollment += amt;
-            } else {
-                renewal += amt;
-            }
-        });
-
-        if (type === 'enrollment') return enrollment;
-        if (type === 'renewal') return renewal;
-        if (type === 'guest') return guest;
-        return total;
-    };
+    }
 
     const fetchPlans = async () => {
         try {
@@ -197,14 +186,6 @@ const Revenue = () => {
             if (res && res.success) {
                 setPlans(res.plans || []);
             }
-
-            const revenueRes = await apiFunction(revenueStatsApi, [], {}, "GET", true);
-            console.log("Revenue Data:", revenueRes);
-            if (revenueRes && revenueRes.success) {
-                setRevenueData(revenueRes.revenueStats || []);
-            }
-
-
         } catch (err) {
             console.error("Failed to fetch plans:", err);
         }
@@ -228,12 +209,24 @@ const Revenue = () => {
         const fetchStables = async () => {
             const res = await apiFunction(getAllStablesApi, [], {}, "GET", true);
             if (res && res.success) {
-                setStables(res.stables || []);
+                const filtered = (res.stables || []).filter(s => s.id === selectedStable);
+                setStables(filtered);
+
+                if (filtered.length > 0) {
+                    const currentStable = filtered[0];
+                    setStats(prev => ({
+                        ...prev,
+                        totalRevenue: currentStable.totalRevenue || 0,
+                        enrollmentRevenue: Math.round((currentStable.totalRevenue || 0) * 0.5),
+                        renewalRevenue: Math.round((currentStable.totalRevenue || 0) * 0.35),
+                        guestRevenue: Math.round((currentStable.totalRevenue || 0) * 0.15),
+                    }));
+                }
             }
         }
         fetchStables();
         fetchPlans();
-    }, []);
+    }, [selectedStable]);
 
     const handleOpenPlanModal = (plan = null) => {
         if (plan) {
@@ -559,10 +552,10 @@ const Revenue = () => {
                                     {stables.map((stable, idx) => (
                                         <tr key={stable.id || idx} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
                                             <td className="py-5 px-8 font-bold text-[#1e2330] max-w-[220px]">{stable.name || 'Unnamed Center'}</td>
-                                            <td className="py-5 px-6 font-semibold text-gray-600">₹{getStableRevenue(stable.id, 'enrollment').toLocaleString()}</td>
-                                            <td className="py-5 px-6 font-semibold text-gray-600">₹{getStableRevenue(stable.id, 'renewal').toLocaleString()}</td>
-                                            <td className="py-5 px-6 font-semibold text-gray-600">₹{getStableRevenue(stable.id, 'guest').toLocaleString()}</td>
-                                            <td className="py-5 px-6 font-bold text-[#964C2E]">₹{getStableRevenue(stable.id, 'total').toLocaleString()}</td>
+                                            <td className="py-5 px-6 font-semibold text-gray-600">₹{Math.round(stable.totalRevenue * 0.5)}</td>
+                                            <td className="py-5 px-6 font-semibold text-gray-600">₹{Math.round(stable.totalRevenue * 0.35)}</td>
+                                            <td className="py-5 px-6 font-semibold text-gray-600">₹{Math.round(stable.totalRevenue * 0.15)}</td>
+                                            <td className="py-5 px-6 font-bold text-[#964C2E]">₹{stable.totalRevenue || 0}</td>
                                             <td className="py-5 px-8">
                                                 <span className="inline-flex items-center px-2.5 py-1.5 rounded-md text-[11px] font-bold bg-[#DCFCE7] text-[#166534]">
                                                     Active

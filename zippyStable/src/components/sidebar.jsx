@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Archive, ClipboardList, BookOpen, LogOut, CreditCard, Plus, CloudLightning, Users, MapPin } from 'lucide-react';
+import { LayoutDashboard, Users, CloudLightning, ClipboardList, BarChart2, MapPin, Package, Tag, HeartPulse, Calendar, Settings, LogOut, BookOpen, BookOpenCheck } from 'lucide-react';
 import toast from "react-hot-toast";
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
@@ -28,13 +28,14 @@ const Sidebar = () => {
 
     const handleLogOut = () => {
         localStorage.removeItem("token");
+        localStorage.removeItem("selectedStable");
         navigate("/login");
     };
 
     return (
-        <div className="w-[280px] bg-brand-brown h-full flex flex-col text-brand-beige shadow-lg relative z-20 flex-shrink-0 font-body">
+        <div className="w-[280px] bg-brand-brown h-full flex flex-col text-brand-beige shadow-lg relative z-20 flex-shrink-0 font-body overflow-hidden">
             {/* Header / Logo */}
-            <div className="p-8 flex items-center gap-4">
+            <div className="p-8 flex items-center gap-4 shrink-0">
                 <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-white/10 rounded-xl overflow-hidden p-1 shadow-sm">
                     <img src={stableDetails?.logo || "/assets/logo/ZEC Logos-02.svg"} alt="Stable Logo" className="w-full h-full object-contain" />
                 </div>
@@ -45,26 +46,66 @@ const Sidebar = () => {
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 mt-2 px-5 space-y-1.5">
+            <nav className="flex-1 mt-2 px-5 space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent pb-4">
                 <NavLink to="/" className={({ isActive }) => `flex items-center gap-4 px-4 py-3 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
                     <LayoutDashboard className="w-5 h-5" />
                     Dashboard Overview
                 </NavLink>
-                <NavLink to="/stable-management" className={({ isActive }) => `flex items-center gap-4 px-4 py-3 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
-                    <Archive className="w-5 h-5" />
-                    Fleet Management
-                </NavLink>
-                <NavLink to="/trainer-management" className={({ isActive }) => `flex items-center gap-4 px-4 py-3 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
+                <NavLink to="/bookingRequests" className={({ isActive }) => `flex items-center gap-4 px-4 py-3 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
                     <Users className="w-5 h-5" />
-                    Trainer Management
+                    Booking Requests
+                </NavLink>
+                <NavLink to="/userManagement" className={({ isActive }) => `flex items-center gap-4 px-4 py-3 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
+                    <Users className="w-5 h-5" />
+                    Member Directory
+                </NavLink>
+                <NavLink to="/inventory" className={({ isActive }) => `flex items-center gap-4 px-4 py-3 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
+                    <ClipboardList className="w-5 h-5" />
+                    Health & Workload
+                </NavLink>
+                <NavLink to="/attendanceReport" className={({ isActive }) => `flex items-center gap-4 px-4 py-3 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
+                    <ClipboardList className="w-5 h-5" />
+                    Attendance Report
+                </NavLink>
+                <NavLink to="/revenue" className={({ isActive }) => `flex items-center gap-4 px-4 py-3 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
+                    <BarChart2 className="w-5 h-5" />
+                    Revenue Reports
                 </NavLink>
                 <NavLink to="/slot-management" className={({ isActive }) => `flex items-center gap-4 px-4 py-3 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
                     <MapPin className="w-5 h-5" />
                     Slot Management
                 </NavLink>
-                <NavLink to="/inventory" className={({ isActive }) => `flex items-center gap-4 px-4 py-3 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
-                    <ClipboardList className="w-5 h-5" />
-                    Health & Workload
+                <NavLink to="/categories" className={({ isActive }) => `flex items-center gap-4 px-4 py-3 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
+                    <Tag className="w-5 h-5" />
+                    Horse Categories
+                </NavLink>
+                <NavLink to="/medical-records" className={({ isActive }) => `flex items-center gap-4 px-4 py-3 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
+                    <HeartPulse className="w-5 h-5" />
+                    Medical Registry
+                </NavLink>
+                <NavLink to="/leaveRequests" className={({ isActive }) => `flex items-center gap-4 px-4 py-3 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
+                    <Calendar className="w-5 h-5" />
+                    Leave Requests
+                </NavLink>
+                <NavLink to="/marketing" className={({ isActive }) => `flex items-center gap-4 px-4 py-3 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
+                    <Tag className="w-5 h-5" />
+                    Marketing & Offers
+                </NavLink>
+                <NavLink to="/help-center" className={({ isActive }) => `flex items-center gap-4 px-4 py-3 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
+                    <Settings className="w-5 h-5" />
+                    Help Center
+                </NavLink>
+                <NavLink to="/coupons" className={({ isActive }) => `flex items-center gap-4 px-4 py-3 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
+                    <Tag className="w-5 h-5" />
+                    Coupons & Offers
+                </NavLink>
+                <NavLink to="/payments" className={({ isActive }) => `flex items-center gap-4 px-4 py-3 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
+                    <BarChart2 className="w-5 h-5" />
+                    Payment Logs
+                </NavLink>
+                <NavLink to="/trainer-management" className={({ isActive }) => `flex items-center gap-4 px-4 py-3 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
+                    <Users className="w-5 h-5" />
+                    Trainer Management
                 </NavLink>
                 <NavLink to="/lessons" className={({ isActive }) => `flex items-center gap-4 px-4 py-3 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
                     <BookOpen className="w-5 h-5" />

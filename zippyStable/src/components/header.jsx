@@ -1,11 +1,36 @@
 import { Search, Bell, ClipboardList } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 
 const Header = () => {
+    const location = useLocation();
+
+    const getPageTitle = (pathname) => {
+        switch (pathname) {
+            case '/': return 'Dashboard Overview';
+            case '/bookingRequests': return 'Booking Requests';
+            case '/userManagement': return 'Member Directory';
+            case '/inventory': return 'Health & Workload';
+            case '/attendanceReport': return 'Attendance Report';
+            case '/revenue': return 'Revenue Reports';
+            case '/slot-management': return 'Slot Management';
+            case '/categories': return 'Horse Categories';
+            case '/medical-records': return 'Medical Registry';
+            case '/leaveRequests': return 'Leave Requests';
+            case '/marketing': return 'Marketing & Offers';
+            case '/help-center': return 'Help Center';
+            case '/coupons': return 'Coupons & Offers';
+            case '/payments': return 'Payment Logs';
+            case '/trainer-management': return 'Trainer Management';
+            case '/lessons': return 'Lesson Schedule';
+            default: return 'Stable Portal';
+        }
+    };
+
     return (
         <header className="flex justify-between items-center py-4 px-8 border-b border-[#EACDBA]/50 bg-[#F9EEE5]">
             <div className="flex items-center gap-3">
                 <ClipboardList className="w-5 h-5 text-[#964C2E]" />
-                <h2 className="text-[15px] font-black text-[#964C2E] tracking-tight">Inventory Management</h2>
+                <h2 className="text-[15px] font-black text-[#964C2E] tracking-tight">{getPageTitle(location.pathname)}</h2>
             </div>
             
             <div className="flex items-center gap-5">
@@ -13,7 +38,7 @@ const Header = () => {
                     <Search className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
                     <input 
                         type="text" 
-                        placeholder="Search inventory..." 
+                        placeholder="Search..." 
                         className="bg-white rounded-full py-2.5 pl-11 pr-4 w-[300px] outline-none text-[13px] placeholder:text-gray-400 focus:ring-2 focus:ring-[#964C2E]/20 shadow-sm transition-all"
                     />
                 </div>

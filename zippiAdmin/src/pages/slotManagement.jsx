@@ -1,7 +1,7 @@
 import {
     Clock, Calendar, ChevronRight, Ban, Edit, Copy,
     CheckCircle2, Circle, MoreVertical, Download,
-    ChevronDown, Info, ShieldAlert, CheckSquare, List, LayoutGrid, ArrowLeft, Plus, Trash2
+    ChevronDown, Info, ShieldAlert, CheckSquare, List, LayoutGrid, ArrowLeft, Plus, Trash2, Filter
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { apiFunction } from '../api/apiFunction';
@@ -30,6 +30,13 @@ const formatWithDay = (dateStr) => {
     return isNaN(d.getTime()) ? dateStr : `${dateStr}(${days[d.getDay()]})`;
 };
 
+const getLocalDateString = (date = new Date()) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
 const SlotManagement = () => {
     const [sessions, setSessions] = useState([]);
     const [stables, setStables] = useState([]);
@@ -37,6 +44,11 @@ const SlotManagement = () => {
     const [horses, setHorses] = useState([]);
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    // Date filter state
+    const [dateFilter, setDateFilter] = useState('upcoming'); // 'all' | 'today' | 'tomorrow' | 'week' | 'upcoming' | 'custom'
+    const [customDate, setCustomDate] = useState('');
+    const [stableFilter, setStableFilter] = useState('all');
 
     const [showSessionModal, setShowSessionModal] = useState(false);
     const [showBulkModal, setShowBulkModal] = useState(false);
@@ -54,18 +66,7 @@ const SlotManagement = () => {
             ]);
 
             if (sessionRes?.success) {
-                const getTodayDateString = () => {
-                    const today = new Date();
-                    const year = today.getFullYear();
-                    const month = String(today.getMonth() + 1).padStart(2, '0');
-                    const day = String(today.getDate()).padStart(2, '0');
-                    return `${year}-${month}-${day}`;
-                };
-                const todayStr = getTodayDateString();
-                const activeSessions = (sessionRes.sessions || []).filter(s => 
-                    s.date === 'daily' || s.date >= todayStr
-                );
-                setSessions(activeSessions);
+                setSessions(sessionRes.sessions || []);
             }
             if (stableRes?.success) setStables(stableRes.stables || []);
             if (trainerRes?.success) setTrainers(trainerRes.trainers || []);
@@ -162,6 +163,35 @@ const SlotManagement = () => {
         }
     };
 
+    // Compute filtered sessions
+    const todayStr = getLocalDateString();
+    const tomorrowDate = new Date();
+    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+    const tomorrowStr = getLocalDateString(tomorrowDate);
+    const weekEndDate = new Date();
+    weekEndDate.setDate(weekEndDate.getDate() + 6);
+    const weekEndStr = getLocalDateString(weekEndDate);
+
+    const filteredSessions = sessions.filter(s => {
+        // Filter by stable
+        if (stableFilter !== 'all') {
+            const matchedStable = stables.find(st => st.id === stableFilter);
+            const matchesStable = s.stableId === stableFilter || s.stable_id === stableFilter || (matchedStable && s.location === matchedStable.name);
+            if (!matchesStable) return false;
+        }
+
+        if (s.date === 'daily') return true; // daily sessions always show
+        switch (dateFilter) {
+            case 'all':      return true;
+            case 'today':    return s.date === todayStr;
+            case 'tomorrow': return s.date === tomorrowStr;
+            case 'week':     return s.date >= todayStr && s.date <= weekEndStr;
+            case 'upcoming': return s.date >= todayStr;
+            case 'custom':   return customDate ? s.date === customDate : true;
+            default:         return s.date >= todayStr;
+        }
+    });
+
     if (loading) {
         return <div className="p-10 text-center font-bold text-gray-400">Loading data...</div>;
     }
@@ -204,11 +234,67 @@ const SlotManagement = () => {
                 </div>
             </div>
 
-            {sessions.length === 0 ? (
-                <div className="text-center py-20 font-bold text-gray-400">No sessions available. Create one to get started.</div>
+            {/* Date Filter Bar */}
+            <div className="flex items-center gap-3 mb-8 flex-wrap">
+                <div className="flex items-center gap-1.5 text-[11px] font-black text-gray-400 uppercase tracking-wider mr-2">
+                    <Filter className="w-3.5 h-3.5" />
+                    Filter
+                </div>
+                {[
+                    { key: 'all',      label: 'All' },
+                    { key: 'upcoming', label: 'Upcoming' },
+                    { key: 'today',    label: 'Today' },
+                    { key: 'tomorrow', label: 'Tomorrow' },
+                    { key: 'week',     label: 'This Week' },
+                    { key: 'custom',   label: 'Custom Date' },
+                ].map(f => (
+                    <button
+                        key={f.key}
+                        onClick={() => { setDateFilter(f.key); if (f.key !== 'custom') setCustomDate(''); }}
+                        className={`px-4 py-2 rounded-xl text-[12px] font-bold transition-all border ${
+                            dateFilter === f.key
+                                ? 'bg-[#964C2E] text-white border-[#964C2E] shadow-md'
+                                : 'bg-white text-[#1e2330] border-[#E6D9CC] hover:border-[#964C2E] hover:text-[#964C2E]'
+                        }`}
+                    >
+                        {f.label}
+                    </button>
+                ))}
+                {dateFilter === 'custom' && (
+                    <input
+                        type="date"
+                        value={customDate}
+                        onChange={e => setCustomDate(e.target.value)}
+                        className="border border-[#E6D9CC] bg-white rounded-xl px-3 py-2 text-[12px] font-bold text-[#1e2330] focus:outline-none focus:border-[#964C2E] shadow-sm"
+                    />
+                )}
+                
+                <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-xl border border-[#E6D9CC] shadow-sm ml-auto">
+                    <span className="text-[12px] font-bold text-gray-400">Stable:</span>
+                    <select
+                        value={stableFilter}
+                        onChange={(e) => setStableFilter(e.target.value)}
+                        className="text-[12px] font-bold text-[#1e2330] outline-none bg-transparent cursor-pointer"
+                    >
+                        <option value="all">All Stables</option>
+                        {stables.map(s => (
+                            <option key={s.id} value={s.id}>{s.name}</option>
+                        ))}
+                    </select>
+                </div>
+
+                <span className="text-[12px] font-bold text-gray-400">
+                    {filteredSessions.length} session{filteredSessions.length !== 1 ? 's' : ''}
+                </span>
+            </div>
+
+            {filteredSessions.length === 0 ? (
+                <div className="text-center py-20 font-bold text-gray-400">
+                    {sessions.length === 0 ? 'No sessions available. Create one to get started.' : 'No sessions match the selected filter.'}
+                </div>
             ) : (
                 <div className="grid grid-cols-3 gap-6 mb-12">
-                    {sessions.map(slot => {
+                    {filteredSessions.map(slot => {
                         const trainer = trainers?.find(item => item.id === slot.trainerId);
                         const user = users?.find(item => item.id === (trainer?.userId || trainer?.user_id));
                         const trainerName = user?.name || trainer?.name || "Unassigned";
@@ -275,6 +361,7 @@ const SlotManagement = () => {
                     })}
                 </div>
             )}
+
 
 
 
