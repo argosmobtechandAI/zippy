@@ -43,6 +43,16 @@ const getLast7Days = () => {
     return days;
 };
 
+const getLastNDays = (n) => {
+    const days = [];
+    for (let i = n - 1; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        days.push(d.toISOString().split('T')[0]);
+    }
+    return days;
+};
+
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const getHorseSessionsForWeek = (sessions, horseId, last7) =>
@@ -196,9 +206,9 @@ const DetailPanel = ({ horse, sessions, onClose }) => {
                                         <p className="text-[10px] text-gray-400 mt-1">{wl.pct}% of {HEAVY_THRESHOLD}-session threshold</p>
                                     </div>
                                     <div>
-                                        <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3">Daily Breakdown</p>
+                                        <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3">15-Day Breakdown</p>
                                         <div className="bg-gray-50 rounded-2xl p-4 space-y-1">
-                                            {getLast7Days().map(dateStr => {
+                                            {getLastNDays(15).map(dateStr => {
                                                 const count = sessions.filter(s => {
                                                     const hIds = Array.isArray(s.horseId) ? s.horseId : (s.horseId ? [s.horseId] : []);
                                                     const hIds2 = Array.isArray(s.horse_id) ? s.horse_id : (s.horse_id ? [s.horse_id] : []);
