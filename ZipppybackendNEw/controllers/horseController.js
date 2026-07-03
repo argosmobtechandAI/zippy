@@ -21,7 +21,7 @@ const mapToDb = (data) => {
 };
 
 // Helper to convert db snake_case back to frontend camelCase
-const mapToClient = (data) => {
+export const mapToClient = (data) => {
     if (!data) return null;
     const clientData = { ...data };
     if (clientData.shoe_status !== undefined) { clientData.shoeStatus = clientData.shoe_status; delete clientData.shoe_status; }
@@ -161,12 +161,15 @@ export const deleteHorse = async (req, res) => {
 };
 
 export const logHealthStatus = async (req, res) => {
-    const { data } = req.body;
+    let bodyData = req.body.data || req.body;
+    if (bodyData && bodyData.data) {
+        bodyData = bodyData.data;
+    }
     try {
-        const dbData = mapToDb(data);
+        const dbData = mapToDb(bodyData);
         dbData.medications = dbData.medications || [];
-        // Supabase has column 'horse' not 'horse_id' based on schema definition
         if (dbData.horse_id) { dbData.horse = dbData.horse_id; delete dbData.horse_id; }
+        if (bodyData.horseId) { dbData.horse = bodyData.horseId; }
         
         const { data: newStatus, error } = await supabase.from('health_status').insert(dbData).select();
         if (error || !newStatus || !newStatus.length) {
@@ -179,9 +182,12 @@ export const logHealthStatus = async (req, res) => {
 };
 
 export const logVaccination = async (req, res) => {
-    const { data } = req.body;
+    let bodyData = req.body.data || req.body;
+    if (bodyData && bodyData.data) {
+        bodyData = bodyData.data;
+    }
     try {
-        const dbData = mapToDb(data);
+        const dbData = mapToDb(bodyData);
         dbData.next_date = dbData.next_date || dbData.nextDate || "None";
         delete dbData.nextDate;
         
@@ -192,7 +198,7 @@ export const logVaccination = async (req, res) => {
         const { data: newRecord, error } = await supabase.from('vaccination_records').insert(dbData).select();
         
         if (!error && newRecord && newRecord.length > 0) {
-            const horseId = data.horseId;
+            const horseId = bodyData.horseId;
             const { data: horseData } = await supabase.from('horse').select('vaccination_records').eq('id', horseId).limit(1);
             if (horseData && horseData.length > 0) {
                 const currentArr = horseData[0].vaccination_records || [];

@@ -58,16 +58,23 @@ const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 // ─── Mini 7-day Workload Chart ─────────────────────────────────────────────
 const WorkloadChart = ({ sessions, horseId }) => {
     const last7 = getLast7Days();
-    const perDay = last7.map(dateStr => ({
-        date: dateStr,
-        label: DAY_LABELS[new Date(dateStr + 'T00:00:00').getDay()],
-        count: sessions.filter(s => {
-            if (!s.horseId && !s.horse_id) return false;
-            const hIds = Array.isArray(s.horseId) ? s.horseId : (s.horseId ? [s.horseId] : []);
-            const hIds2 = Array.isArray(s.horse_id) ? s.horse_id : (s.horse_id ? [s.horse_id] : []);
-            return (hIds.includes(horseId) || hIds2.includes(horseId)) && s.date === dateStr;
-        }).length
-    }));
+    const perDay = last7.map(dateStr => {
+        let assignedCount = 0;
+        sessions.forEach(s => {
+            if (s.date === dateStr && s.participants) {
+                s.participants.forEach(p => {
+                    if (p.horse === horseId) {
+                        assignedCount++;
+                    }
+                });
+            }
+        });
+        return {
+            date: dateStr,
+            label: DAY_LABELS[new Date(dateStr + 'T00:00:00').getDay()],
+            count: assignedCount
+        };
+    });
     const max = Math.max(...perDay.map(d => d.count), 1);
     return (
         <div className="flex items-end gap-1 h-14 mt-1">
@@ -120,12 +127,17 @@ const DetailPanel = ({ horse, sessions, onClose }) => {
     }, [horse.id]);
 
     const last7 = getLast7Days();
-    const weekSessions = sessions.filter(s => {
-        const hIds = Array.isArray(s.horseId) ? s.horseId : (s.horseId ? [s.horseId] : []);
-        const hIds2 = Array.isArray(s.horse_id) ? s.horse_id : (s.horse_id ? [s.horse_id] : []);
-        return (hIds.includes(horse.id) || hIds2.includes(horse.id)) && last7.includes(s.date);
+    let weekAssignmentsCount = 0;
+    sessions.forEach(s => {
+        if (last7.includes(s.date) && s.participants) {
+            s.participants.forEach(p => {
+                if (p.horse === horse.id) {
+                    weekAssignmentsCount++;
+                }
+            });
+        }
     });
-    const wl = getWorkload(weekSessions.length);
+    const wl = getWorkload(weekAssignmentsCount);
     const statusCfg = STATUS_CONFIG[horse.status] || STATUS_CONFIG['Available'];
 
     const tabs = [
@@ -230,7 +242,7 @@ const DetailPanel = ({ horse, sessions, onClose }) => {
                                     <div className={`rounded-2xl p-5 ${wl.bg}`}>
                                         <p className="text-[11px] font-black text-gray-500 uppercase tracking-widest mb-1">This Week's Workload</p>
                                         <p className={`text-[28px] font-black ${wl.color}`}>{wl.level}</p>
-                                        <p className="text-[13px] font-bold text-gray-500 mt-0.5">{weekSessions.length} sessions this week · {7 - Math.min(weekSessions.length, 7)} rest days</p>
+                                        <p className="text-[13px] font-bold text-gray-500 mt-0.5">{weekAssignmentsCount} assignments this week · {7 - Math.min(weekAssignmentsCount, 7)} rest days</p>
                                         <div className="mt-3 w-full bg-white/70 h-2.5 rounded-full overflow-hidden">
                                             <div className={`h-full rounded-full ${wl.bar} transition-all`} style={{ width: `${wl.pct}%` }} />
                                         </div>
@@ -241,11 +253,16 @@ const DetailPanel = ({ horse, sessions, onClose }) => {
                                         <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3">15-Day Session Breakdown</p>
                                         <div className="bg-gray-50 rounded-2xl p-4">
                                             {getLastNDays(15).map(dateStr => {
-                                                const count = sessions.filter(s => {
-                                                    const hIds = Array.isArray(s.horseId) ? s.horseId : (s.horseId ? [s.horseId] : []);
-                                                    const hIds2 = Array.isArray(s.horse_id) ? s.horse_id : (s.horse_id ? [s.horse_id] : []);
-                                                    return (hIds.includes(horse.id) || hIds2.includes(horse.id)) && s.date === dateStr;
-                                                }).length;
+                                                let count = 0;
+                                                sessions.forEach(s => {
+                                                    if (s.date === dateStr && s.participants) {
+                                                        s.participants.forEach(p => {
+                                                            if (p.horse === horse.id) {
+                                                                count++;
+                                                            }
+                                                        });
+                                                    }
+                                                });
                                                 const dayWl = getWorkload(count);
                                                 const dayName = new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
                                                 return (
@@ -255,7 +272,7 @@ const DetailPanel = ({ horse, sessions, onClose }) => {
                                                             <div className={`h-full rounded-full ${count === 0 ? 'bg-gray-200' : dayWl.bar}`} style={{ width: `${Math.min(100, (count / HEAVY_THRESHOLD) * 100)}%` }} />
                                                         </div>
                                                         <span className={`w-20 text-right text-[12px] font-black ${count === 0 ? 'text-gray-300' : dayWl.color}`}>
-                                                            {count === 0 ? 'Rest' : `${count} session${count !== 1 ? 's' : ''}`}
+                                                            {count === 0 ? 'Rest' : `${count} assignment${count !== 1 ? 's' : ''}`}
                                                         </span>
                                                     </div>
                                                 );
@@ -344,18 +361,28 @@ const DetailPanel = ({ horse, sessions, onClose }) => {
 // ─── Horse Card ────────────────────────────────────────────────────────────
 const HorseCard = ({ horse, sessions, onSelect }) => {
     const last7 = getLast7Days();
-    const weekCount = sessions.filter(s => {
-        const hIds = Array.isArray(s.horseId) ? s.horseId : (s.horseId ? [s.horseId] : []);
-        const hIds2 = Array.isArray(s.horse_id) ? s.horse_id : (s.horse_id ? [s.horse_id] : []);
-        return (hIds.includes(horse.id) || hIds2.includes(horse.id)) && last7.includes(s.date);
-    }).length;
+    let weekCount = 0;
+    sessions.forEach(s => {
+        if (last7.includes(s.date) && s.participants) {
+            s.participants.forEach(p => {
+                if (p.horse === horse.id) {
+                    weekCount++;
+                }
+            });
+        }
+    });
 
     const todayStr = new Date().toISOString().split('T')[0];
-    const todayCount = sessions.filter(s => {
-        const hIds = Array.isArray(s.horseId) ? s.horseId : (s.horseId ? [s.horseId] : []);
-        const hIds2 = Array.isArray(s.horse_id) ? s.horse_id : (s.horse_id ? [s.horse_id] : []);
-        return (hIds.includes(horse.id) || hIds2.includes(horse.id)) && s.date === todayStr;
-    }).length;
+    let todayCount = 0;
+    sessions.forEach(s => {
+        if (s.date === todayStr && s.participants) {
+            s.participants.forEach(p => {
+                if (p.horse === horse.id) {
+                    todayCount++;
+                }
+            });
+        }
+    });
 
     const wl = getWorkload(weekCount);
     const statusCfg = STATUS_CONFIG[horse.status] || STATUS_CONFIG['Available'];
@@ -400,7 +427,7 @@ const HorseCard = ({ horse, sessions, onSelect }) => {
                     <div className={`h-full rounded-full ${wl.bar} transition-all`} style={{ width: `${wl.pct}%` }} />
                 </div>
                 <div className="mt-1 flex justify-between">
-                    <span className="text-[10px] text-gray-400">Today: {todayCount} session{todayCount !== 1 ? 's' : ''}</span>
+                    <span className="text-[10px] text-gray-400">Today: {todayCount} assignment{todayCount !== 1 ? 's' : ''}</span>
                     <span className="text-[10px] text-gray-400">{7 - Math.min(weekCount, 7)} rest day{weekCount < 7 ? 's' : ''} this week</span>
                 </div>
             </div>
@@ -474,11 +501,16 @@ const HorseHealth = ({ stableContext = null }) => {
     const last7 = getLast7Days();
 
     const enrichedHorses = useMemo(() => horses.map(h => {
-        const weekCount = sessions.filter(s => {
-            const hIds = Array.isArray(s.horseId) ? s.horseId : (s.horseId ? [s.horseId] : []);
-            const hIds2 = Array.isArray(s.horse_id) ? s.horse_id : (s.horse_id ? [s.horse_id] : []);
-            return (hIds.includes(h.id) || hIds2.includes(h.id)) && last7.includes(s.date);
-        }).length;
+        let weekCount = 0;
+        sessions.forEach(s => {
+            if (last7.includes(s.date) && s.participants) {
+                s.participants.forEach(p => {
+                    if (p.horse === h.id) {
+                        weekCount++;
+                    }
+                });
+            }
+        });
         return { ...h, _weekCount: weekCount, _workloadLevel: getWorkload(weekCount).level };
     }), [horses, sessions]);
 

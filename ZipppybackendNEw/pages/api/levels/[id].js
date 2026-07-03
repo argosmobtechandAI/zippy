@@ -6,7 +6,7 @@ export default async function handler(req, res) {
   if (req.method === 'PUT') {
     try {
       const bodyData = req.body.data || req.body;
-      const { name, description, category, monthlyPrice, weekdaysPrice, weekendPrice, sessions, status } = bodyData;
+      const { name, description, category, monthlyPrice, weekdaysPrice, weekendPrice, sessions, status, gst } = bodyData;
       
       const { data: updatedLevel, error: updateError } = await supabase.from('levels').update({
         name,
@@ -16,6 +16,7 @@ export default async function handler(req, res) {
         weekdays_price: weekdaysPrice,
         weekend_price: weekendPrice,
         sessions,
+        gst: gst != null ? Number(gst) : null,
         status
       }).eq('id', id).select();
 

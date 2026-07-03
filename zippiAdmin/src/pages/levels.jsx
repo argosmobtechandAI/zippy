@@ -18,7 +18,8 @@ const Levels = () => {
         monthlyPrice: '',
         weekdaysPrice: '',
         weekendPrice: '',
-        sessions: ''
+        sessions: '',
+        gst: ''
     });
 
     useEffect(() => {
@@ -55,7 +56,8 @@ const Levels = () => {
                 monthlyPrice: formData.monthlyPrice ? parseInt(formData.monthlyPrice) : null,
                 weekdaysPrice: formData.weekdaysPrice ? parseInt(formData.weekdaysPrice) : null,
                 weekendPrice: formData.weekendPrice ? parseInt(formData.weekendPrice) : null,
-                sessions: formData.sessions ? parseInt(formData.sessions) : null
+                sessions: formData.sessions ? parseInt(formData.sessions) : null,
+                gst: formData.gst ? Number(formData.gst) : null
             };
 
             if (editId) {
@@ -65,7 +67,7 @@ const Levels = () => {
                     setShowForm(false);
                     setEditId(null);
                     setFormData({
-                        name: '', description: '', category: 'Level', monthlyPrice: '', weekdaysPrice: '', weekendPrice: '', sessions: ''
+                        name: '', description: '', category: 'Level', monthlyPrice: '', weekdaysPrice: '', weekendPrice: '', sessions: '', gst: ''
                     });
                     fetchLevels();
                 } else {
@@ -77,7 +79,7 @@ const Levels = () => {
                     toast.success("Level created successfully!");
                     setShowForm(false);
                     setFormData({
-                        name: '', description: '', category: 'Level', monthlyPrice: '', weekdaysPrice: '', weekendPrice: '', sessions: ''
+                        name: '', description: '', category: 'Level', monthlyPrice: '', weekdaysPrice: '', weekendPrice: '', sessions: '', gst: ''
                     });
                     fetchLevels();
                 } else {
@@ -115,7 +117,8 @@ const Levels = () => {
             monthlyPrice: level.monthly_price || level.monthlyPrice || '',
             weekdaysPrice: level.weekdays_price || level.weekdaysPrice || '',
             weekendPrice: level.weekend_price || level.weekendPrice || '',
-            sessions: level.sessions || ''
+            sessions: level.sessions || '',
+            gst: level.gst ?? ''
         });
         setEditId(level.id);
         setShowForm(true);
@@ -148,7 +151,7 @@ const Levels = () => {
                     onClick={() => {
                         if (showForm) {
                             setEditId(null);
-                            setFormData({ name: '', description: '', category: 'Level', monthlyPrice: '', weekdaysPrice: '', weekendPrice: '', sessions: '' });
+                            setFormData({ name: '', description: '', category: 'Level', monthlyPrice: '', weekdaysPrice: '', weekendPrice: '', sessions: '', gst: '' });
                         }
                         setShowForm(!showForm);
                     }}
@@ -245,6 +248,41 @@ const Levels = () => {
                             </div>
                         </div>
 
+                        {/* GST + Live Total */}
+                        <div className="grid grid-cols-2 gap-6">
+                            <div>
+                                <label className="text-[11px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">GST (%)</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    max="100"
+                                    placeholder="e.g. 18"
+                                    value={formData.gst}
+                                    onChange={(e) => setFormData({ ...formData, gst: e.target.value })}
+                                    className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E] transition-all"
+                                />
+                            </div>
+                            {formData.gst && (formData.weekdaysPrice || formData.weekendPrice || formData.monthlyPrice) && (
+                                <div className="flex flex-col justify-center bg-[#FFF5F2] border border-[#964C2E]/20 rounded-2xl p-4">
+                                    <p className="text-[11px] font-black text-gray-400 tracking-widest uppercase mb-2">Total (incl. GST)</p>
+                                    {formData.category === 'Level' ? (
+                                        <>
+                                            {formData.weekdaysPrice && (
+                                                <p className="text-sm font-bold text-[#964C2E]">Weekdays: ₹{Math.round(Number(formData.weekdaysPrice) * (1 + Number(formData.gst) / 100))}</p>
+                                            )}
+                                            {formData.weekendPrice && (
+                                                <p className="text-sm font-bold text-[#964C2E]">Weekend: ₹{Math.round(Number(formData.weekendPrice) * (1 + Number(formData.gst) / 100))}</p>
+                                            )}
+                                        </>
+                                    ) : (
+                                        formData.monthlyPrice && (
+                                            <p className="text-sm font-bold text-[#964C2E]">Monthly: ₹{Math.round(Number(formData.monthlyPrice) * (1 + Number(formData.gst) / 100))}</p>
+                                        )
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
                         <div className="pt-6 border-t border-[#F0E6D8]">
                             <button 
                                 type="submit" 
@@ -259,13 +297,14 @@ const Levels = () => {
             )}
 
             <div className="bg-white rounded-[24px] shadow-sm border border-[#F0E6D8] overflow-hidden">
-                <div className="grid grid-cols-[1.5fr_2fr_100px_100px_100px_80px_100px_100px] gap-4 py-4 px-8 bg-gray-50/50 border-b border-[#F0E6D8]">
+                <div className="grid grid-cols-[1.5fr_2fr_100px_100px_100px_80px_60px_100px_100px] gap-4 py-4 px-8 bg-gray-50/50 border-b border-[#F0E6D8]">
                     <div className="text-[10px] font-black text-[#A59588] tracking-widest uppercase">NAME/CATEGORY</div>
                     <div className="text-[10px] font-black text-[#A59588] tracking-widest uppercase">OUTCOME</div>
                     <div className="text-[10px] font-black text-[#A59588] tracking-widest uppercase">WEEKDAYS</div>
                     <div className="text-[10px] font-black text-[#A59588] tracking-widest uppercase">WEEKEND</div>
                     <div className="text-[10px] font-black text-[#A59588] tracking-widest uppercase">MONTHLY</div>
                     <div className="text-[10px] font-black text-[#A59588] tracking-widest uppercase">SESSIONS</div>
+                    <div className="text-[10px] font-black text-[#A59588] tracking-widest uppercase">GST</div>
                     <div className="text-[10px] font-black text-[#A59588] tracking-widest uppercase">STATUS</div>
                     <div className="text-[10px] font-black text-[#A59588] tracking-widest uppercase text-right">ACTIONS</div>
                 </div>
@@ -277,7 +316,7 @@ const Levels = () => {
                         <div className="text-center py-10 font-bold text-gray-400">No levels found.</div>
                     ) : (
                         levels.map((l) => (
-                            <div key={l.id} className="grid grid-cols-[1.5fr_2fr_100px_100px_100px_80px_100px_100px] gap-4 items-center border-b border-[#F0E6D8] py-5 px-8 hover:bg-[#FDFBF9] transition-colors">
+                            <div key={l.id} className="grid grid-cols-[1.5fr_2fr_100px_100px_100px_80px_60px_100px_100px] gap-4 items-center border-b border-[#F0E6D8] py-5 px-8 hover:bg-[#FDFBF9] transition-colors">
                                 <div>
                                     <div className="font-black text-[#1e2330] text-[15px]">{l.name}</div>
                                     <div className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-wider">{l.category || 'Level'}</div>
@@ -287,6 +326,11 @@ const Levels = () => {
                                 <div className="font-bold text-[#1e2330]">{(!l.category || l.category === 'Level') && (l.weekend_price || l.weekendPrice) ? `₹${l.weekend_price || l.weekendPrice}` : '-'}</div>
                                 <div className="font-bold text-[#1e2330]">{l.category && l.category !== 'Level' && (l.monthly_price || l.monthlyPrice) ? `₹${l.monthly_price || l.monthlyPrice}` : '-'}</div>
                                 <div className="font-bold text-[#1e2330]">{l.sessions || '-'}</div>
+                                <div>
+                                    {l.gst != null && l.gst !== ''
+                                        ? <span className="inline-flex px-2 py-1 rounded-lg bg-orange-50 text-orange-600 text-[11px] font-black">{l.gst}%</span>
+                                        : <span className="text-gray-400 text-xs">—</span>}
+                                </div>
                                 <div>
                                     <button
                                         onClick={() => toggleStatus(l)}

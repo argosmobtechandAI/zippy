@@ -236,3 +236,15 @@ export const queuedPlansTable = pgTable("queued_plans", {
   status: varchar("status", { length: 50 }).default("Queued"),
   createdAt: varchar("created_at", { length: 50 }).default(new Date().toISOString()),
 });
+
+export const riderDailySnapshotsTable = pgTable("rider_daily_snapshots", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  riderId: uuid("rider_id").notNull().references(() => riderTable.id),
+  riderName: varchar("rider_name", { length: 255 }).notNull(),
+  sessionsLeft: integer("sessions_left").default(0),
+  bookingDate: varchar("booking_date", { length: 50 }),
+  bookingTime: varchar("booking_time", { length: 255 }),
+  hasBookedToday: varchar("has_booked_today", { length: 50 }).default("false"),
+  snapshotDate: varchar("snapshot_date", { length: 50 }).notNull(),
+  createdAt: varchar("created_at", { length: 50 }).default(new Date().toISOString()),
+});

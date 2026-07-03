@@ -28,8 +28,8 @@ const Centers = () => {
 
     const navigate = useNavigate();
 
-    const fetchData = async () => {
-        setLoading(true);
+    const fetchData = async (silent = false) => {
+        if (!silent) setLoading(true);
         // Fetch Centers
         const centerRes = await apiFunction(getAllStablesApi, [], {}, "GET", true);
         if (centerRes && centerRes.success) {
@@ -41,7 +41,7 @@ const Centers = () => {
         if (statsRes && statsRes.success) {
             setStats(statsRes.stats);
         }
-        setLoading(false);
+        if (!silent) setLoading(false);
     }
 
     useEffect(() => {
@@ -54,7 +54,7 @@ const Centers = () => {
             console.log(res)
             if (res && res.success) {
                 toast.success("Center deleted successfully");
-                fetchData();
+                fetchData(true);
             } else {
                 toast.error(res?.message || "Failed to delete center");
             }
@@ -332,7 +332,7 @@ const CreateCenterModal = ({ setShowModal, editing, formDataa, onSuccess, stable
         if (res && res.success) {
             toast.success("Center created successfully");
             setShowModal(false);
-            if (onSuccess) onSuccess();
+            if (onSuccess) onSuccess(true);
         } else {
             toast.error(res?.message || "Failed to create center");
         }

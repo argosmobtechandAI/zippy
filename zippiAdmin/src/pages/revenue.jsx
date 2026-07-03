@@ -1,11 +1,15 @@
 import {
     Activity, Search, Bell, User, Calendar,
     FileSpreadsheet, FileText, TrendingUp, TrendingDown,
-    Globe, Plus, Edit2, Trash2, X, List, Layers
+    Globe, Plus, Edit2, Trash2, X, List, Layers,
+    CreditCard, ChevronLeft, ChevronRight, Filter
 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { apiFunction } from '../api/apiFunction';
 import { getAllStablesApi, getAllUsersApi, getRevenueStatsApi, plansApi, revenueStatsApi, getPaymentsApi, getLevelsApi } from '../api/apis';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import * as XLSX from 'xlsx';
 
 const Revenue = () => {
     const [stables, setStables] = useState([]);
@@ -21,6 +25,7 @@ const Revenue = () => {
         sessionsCount: '',
         validity: '',
         amount: '',
+        gst: '',
         level: '',
         rules: ''
     });
@@ -28,6 +33,15 @@ const Revenue = () => {
     const [selectedMonth, setSelectedMonth] = useState('all');
     const [payments, setPayments] = useState([]);
     const [levels, setLevels] = useState([]);
+
+    // Payment Log tab state
+    const [paySearchTerm, setPaySearchTerm] = useState('');
+    const [payStartDate, setPayStartDate]   = useState(null);
+    const [payEndDate, setPayEndDate]       = useState(null);
+    const [payUserFilter, setPayUserFilter] = useState('');
+    const [payPlanFilter, setPayPlanFilter] = useState('');
+    const [payPage, setPayPage]             = useState(1);
+    const PAY_PER_PAGE = 10;
 
     const [stats, setStats] = useState({
         totalRevenue: 0,
@@ -243,27 +257,32 @@ const Revenue = () => {
                 sessionsCount: plan.sessions_count || plan.sessionsCount,
                 validity: plan.validity,
                 amount: plan.amount,
+                gst: plan.gst ?? '',
                 level: plan.level,
                 rules: Array.isArray(plan.rules) ? plan.rules.join('\n') : ''
             });
         } else {
             setEditingPlan(null);
-            setPlanForm({ name: '', sessionsCount: '', validity: '', amount: '', level: '', rules: '' });
+            setPlanForm({ name: '', sessionsCount: '', validity: '', amount: '', gst: '', level: '', rules: '' });
         }
         setIsPlanModalOpen(true);
     };
 
     const handleSavePlan = async (e) => {
         e.preventDefault();
+        const baseAmount = Number(planForm.amount) || 0;
+        const gstPct    = Number(planForm.gst) || 0;
+        const gstAmount = Math.round((baseAmount * gstPct) / 100);
         const payload = {
-
             name: planForm.name,
             sessions_count: 0,
             validity: planForm.validity,
-            amount: Number(planForm.amount),
+            amount: baseAmount,
+            gst: gstPct,
+            gst_amount: gstAmount,
+            total_amount: baseAmount + gstAmount,
             level: planForm.level,
             rules: planForm.rules.split('\n').map(r => r.trim()).filter(r => r)
-
         };
 
         try {
@@ -306,7 +325,7 @@ const Revenue = () => {
                 <div className="flex items-center gap-4">
                     <Activity className="w-8 h-8 text-[#964C2E]" strokeWidth={2.5} />
                     <h1 className="text-[26px] font-bold text-[#1e2330]">
-                        {viewMode === 'dashboard' ? 'Revenue Reports Detail' : 'Plans Management'}
+                        {viewMode === 'dashboard' ? 'Revenue Reports Detail' : viewMode === 'plans' ? 'Plans Management' : 'Payment Log'}
                     </h1>
                 </div>
                 <div className="flex items-center gap-4">
@@ -322,6 +341,12 @@ const Revenue = () => {
                             className={`px-5 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${viewMode === 'plans' ? 'bg-white text-[#964C2E] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                         >
                             <Layers className="w-4 h-4" /> Plans
+                        </button>
+                        <button
+                            onClick={() => setViewMode('payments')}
+                            className={`px-5 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${viewMode === 'payments' ? 'bg-white text-[#964C2E] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        >
+                            <CreditCard className="w-4 h-4" /> Payment Log
                         </button>
                     </div>
 
@@ -630,8 +655,9 @@ const Revenue = () => {
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100/80 p-8">
-                        <div className="flex justify-between items-center mb-8">
+                    <div className="bg-white rounded-[24px] shadow-sm border border-[#F0E6D8] overflow-hidden">
+                        {/* Header */}
+                        <div className="flex justify-between items-center px-8 py-6 border-b border-[#F0E6D8]">
                             <div>
                                 <h2 className="text-xl font-bold text-[#1e2330]">All Plans</h2>
                                 <p className="text-sm text-gray-500 mt-1">Manage subscription plans and packages</p>
@@ -644,113 +670,265 @@ const Revenue = () => {
                             </button>
                         </div>
 
-                        <div className="grid grid-cols-3 gap-6">
-                            {plans.map((plan) => (
-                                <div key={plan.id} className="border border-gray-100 rounded-2xl p-6 hover:shadow-md transition-shadow relative group">
-                                    <div className="absolute top-6 right-6 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button
-                                            onClick={() => handleOpenPlanModal(plan)}
-                                            className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-[#964C2E] hover:text-white transition-colors"
-                                        >
-                                            <Edit2 className="w-4 h-4" />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDeletePlan(plan.id)}
-                                            className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-red-500 hover:text-white transition-colors"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    </div>
+                        {/* Table Header */}
+                        <div className="grid grid-cols-[1.8fr_1.2fr_90px_110px_70px_110px_1.8fr_110px] gap-4 py-4 px-8 bg-gray-50/50 border-b border-[#F0E6D8]">
+                            <div className="text-[10px] font-black text-[#A59588] tracking-widest uppercase">NAME</div>
+                            <div className="text-[10px] font-black text-[#A59588] tracking-widest uppercase">LEVEL</div>
+                            <div className="text-[10px] font-black text-[#A59588] tracking-widest uppercase">VALIDITY</div>
+                            <div className="text-[10px] font-black text-[#A59588] tracking-widest uppercase">BASE AMOUNT</div>
+                            <div className="text-[10px] font-black text-[#A59588] tracking-widest uppercase">GST</div>
+                            <div className="text-[10px] font-black text-[#A59588] tracking-widest uppercase">TOTAL</div>
+                            <div className="text-[10px] font-black text-[#A59588] tracking-widest uppercase">FEATURES</div>
+                            <div className="text-[10px] font-black text-[#A59588] tracking-widest uppercase text-right">ACTIONS</div>
+                        </div>
 
-                                    <div className="inline-block px-3 py-1 bg-[#FFF5F2] text-[#964C2E] rounded-full text-xs font-bold uppercase tracking-wide mb-4">
-                                        {plan.level}
-                                    </div>
-                                    <h3 className="text-xl font-bold text-[#1e2330] mb-2">{plan.name}</h3>
-                                    <div className="flex items-baseline gap-1 mb-6">
-                                        {plan.amount > 0 ? (
-                                            <>
-                                                <span className="text-3xl font-bold text-[#964C2E]">{plan.amount}</span>
-                                                <span className="text-sm text-gray-500 font-medium">/ {plan.validity} months</span>
-                                            </>
-                                        ) : (
-                                            <span className="text-3xl font-bold text-[#964C2E]">{plan.validity} months</span>
-                                        )}
-                                    </div>
-
-                                    <div className="space-y-3 mb-6">
-                                        {(plan.rules || []).map((rule, idx) => (
-                                            <div key={idx} className="flex items-center gap-3 text-sm text-gray-600">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-[#964C2E]"></div>
-                                                <span>{rule}</span>
+                        {/* Rows */}
+                        <div className="flex flex-col">
+                            {plans.length === 0 ? (
+                                <div className="text-center py-12 font-bold text-gray-400">No plans available. Create one to get started.</div>
+                            ) : (
+                                plans.map((plan) => {
+                                    const gstPct = plan.gst ?? 0;
+                                    const gstAmt = Math.round((Number(plan.amount) * gstPct) / 100);
+                                    const totalAmt = plan.total_amount || (Number(plan.amount) + gstAmt);
+                                    return (
+                                        <div key={plan.id} className="grid grid-cols-[1.8fr_1.2fr_90px_110px_70px_110px_1.8fr_110px] gap-4 items-center border-b border-[#F0E6D8] py-5 px-8 hover:bg-[#FDFBF9] transition-colors">
+                                            {/* Name */}
+                                            <div>
+                                                <div className="font-black text-[#1e2330] text-[15px]">{plan.name}</div>
                                             </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            ))}
-                            {plans.length === 0 && (
-                                <div className="col-span-3 py-12 text-center text-gray-500 font-medium">
-                                    No plans available. Create one to get started.
-                                </div>
-                            )}
-                        </div>
 
-                    </div>
-
-                    {/* Transaction History Table */}
-                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100/80 overflow-hidden">
-                        <div className="p-6 border-b border-gray-100/80 bg-white">
-                            <h3 className="text-lg font-bold text-[#1e2330]">Transaction History</h3>
-                            <p className="text-sm text-gray-500 mt-1">Recent plan purchases and revenue events</p>
-                        </div>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse">
-                                <thead>
-                                    <tr className="border-b border-gray-100/80 bg-[#FAFAFA]">
-                                        <th className="py-4 px-6 text-[11px] font-bold text-[#818C99] tracking-widest uppercase">Purchaser name</th>
-                                        <th className="py-4 px-6 text-[11px] font-bold text-[#818C99] tracking-widest uppercase">DATE</th>
-                                        <th className="py-4 px-6 text-[11px] font-bold text-[#818C99] tracking-widest uppercase">PLAN</th>
-                                        <th className="py-4 px-6 text-[11px] font-bold text-[#818C99] tracking-widest uppercase">AMOUNT</th>
-                                        <th className="py-4 px-6 text-[11px] font-bold text-[#818C99] tracking-widest uppercase">STATUS</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {(scopedStats.statsList || []).map((txn, idx) => (
-                                        <tr key={txn.id || idx} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                                            <td className="py-5 px-6 text-sm font-medium text-gray-500">
-                                                {txn.user?.name || getUserName(txn.purchaser_id) || getUserName(txn.purchaserId) || 'Unknown'}
-                                            </td>
-                                            <td className="py-5 px-6 text-sm text-gray-600">
-                                                {new Date(txn.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                            </td>
-                                            <td className="py-5 px-6">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-full bg-[#FFF5F2] flex items-center justify-center text-[#964C2E]">
-                                                        <Layers className="w-4 h-4" />
-                                                    </div>
-                                                    <span className="font-bold text-[#1e2330]">{getPlanOrLevelName(txn.plan_id || txn.planId)}</span>
-                                                </div>
-                                            </td>
-                                            <td className="py-5 px-6 font-bold text-[#964C2E]">
-                                                ₹{txn.amount}
-                                            </td>
-                                            <td className="py-5 px-6">
-                                                <span className={`inline-flex items-center px-2.5 py-1.5 rounded-md text-[11px] font-bold ${txn.status === 'Active' ? 'bg-[#DCFCE7] text-[#166534]' : 'bg-gray-100 text-gray-600'}`}>
-                                                    {txn.status || 'Completed'}
+                                            {/* Level */}
+                                            <div>
+                                                <span className="inline-block px-2.5 py-1 bg-[#FFF5F2] text-[#964C2E] rounded-full text-[11px] font-bold uppercase tracking-wide">
+                                                    {plan.level || '—'}
                                                 </span>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                    {(!scopedStats.statsList || scopedStats.statsList.length === 0) && (
-                                        <tr>
-                                            <td colSpan="5" className="py-10 text-center font-bold text-gray-400">No transactions found.</td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
+                                            </div>
+
+                                            {/* Validity */}
+                                            <div className="font-bold text-[#1e2330] text-sm">{plan.validity ? `${plan.validity} mo` : '—'}</div>
+
+                                            {/* Base Amount */}
+                                            <div className="font-bold text-[#1e2330] text-sm">{plan.amount > 0 ? `₹${Number(plan.amount).toLocaleString()}` : '—'}</div>
+
+                                            {/* GST */}
+                                            <div>
+                                                {gstPct > 0
+                                                    ? <span className="inline-flex px-2 py-1 rounded-lg bg-orange-50 text-orange-600 text-[11px] font-black">{gstPct}%</span>
+                                                    : <span className="text-gray-400 text-xs">—</span>}
+                                            </div>
+
+                                            {/* Total */}
+                                            <div className="font-black text-[#964C2E] text-sm">{totalAmt > 0 ? `₹${totalAmt.toLocaleString()}` : '—'}</div>
+
+                                            {/* Features */}
+                                            <div className="flex flex-wrap gap-1">
+                                                {(plan.rules || []).slice(0, 2).map((rule, idx) => (
+                                                    <span key={idx} className="text-[11px] text-gray-500 bg-gray-50 border border-gray-100 rounded-md px-2 py-0.5 font-semibold line-clamp-1">{rule}</span>
+                                                ))}
+                                                {(plan.rules || []).length > 2 && (
+                                                    <span className="text-[11px] text-[#964C2E] font-bold">+{plan.rules.length - 2} more</span>
+                                                )}
+                                            </div>
+
+                                            {/* Actions */}
+                                            <div className="flex justify-end gap-2">
+                                                <button
+                                                    onClick={() => handleOpenPlanModal(plan)}
+                                                    className="p-2 rounded-xl bg-blue-50 text-blue-500 hover:bg-blue-500 hover:text-white transition-all shadow-sm"
+                                                    title="Edit Plan"
+                                                >
+                                                    <Edit2 className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeletePlan(plan.id)}
+                                                    className="p-2 rounded-xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm"
+                                                    title="Delete Plan"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
                         </div>
                     </div>
                 </div>
             )}
+
+            {/* Payment Log Tab */}
+            {viewMode === 'payments' && (() => {
+                const allPlansAndLevels = [...plans, ...levels];
+                const getPlanName = (planId) => {
+                    const p = plans.find(x => x.id === planId);
+                    if (p) return p.name;
+                    const l = levels.find(x => x.id === planId);
+                    if (l) return l.name;
+                    return 'Unknown';
+                };
+                const filtered = payments.filter(p => {
+                    const term = paySearchTerm.toLowerCase();
+                    const matchSearch = !paySearchTerm ||
+                        p.user?.name?.toLowerCase().includes(term) ||
+                        p.user?.email?.toLowerCase().includes(term) ||
+                        p.order_id?.toLowerCase().includes(term) ||
+                        p.payment_id?.toLowerCase().includes(term);
+                    let matchDate = true;
+                    if (payStartDate && payEndDate) {
+                        const d = new Date(p.date);
+                        const end = new Date(payEndDate); end.setHours(23, 59, 59, 999);
+                        matchDate = d >= payStartDate && d <= end;
+                    }
+                    const matchUser = !payUserFilter || p.user?.id === payUserFilter;
+                    const matchPlan = !payPlanFilter || p.plan_id === payPlanFilter;
+                    return matchSearch && matchDate && matchUser && matchPlan;
+                });
+                const totalPages = Math.ceil(filtered.length / PAY_PER_PAGE);
+                const sliced = filtered.slice((payPage - 1) * PAY_PER_PAGE, payPage * PAY_PER_PAGE);
+                const handleExport = () => {
+                    const rows = filtered.map(p => ({
+                        'Date': new Date(p.date).toLocaleString(),
+                        'User': p.user?.name || 'N/A',
+                        'Email': p.user?.email || 'N/A',
+                        'Plan / Level': getPlanName(p.plan_id),
+                        'Amount': `₹${p.amount}`,
+                        'Wallet Used': p.wallet_amount_used > 0 ? `₹${p.wallet_amount_used}` : '₹0',
+                        'Method': p.payment_method || 'unknown',
+                        'Coupon': p.coupon_code || 'None',
+                        'Order ID': p.order_id || 'N/A',
+                        'Payment ID': p.payment_id || 'N/A',
+                        'Status': p.status || 'captured',
+                    }));
+                    const ws = XLSX.utils.json_to_sheet(rows);
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, 'Payments');
+                    XLSX.writeFile(wb, 'Payment_Log.xlsx');
+                };
+                return (
+                    <div>
+                        {/* Filters */}
+                        <div className="flex justify-between items-center mb-6">
+                            <div className="flex gap-3 items-center bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex-wrap">
+                                <Filter className="w-4 h-4 text-gray-400 ml-1" />
+                                <div className="relative">
+                                    <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                                    <input
+                                        type="text"
+                                        placeholder="Search name, email, order ID…"
+                                        value={paySearchTerm}
+                                        onChange={e => { setPaySearchTerm(e.target.value); setPayPage(1); }}
+                                        className="bg-[#F3F1EF] rounded-lg py-2 pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-[#964C2E] w-52"
+                                    />
+                                </div>
+                                <DatePicker selected={payStartDate} onChange={d => { setPayStartDate(d); setPayPage(1); }} placeholderText="Start Date" className="bg-[#F3F1EF] rounded-lg py-2 px-3 text-sm outline-none w-28" />
+                                <span className="text-gray-400 text-sm">–</span>
+                                <DatePicker selected={payEndDate} onChange={d => { setPayEndDate(d); setPayPage(1); }} minDate={payStartDate} placeholderText="End Date" className="bg-[#F3F1EF] rounded-lg py-2 px-3 text-sm outline-none w-28" />
+                                <select value={payUserFilter} onChange={e => { setPayUserFilter(e.target.value); setPayPage(1); }} className="bg-[#F3F1EF] rounded-lg py-2 px-3 text-sm outline-none border-r-8 border-transparent">
+                                    <option value="">All Users</option>
+                                    {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                                </select>
+                                <select value={payPlanFilter} onChange={e => { setPayPlanFilter(e.target.value); setPayPage(1); }} className="bg-[#F3F1EF] rounded-lg py-2 px-3 text-sm outline-none border-r-8 border-transparent">
+                                    <option value="">All Plans</option>
+                                    {allPlansAndLevels.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                </select>
+                                {(paySearchTerm || payStartDate || payEndDate || payUserFilter || payPlanFilter) && (
+                                    <button onClick={() => { setPaySearchTerm(''); setPayStartDate(null); setPayEndDate(null); setPayUserFilter(''); setPayPlanFilter(''); setPayPage(1); }} className="text-xs text-red-500 font-bold hover:underline ml-1">Clear All</button>
+                                )}
+                            </div>
+                            <button onClick={handleExport} className="px-5 py-2.5 bg-white border border-[#964C2E]/20 rounded-xl flex items-center gap-2 text-sm font-bold text-[#964C2E] hover:bg-[#FFF5F2] shadow-sm">
+                                <FileSpreadsheet className="w-4 h-4" /> Export Excel
+                            </button>
+                        </div>
+                        {/* Table */}
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100/80 overflow-hidden">
+                            <div className="p-5 border-b border-gray-100 flex justify-between items-center">
+                                <div>
+                                    <h3 className="text-lg font-bold text-[#1e2330]">Payment Transactions</h3>
+                                    <p className="text-sm text-gray-400 mt-0.5">All Razorpay & wallet transactions</p>
+                                </div>
+                                <span className="text-sm font-bold bg-gray-50 px-4 py-2 rounded-lg text-gray-600">Total: <span className="text-[#964C2E]">{filtered.length}</span></span>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left border-collapse min-w-[1100px]">
+                                    <thead>
+                                        <tr className="border-b border-gray-100 bg-[#FAFAFA]">
+                                            <th className="py-4 px-6 text-[11px] font-bold text-[#818C99] tracking-widest uppercase">User</th>
+                                            <th className="py-4 px-6 text-[11px] font-bold text-[#818C99] tracking-widest uppercase">Date</th>
+                                            <th className="py-4 px-6 text-[11px] font-bold text-[#818C99] tracking-widest uppercase">Plan / Level</th>
+                                            <th className="py-4 px-6 text-[11px] font-bold text-[#818C99] tracking-widest uppercase">Razorpay ID</th>
+                                            <th className="py-4 px-6 text-[11px] font-bold text-[#818C99] tracking-widest uppercase">Method</th>
+                                            <th className="py-4 px-6 text-[11px] font-bold text-[#818C99] tracking-widest uppercase">Coupon</th>
+                                            <th className="py-4 px-6 text-[11px] font-bold text-[#818C99] tracking-widest uppercase">Wallet</th>
+                                            <th className="py-4 px-6 text-[11px] font-bold text-[#818C99] tracking-widest uppercase">Amount</th>
+                                            <th className="py-4 px-6 text-[11px] font-bold text-[#818C99] tracking-widest uppercase">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {sliced.length === 0 ? (
+                                            <tr><td colSpan="9" className="py-10 text-center font-bold text-gray-400">No transactions found.</td></tr>
+                                        ) : sliced.map((p, idx) => (
+                                            <tr key={p.id || idx} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                                                <td className="py-5 px-6">
+                                                    <p className="text-sm font-bold text-[#1e2330]">{p.user?.name || 'N/A'}</p>
+                                                    <p className="text-[11px] text-gray-400">{p.user?.email || ''}</p>
+                                                </td>
+                                                <td className="py-5 px-6 text-sm text-gray-600 font-semibold">
+                                                    {new Date(p.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                </td>
+                                                <td className="py-5 px-6">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-7 h-7 rounded-full bg-[#FFF5F2] flex items-center justify-center text-[#964C2E]"><Layers className="w-3.5 h-3.5" /></div>
+                                                        <span className="font-bold text-[#1e2330] text-sm">{getPlanName(p.plan_id)}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="py-5 px-6">
+                                                    <p className="text-[12px] font-bold text-gray-600">{p.payment_id}</p>
+                                                    <p className="text-[10px] text-gray-400">{p.order_id}</p>
+                                                </td>
+                                                <td className="py-5 px-6">
+                                                    <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-[#E8EAF6] text-[#3F51B5] text-[11px] font-bold capitalize">
+                                                        {p.payment_method || (p.payment_id?.startsWith('wallet') ? 'wallet' : 'unknown')}
+                                                    </span>
+                                                </td>
+                                                <td className="py-5 px-6">
+                                                    {p.coupon_code
+                                                        ? <span className="inline-flex px-2 py-1 rounded bg-[#E8F5E9] text-[#2E7D32] text-[11px] font-bold">{p.coupon_code}</span>
+                                                        : <span className="text-gray-400 text-xs">—</span>}
+                                                </td>
+                                                <td className="py-5 px-6 font-bold text-[#8C4A28] text-sm">
+                                                    {p.wallet_amount_used > 0 ? `₹${p.wallet_amount_used}` : '—'}
+                                                </td>
+                                                <td className="py-5 px-6 font-black text-[#964C2E] text-base">₹{p.amount}</td>
+                                                <td className="py-5 px-6">
+                                                    <span className={`inline-flex px-2.5 py-1.5 rounded-md text-[11px] font-bold ${p.status === 'captured' ? 'bg-[#DCFCE7] text-[#166534]' : 'bg-yellow-100 text-yellow-800'}`}>
+                                                        {p.status || 'captured'}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {/* Pagination */}
+                            <div className="px-8 py-4 flex justify-between items-center border-t border-gray-100 bg-[#FAFAFA]/30">
+                                <span className="text-xs font-semibold text-gray-400">
+                                    Showing <span className="text-[#964C2E] font-bold">{filtered.length === 0 ? 0 : (payPage - 1) * PAY_PER_PAGE + 1}</span> – <span className="text-[#964C2E] font-bold">{Math.min(payPage * PAY_PER_PAGE, filtered.length)}</span> of <span className="text-[#964C2E] font-bold">{filtered.length}</span>
+                                </span>
+                                <div className="flex items-center gap-2">
+                                    <button disabled={payPage === 1} onClick={() => setPayPage(p => Math.max(p - 1, 1))} className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50 bg-white shadow-sm disabled:opacity-40">
+                                        <ChevronLeft className="w-4 h-4" />
+                                    </button>
+                                    <span className="text-sm font-bold text-gray-600 px-2">Page {payPage} of {totalPages || 1}</span>
+                                    <button disabled={payPage === totalPages || totalPages === 0} onClick={() => setPayPage(p => Math.min(p + 1, totalPages))} className="w-8 h-8 rounded-lg border border-gray-200 bg-white flex items-center justify-center text-[#964C2E] hover:bg-gray-50 shadow-sm disabled:opacity-40">
+                                        <ChevronRight className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
 
             {/* Plan Modal */}
             {isPlanModalOpen && (
@@ -794,7 +972,7 @@ const Revenue = () => {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Validity(in Months)</label>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Validity (in Months)</label>
                                     <input
                                         type="text"
                                         required
@@ -804,17 +982,47 @@ const Revenue = () => {
                                         placeholder="e.g. 1, 2, 3"
                                     />
                                 </div>
-                                <div className="col-span-2">
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Amount (₹)</label>
+
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">Base Amount (₹)</label>
                                     <input
                                         type="number"
                                         required
                                         value={planForm.amount}
                                         onChange={e => setPlanForm({ ...planForm, amount: e.target.value })}
                                         className="w-full bg-[#F3F1EF] rounded-xl py-3 px-4 outline-none text-sm focus:bg-white focus:ring-2 focus:ring-[#964C2E] transition-all"
-                                        placeholder="e.g. 100"
+                                        placeholder="e.g. 10000"
                                     />
                                 </div>
+
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">GST (%)</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        value={planForm.gst}
+                                        onChange={e => setPlanForm({ ...planForm, gst: e.target.value })}
+                                        className="w-full bg-[#F3F1EF] rounded-xl py-3 px-4 outline-none text-sm focus:bg-white focus:ring-2 focus:ring-[#964C2E] transition-all"
+                                        placeholder="e.g. 18"
+                                    />
+                                </div>
+
+                                {/* Live Total Preview */}
+                                {(planForm.amount || planForm.gst) && (
+                                    <div className="col-span-2 bg-[#FFF5F2] border border-[#964C2E]/20 rounded-xl p-4 flex justify-between items-center">
+                                        <div className="text-sm text-gray-600">
+                                            <span className="font-bold text-[#1e2330]">₹{Number(planForm.amount) || 0}</span>
+                                            <span className="mx-2 text-gray-400">+</span>
+                                            <span className="font-bold text-orange-600">₹{Math.round(((Number(planForm.amount) || 0) * (Number(planForm.gst) || 0)) / 100)} GST ({planForm.gst || 0}%)</span>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-[11px] text-gray-400 font-semibold uppercase tracking-wide">Total Amount</p>
+                                            <p className="text-xl font-black text-[#964C2E]">₹{(Number(planForm.amount) || 0) + Math.round(((Number(planForm.amount) || 0) * (Number(planForm.gst) || 0)) / 100)}</p>
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div className="col-span-2">
                                     <label className="block text-sm font-bold text-gray-700 mb-2">Rules / Features (One per line)</label>
                                     <textarea

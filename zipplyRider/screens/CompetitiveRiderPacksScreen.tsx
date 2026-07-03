@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CheckCircle2, Gavel, Calendar, CalendarClock, Ban, Clock, Wallet } from 'lucide-react-native';
+import { CheckCircle2, Gavel, Calendar, CalendarClock, Ban, Clock, Wallet, ShoppingCart } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchRider, fetchUser } from '../redux/getDataSlice';
+import { addToCart } from '../redux/cartSlice';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiFunction } from '../api/apifunction';
 import { getAllPlansApi, enrollPackApi, getLevelsApi, createOrderApi, verifyRazorPayOrderApi, createLevelOrderApi, verifyLevelOrderApi } from '../api/api';
@@ -24,6 +25,8 @@ export default function CompetitiveRiderPacksScreen() {
     const [pricingModalVisible, setPricingModalVisible] = useState(false);
     const [selectedLevelForPricing, setSelectedLevelForPricing] = useState(null);
     const dispatch = useDispatch();
+    const cartItems: any[] = useSelector((state: any) => state.cart?.items ?? []);
+    const cartCount = cartItems.length;
 
     const onRefresh = React.useCallback(async () => {
         setRefreshing(true);
@@ -96,16 +99,15 @@ export default function CompetitiveRiderPacksScreen() {
         }
     };
 
-    const handleEnrollment = async (packId, name, amount) => {
-        navigation.navigate('Checkout', {
-            type: 'pack',
-            id: packId,
-            name: name,
-            amount: amount
-        });
+    const isPackInCart = (packId: string) => cartItems.some(i => i.type === 'pack' && i.id === packId);
+    const isLevelInCart = (levelId: string) => cartItems.some(i => i.type === 'level' && i.id === levelId);
+
+    const handleEnrollment = (packId: string, name: string, amount: number, gst?: number) => {
+        dispatch(addToCart({ key: 'pack', type: 'pack', id: packId, name, amount, gst }));
+        Toast.show({ type: 'success', text1: 'Added to Cart', text2: name });
     };
 
-    const handleLevelClick = (level) => {
+    const handleLevelClick = (level: any) => {
         if (level.weekdays_price && level.weekend_price) {
             setSelectedLevelForPricing(level);
             setPricingModalVisible(true);
@@ -116,20 +118,15 @@ export default function CompetitiveRiderPacksScreen() {
         }
     };
 
-    const handleLevelEnrollment = async (level, pricingOption) => {
+    const handleLevelEnrollment = (level: any, pricingOption: string) => {
         setPricingModalVisible(false);
         let amount = 0;
         if (pricingOption === 'monthlyPrice') amount = level.monthly_price;
         else if (pricingOption === 'weekdaysPrice') amount = level.weekdays_price;
         else if (pricingOption === 'weekendPrice') amount = level.weekend_price;
 
-        navigation.navigate('Checkout', {
-            type: 'level',
-            id: level.id,
-            name: level.name,
-            amount: amount,
-            pricingOption: pricingOption
-        });
+        dispatch(addToCart({ key: 'level', type: 'level', id: level.id, name: level.name, amount, gst: level.gst ?? undefined, pricingOption }));
+        Toast.show({ type: 'success', text1: 'Added to Cart', text2: level.name });
     };
 
     const isEligibleForPackRenewal = (pack) => {
@@ -163,7 +160,21 @@ export default function CompetitiveRiderPacksScreen() {
     return (
         <SafeAreaView className="flex-1 bg-[#F5EDDF]">
             <View className="px-6 pt-6 pb-4">
-                <Text className="text-[#1a202c] text-[24px] font-black">Programs</Text>
+                <View className="flex-row justify-between items-center">
+                    <Text className="text-[#1a202c] text-[24px] font-black">Programs</Text>
+                    {/* Cart Icon with Badge */}
+                    <TouchableOpacity
+                        onPress={() => (navigation as any).navigate('Cart')}
+                        className="relative w-11 h-11 rounded-full bg-[#e2d5c3] items-center justify-center"
+                    >
+                        <ShoppingCart size={20} color="#8C4A28" />
+                        {cartCount > 0 && (
+                            <View className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#8C4A28] items-center justify-center">
+                                <Text className="text-white text-[10px] font-black">{cartCount}</Text>
+                            </View>
+                        )}
+                    </TouchableOpacity>
+                </View>
                 
                 {/* Custom Tabs */}
                 <View className="flex-row mt-4 bg-[#e2d5c3]/50 p-1 rounded-2xl">
@@ -276,33 +287,23 @@ export default function CompetitiveRiderPacksScreen() {
                                         </View>
                                         {isEligibleForPackRenewal(pack) && (
                                             <TouchableOpacity
-                                                className={`w-full py-4 rounded-xl items-center justify-center mb-6 shadow-sm ${enrolling === pack.id ? 'bg-[#8C4A28]/70' : 'bg-[#8C4A28]'}`}
-                                                onPress={() => handleEnrollment(pack.id, pack.name, pack.amount)}
-                                                disabled={enrolling !== null}
+                                                className={`w-full py-4 rounded-xl items-center justify-center mb-6 shadow-sm ${isPackInCart(pack.id) ? 'bg-[#4ade80]/20 border border-[#4ade80]' : 'bg-[#8C4A28]'}`}
+                                                onPress={() => handleEnrollment(pack.id, pack.name, pack.amount, pack.gst)}
                                             >
-                                                {enrolling === pack.id ? (
-                                                    <ActivityIndicator size="small" color="white" />
-                                                ) : (
-                                                    <Text className={`font-black text-[13px] text-white`}>
-                                                        Renew Pack for ₹{pack.amount.toLocaleString()}
-                                                    </Text>
-                                                )}
+                                                <Text className={`font-black text-[13px] ${isPackInCart(pack.id) ? 'text-[#064e3b]' : 'text-white'}`}>
+                                                    {isPackInCart(pack.id) ? '✓ In Cart' : `Renew — Add to Cart`}
+                                                </Text>
                                             </TouchableOpacity>
                                         )}
                                     </>
                                 ) : (
                                     <TouchableOpacity
-                                        className={`w-full py-4 rounded-xl items-center justify-center mb-6 shadow-sm ${enrolling === pack.id ? 'bg-[#8C4A28]/70' : 'bg-[#8C4A28]'}`}
-                                        onPress={() => handleEnrollment(pack.id, pack.name, pack.amount)}
-                                        disabled={enrolling !== null}
+                                        className={`w-full py-4 rounded-xl items-center justify-center mb-6 shadow-sm ${isPackInCart(pack.id) ? 'bg-[#4ade80]/20 border border-[#4ade80]' : 'bg-[#8C4A28]'}`}
+                                        onPress={() => handleEnrollment(pack.id, pack.name, pack.amount, pack.gst)}
                                     >
-                                        {enrolling === pack.id ? (
-                                            <ActivityIndicator size="small" color="white" />
-                                        ) : (
-                                            <Text className={`font-black text-[13px] text-white`}>
-                                                {pack.amount > 0 ? `Buy for ₹${pack.amount.toLocaleString()}` : 'Enroll for Free'}
-                                            </Text>
-                                        )}
+                                        <Text className={`font-black text-[13px] ${isPackInCart(pack.id) ? 'text-[#064e3b]' : 'text-white'}`}>
+                                            {isPackInCart(pack.id) ? '✓ In Cart' : (pack.amount > 0 ? `Add to Cart — ₹${pack.amount.toLocaleString()}` : 'Add to Cart')}
+                                        </Text>
                                     </TouchableOpacity>
                                 )}
 
@@ -419,33 +420,23 @@ export default function CompetitiveRiderPacksScreen() {
                                             </View>
                                             {isEligibleForLevelRenewal() && (
                                                 <TouchableOpacity
-                                                    className={`w-full py-4 rounded-xl items-center justify-center mt-2 shadow-sm ${levelEnrolling === l.id ? 'bg-[#8C4A28]/70' : 'bg-[#8C4A28]'}`}
+                                                    className={`w-full py-4 rounded-xl items-center justify-center mt-2 shadow-sm ${isLevelInCart(l.id) ? 'bg-[#4ade80]/20 border border-[#4ade80]' : 'bg-[#8C4A28]'}`}
                                                     onPress={() => handleLevelClick(l)}
-                                                    disabled={levelEnrolling !== null}
                                                 >
-                                                    {levelEnrolling === l.id ? (
-                                                        <ActivityIndicator size="small" color="white" />
-                                                    ) : (
-                                                        <Text className={`font-black text-[13px] text-white`}>
-                                                            Renew Level
-                                                        </Text>
-                                                    )}
+                                                    <Text className={`font-black text-[13px] ${isLevelInCart(l.id) ? 'text-[#064e3b]' : 'text-white'}`}>
+                                                        {isLevelInCart(l.id) ? '✓ In Cart' : 'Renew — Add to Cart'}
+                                                    </Text>
                                                 </TouchableOpacity>
                                             )}
                                         </>
                                     ) : (
                                         <TouchableOpacity
-                                            className={`w-full py-4 rounded-xl items-center justify-center mt-2 shadow-sm ${levelEnrolling === l.id ? 'bg-[#8C4A28]/70' : 'bg-[#8C4A28]'}`}
+                                            className={`w-full py-4 rounded-xl items-center justify-center mt-2 shadow-sm ${isLevelInCart(l.id) ? 'bg-[#4ade80]/20 border border-[#4ade80]' : 'bg-[#8C4A28]'}`}
                                             onPress={() => handleLevelClick(l)}
-                                            disabled={levelEnrolling !== null}
                                         >
-                                            {levelEnrolling === l.id ? (
-                                                <ActivityIndicator size="small" color="white" />
-                                            ) : (
-                                                <Text className={`font-black text-[13px] text-white`}>
-                                                    Buy Level
-                                                </Text>
-                                            )}
+                                            <Text className={`font-black text-[13px] ${isLevelInCart(l.id) ? 'text-[#064e3b]' : 'text-white'}`}>
+                                                {isLevelInCart(l.id) ? '✓ In Cart' : 'Add to Cart'}
+                                            </Text>
                                         </TouchableOpacity>
                                     )}
                                 </View>
@@ -476,7 +467,10 @@ export default function CompetitiveRiderPacksScreen() {
                                     <Text className="text-[#1a202c] font-black text-[16px]">Weekdays</Text>
                                     <Text className="text-[#64748b] text-[12px] font-semibold mt-1">Access to weekday sessions</Text>
                                 </View>
-                                <Text className="text-[#8C4A28] font-black text-[18px]">₹{selectedLevelForPricing.weekdays_price.toLocaleString()}</Text>
+                                <View className="items-end">
+                                    <Text className="text-[#8C4A28] font-black text-[18px]">₹{selectedLevelForPricing.weekdays_price.toLocaleString()}</Text>
+                                    <Text className="text-[#64748b] text-[10px] font-semibold mt-0.5">Tap to add to cart</Text>
+                                </View>
                             </TouchableOpacity>
                         ) : null}
 
@@ -489,7 +483,10 @@ export default function CompetitiveRiderPacksScreen() {
                                     <Text className="text-[#1a202c] font-black text-[16px]">Weekends</Text>
                                     <Text className="text-[#64748b] text-[12px] font-semibold mt-1">Access to weekend sessions</Text>
                                 </View>
-                                <Text className="text-[#8C4A28] font-black text-[18px]">₹{selectedLevelForPricing.weekend_price.toLocaleString()}</Text>
+                                <View className="items-end">
+                                    <Text className="text-[#8C4A28] font-black text-[18px]">₹{selectedLevelForPricing.weekend_price.toLocaleString()}</Text>
+                                    <Text className="text-[#64748b] text-[10px] font-semibold mt-0.5">Tap to add to cart</Text>
+                                </View>
                             </TouchableOpacity>
                         ) : null}
 

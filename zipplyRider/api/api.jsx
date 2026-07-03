@@ -34,3 +34,7 @@ export const verifyForgotPasswordOtpApi = `${baseURL}/users/forgot-password/veri
 export const resetPasswordApi = `${baseURL}/users/forgot-password/reset-password`;
 export const getBroadcastsApi = `${baseURL}/users/broadcasts`;
 export const updateFcmTokenApi = `${baseURL}/users/update-fcm-token`;
+
+// Combined Cart APIs
+export const createCombinedCartOrderApi = `${baseURL}/cart/createCombinedOrder`;
+export const verifyCombinedCartOrderApi  = `${baseURL}/cart/verifyCombinedOrder`;

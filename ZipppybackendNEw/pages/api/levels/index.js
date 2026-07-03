@@ -13,7 +13,7 @@ export default async function handler(req, res) {
   } else if (req.method === 'POST') {
     try {
       const bodyData = req.body.data || req.body;
-      const { name, description, category, monthlyPrice, weekdaysPrice, weekendPrice, sessions, status } = bodyData;
+      const { name, description, category, monthlyPrice, weekdaysPrice, weekendPrice, sessions, status, gst } = bodyData;
       
       if (!name) {
         return res.status(400).json({ success: false, message: 'Name is required' });
@@ -33,6 +33,7 @@ export default async function handler(req, res) {
         weekdays_price: weekdaysPrice || null,
         weekend_price: weekendPrice || null,
         sessions: sessions || null,
+        gst: gst != null ? Number(gst) : null,
         status: status || 'ACTIVE'
       }).select();
 

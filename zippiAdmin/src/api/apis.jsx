@@ -1,5 +1,7 @@
-// export const baseUrl = import.meta.env.VITE_API_BASE_URL ? `${import.meta.env.VITE_API_BASE_URL}/api` : "http://localhost:3000/api";
-export const baseUrl = "https://api.zippyapp.online/api";
+// Switch between local and production by setting VITE_API_BASE_URL in .env
+// Local:      VITE_API_BASE_URL=http://localhost:3000/api
+// Production: VITE_API_BASE_URL=https://api.zippyapp.online/api
+export const baseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000/api";
 export const getAllUsersApi = `${baseUrl}/users/all`;
 export const getUserApi = `${baseUrl}/users`;
 export const createUserApi = `${baseUrl}/users`;
@@ -70,3 +72,10 @@ export const createLevelApi = `${baseUrl}/levels`;
 export const updateLevelApi = (id) => `${baseUrl}/levels/${id}`;
 export const deleteLevelApi = (id) => `${baseUrl}/levels/${id}`;
 export const getPaymentsApi = `${baseUrl}/payments`;
+
+// Combined Cart APIs
+export const createCombinedCartOrderApi = `${baseUrl}/cart/createCombinedOrder`;
+export const verifyCombinedCartOrderApi  = `${baseUrl}/cart/verifyCombinedOrder`;
+
+export const getDailySnapshotsApi = `${baseUrl}/session/snapshots`;
+export const triggerDailySnapshotCronApi = `${baseUrl}/cron/take-daily-snapshot`;

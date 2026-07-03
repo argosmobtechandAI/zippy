@@ -16,7 +16,7 @@ const Header = () => {
             if (userData) {
                 const parsedUser = JSON.parse(userData);
                 // We fetch fresh data to get notifications
-                const res = await apiFunction(`${getUserApi}?id=${parsedUser.id}`, [], {}, "GET", true);
+                const res = await apiFunction(`${getUserApi}?userId=${parsedUser.id}`, [], {}, "GET", true);
                 if (res && res.success) {
                     setUser(res.user);
                 } else {

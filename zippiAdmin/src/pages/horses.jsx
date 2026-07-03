@@ -31,8 +31,8 @@ const Horses = () => {
     const [selectedHorse, setSelectedHorse] = useState(null);
     const [notifHorse, setNotifHorse] = useState(null);
 
-    const fetchData = async () => {
-        setLoading(true);
+    const fetchData = async (silent = false) => {
+        if (!silent) setLoading(true);
         try {
             const [horseRes, uRes, stableRes, catRes] = await Promise.all([
                 apiFunction(getAllHorsesApi, [], {}, "GET", true),
@@ -47,7 +47,7 @@ const Horses = () => {
         } catch (error) {
             console.error("Error fetching horse data", error);
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     };
 
@@ -81,7 +81,7 @@ const Horses = () => {
             const res = await apiFunction(`${deleteHorseApi}/${id}`, [], {}, "DELETE", true);
             if (res && res.success) {
                 toast.success("Horse deleted successfully");
-                fetchData();
+                fetchData(true);
             } else {
                 toast.error("Failed to delete horse");
             }
@@ -259,7 +259,7 @@ const Horses = () => {
                                                         const res = await apiFunction(`${updateHorseApi}/${horse.id}`, [], { status: newStatus }, "PUT", true);
                                                         if (res && res.success) {
                                                             toast.success(`${horse.name} status updated to ${newStatus}`);
-                                                            fetchData();
+                                                            fetchData(true);
                                                         }
                                                     } catch (err) {
                                                         toast.error("Status update failed");
@@ -420,7 +420,7 @@ const HorseModal = ({ horseToEdit, setShowModal, onSuccess, trainers, stables = 
             if (res && res.success) {
                 toast.success(horseToEdit ? "Horse details updated" : "Horse registered successfully");
                 setShowModal(false);
-                onSuccess();
+                onSuccess(true);
             } else {
                 toast.error(res?.message || "Failed to save horse details");
             }
