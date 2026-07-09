@@ -197,6 +197,26 @@ const SlotManagement = () => {
             case 'custom':   return customDate ? s.date === customDate : true;
             default:         return s.date >= todayStr;
         }
+    }).sort((a, b) => {
+        const dateA = a.date === 'daily' ? '0000-00-00' : (a.date || '');
+        const dateB = b.date === 'daily' ? '0000-00-00' : (b.date || '');
+        if (dateA !== dateB) return dateA.localeCompare(dateB);
+
+        const timeA = a.timing ? a.timing.split(' - ')[0] : '';
+        const timeB = b.timing ? b.timing.split(' - ')[0] : '';
+        
+        const to24 = (t) => {
+            if (!t) return 0;
+            const match = t.match(/(\d+):(\d+)\s*(AM|PM)/i);
+            if (!match) return 0;
+            let h = parseInt(match[1]);
+            const m = parseInt(match[2]);
+            const ampm = match[3].toUpperCase();
+            if (ampm === 'PM' && h !== 12) h += 12;
+            if (ampm === 'AM' && h === 12) h = 0;
+            return h * 60 + m;
+        };
+        return to24(timeA) - to24(timeB);
     });
 
     if (loading) {

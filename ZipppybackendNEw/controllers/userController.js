@@ -124,7 +124,7 @@ export const getAllUsers = async (req, res) => {
 };
 
 export const getUser = async (req, res) => {
-    const userId = req.userId || req.query?.id;
+    const userId = req.query?.id || req.userId;
     try {
         const { data: dbUser, error } = await supabase
             .from('users')

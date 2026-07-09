@@ -5,8 +5,8 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6IC
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-async function checkUser() {
-  const { data, error } = await supabase.from('users').select('*').eq('email', 'vansh@gmail.com');
+async function getStaff() {
+  const { data, error } = await supabase.from('users').select('*').eq('type', 'stableStaff');
   if (error) {
     console.error(error);
   } else {
@@ -14,4 +14,4 @@ async function checkUser() {
   }
 }
 
-checkUser();
+getStaff();
