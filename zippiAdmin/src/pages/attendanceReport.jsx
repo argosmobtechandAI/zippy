@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { ClipboardList, Search, Calendar, CheckCircle2, XCircle, Clock, Building2, ChevronDown, ChevronUp, User, RefreshCw, AlertCircle, Archive, UserCheck, Download } from 'lucide-react';
 import { apiFunction } from '../api/apiFunction';
 import { getAllSessionsApi, getAllStablesApi, getAllUsersApi, getAllHorsesApi } from '../api/apis';
+import { formatTime12Hour } from '../utils/timeFormat';
 
 const statusBadge = (status) => {
     const s = (status || '').toUpperCase();
@@ -125,7 +126,7 @@ const AttendanceReport = () => {
             const escapedLocation = `"${(session.location || '').replace(/"/g, '""')}"`;
             const escapedTrainer = `"${(trainerName || '').replace(/"/g, '""')}"`;
             const escapedNote = `"${(session.note || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`;
-            const timing = `"${session.timing || session.time || ''}"`;
+            const timing = `"${formatTime12Hour(session.timing || session.time || '')}"`;
             
             if (!session.participants || session.participants.length === 0) {
                 const row = [
@@ -176,7 +177,7 @@ const AttendanceReport = () => {
 
     const handleShareWhatsApp = (session, participants) => {
         let message = `*Session:* ${session.title || 'Untitled Session'}\n`;
-        message += `*Time:* ${session.timing || session.time || '—'}\n`;
+        message += `*Time:* ${formatTime12Hour(session.timing || session.time) || '—'}\n`;
         message += `*Date:* ${session.date || '—'}\n\n`;
         message += `*Riders & Horses:*\n`;
         
@@ -199,7 +200,7 @@ const AttendanceReport = () => {
 
         const escapedTitle = `"${(session.title || '').replace(/"/g, '""')}"`;
         const escapedLocation = `"${(session.location || '').replace(/"/g, '""')}"`;
-        const timing = `"${session.timing || session.time || ''}"`;
+        const timing = `"${formatTime12Hour(session.timing || session.time || '')}"`;
         const date = `"${session.date || ''}"`;
 
         if (participants.length === 0) {
@@ -280,7 +281,7 @@ const AttendanceReport = () => {
                                 <Calendar className="w-3.5 h-3.5" /> {session.date || 'No date'}
                             </span>
                             <span className="text-[12px] font-semibold text-gray-500 flex items-center gap-1">
-                                <Clock className="w-3.5 h-3.5" /> {session.timing || session.time || '—'}
+                                <Clock className="w-3.5 h-3.5" /> {formatTime12Hour(session.timing || session.time) || '—'}
                             </span>
                             <span className="text-[12px] font-semibold text-gray-500 flex items-center gap-1">
                                 <Building2 className="w-3.5 h-3.5" /> {session.location || '—'}

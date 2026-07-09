@@ -4,6 +4,9 @@ import { apiFunction } from '../api/apiFunction';
 import { getAllSessionsApi, getAllHorsesApi, getAllUsersApi, getHorsesByStableApi, assignTrainerApi, getAllTrainersApi, createSessionApi } from '../api/apis';
 import { useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
+import DatePicker from 'react-datepicker';
+import "react-datepicker/dist/react-datepicker.css";
+import { formatTime12Hour } from '../utils/timeFormat';
 
 const Lessons = () => {
     const { selectedStable } = useSelector((state) => state.getDataReducer)
@@ -323,7 +326,7 @@ const Lessons = () => {
                                                     </div>
                                                     <div className="flex items-center gap-2">
                                                         <Clock className="w-4 h-4 text-[#964C2E]" />
-                                                        <span className="text-[14px] font-bold text-[#1e2330]">{session.timing}</span>
+                                                        <span className="text-[14px] font-bold text-[#1e2330]">{formatTime12Hour(session.timing)}</span>
                                                     </div>
                                                 </div>
                                                 {trainer && (
@@ -383,7 +386,7 @@ const Lessons = () => {
                                     <div className="flex flex-wrap gap-2">
                                         {editingSession.session.filter(s => s.date === editingSession.date && s.status?.toLowerCase() !== 'unavailable').map((s, idx) => (
                                             <span key={idx} className="bg-white border border-red-200 text-red-600 px-3 py-1 rounded-lg text-[12px] font-black shadow-sm">
-                                                {s.timing}
+                                                {formatTime12Hour(s.timing)}
                                             </span>
                                         ))}
                                     </div>

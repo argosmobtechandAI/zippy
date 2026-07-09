@@ -12,6 +12,9 @@ import {
 } from '../api/apis';
 import toast from 'react-hot-toast';
 import { X, XCircle } from 'lucide-react';
+import DatePicker from 'react-datepicker';
+import "react-datepicker/dist/react-datepicker.css";
+import { formatTime12Hour } from '../utils/timeFormat';
 
 const formatWithDay = (dateStr) => {
     if (!dateStr || dateStr === 'N/A' || dateStr === 'daily') return dateStr;
@@ -312,7 +315,7 @@ const SlotManagement = () => {
                                         </div>
                                     </div>
                                     <h3 className="text-[18px] font-black text-[#1e2330] tracking-tight mb-1">{slot.title}</h3>
-                                    <p className="text-[13px] font-bold text-[#964C2E] mb-1">{slot.timing} • {slot.duration}</p>
+                                    <p className="text-[13px] font-bold text-[#964C2E] mb-1">{formatTime12Hour(slot.timing)} • {slot.duration}</p>
                                     <p className="text-[12px] font-semibold text-gray-500 mb-4">{slot.date === 'daily' ? 'Daily Session' : `Date: ${slot.date}`}</p>
 
                                     <div className="bg-[#F0E4D5] rounded-lg p-3 text-[12px] font-bold text-[#1e2330] mb-4">

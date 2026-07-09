@@ -685,6 +685,7 @@ export const deleteUser = async (req, res) => {
         await supabase.from('rider').delete().eq('user_id', id);
         await supabase.from('trainers').delete().eq('user_id', id);
         await supabase.from('vet').delete().eq('user_id', id);
+        await supabase.from('payments').delete().eq('user_id', id);
 
         // Delete the user
         const { error: deleteError } = await supabase

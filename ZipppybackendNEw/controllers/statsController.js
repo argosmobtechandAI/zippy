@@ -14,11 +14,13 @@ export const getGlobalStats = async (req, res) => {
       .from('horse')
       .select('*', { count: 'exact', head: true });
 
-    // 3. Total Revenue (from Stables summary)
     const { data: stables } = await supabase.from('stable').select('*');
+
+    // 3. Total Revenue (from Revenue table to match Revenue Management)
+    const { data: revenueData } = await supabase.from('revenue').select('amount');
     let totalRevenue = 0;
-    if (stables) {
-        totalRevenue = stables.reduce((acc, s) => acc + (Number(s.total_revenue || s.totalRevenue) || 0), 0);
+    if (revenueData) {
+        totalRevenue = revenueData.reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
     }
 
     // 4. Center Utilization

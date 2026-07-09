@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { apiFunction } from '../api/apiFunction';
 import { getAllSessionsApi, approveSessionApi, getAllUsersApi, getAllTrainersApi, getDailySnapshotsApi, triggerDailySnapshotCronApi } from '../api/apis';
 import toast from 'react-hot-toast';
+import { formatTime12Hour } from '../utils/timeFormat';
 
 const formatWithDay = (dateStr) => {
     if (!dateStr || dateStr === 'N/A' || dateStr === 'daily') return dateStr;
@@ -344,7 +345,7 @@ const BookingRequests = () => {
                                                 {booked ? (
                                                     <>
                                                         <span className="text-[#1e2330]">{s.booking_date}</span>
-                                                        <span className="text-[11px] font-semibold text-gray-400 ml-2">({s.booking_time})</span>
+                                                        <span className="text-[11px] font-semibold text-gray-400 ml-2">({formatTime12Hour(s.booking_time)})</span>
                                                     </>
                                                 ) : (
                                                     <span className="text-gray-300 font-bold">—</span>

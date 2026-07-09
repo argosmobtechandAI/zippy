@@ -409,7 +409,7 @@ export const updateSession = async (req, res) => {
                 }
             }
 
-            const dbData = mapToDb(data);
+            const dbData = sanitizeSessionData(mapToDb(data));
             const { data: updatedSession, error: updateError } = await supabase.from('sessions').update(dbData).eq('id', id).select();
             if (updateError || !updatedSession || !updatedSession.length) {
                 return res.status(404).json({ success: false, message: 'Session not found' });
@@ -448,7 +448,7 @@ export const updateSession = async (req, res) => {
         }
 
         const { data: oldSession } = await supabase.from('sessions').select('*').eq('id', id).limit(1);
-        const dbData = mapToDb(data);
+        const dbData = sanitizeSessionData(mapToDb(data));
 
         // === BACKEND DEBUG ===
         console.log('=== updateSession BACKEND DEBUG ===');

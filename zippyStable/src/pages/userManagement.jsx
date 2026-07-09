@@ -118,6 +118,7 @@ const UserManagement = () => {
     const [centerFilter, setCenterFilter] = useState(selectedStable || "all")
     const [startDateFilter, setStartDateFilter] = useState("")
     const [endDateFilter, setEndDateFilter] = useState("")
+    const [levelFilter, setLevelFilter] = useState("all")
     const [createModal, setCreateModal] = useState(false)
     const [notifyModal, setNotifyModal] = useState(null)
     const [editingUser, setEditingUser] = useState(null)
@@ -308,6 +309,8 @@ const UserManagement = () => {
         });
     }, [users, trainers, stables, selectedStable]);
 
+    const uniqueLevels = Array.from(new Set(scopedUsers.filter(u => u.type === 'rider' && u.level).map(u => u.level)));
+
     const filteredUsers = scopedUsers.filter(user => {
         const matchesType = userType === "all" ? user.type !== 'stableStaff' : user.type === userType;
         const search = searchQuery.toLowerCase();
@@ -341,6 +344,11 @@ const UserManagement = () => {
                 if (sessionFilter === '1-5' && (count < 1 || count > 5)) return false;
                 if (sessionFilter === '6-10' && (count < 6 || count > 10)) return false;
                 if (sessionFilter === '10+' && count <= 10) return false;
+            }
+
+            // 2. Level filter
+            if (levelFilter !== 'all') {
+                if (!user.level || user.level.toLowerCase() !== levelFilter.toLowerCase()) return false;
             }
         }
 
@@ -522,6 +530,22 @@ const UserManagement = () => {
                     </div>
                 )}
 
+                {userType === 'rider' && (
+                    <div className="flex flex-col gap-2">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Level</label>
+                        <select
+                            value={levelFilter}
+                            onChange={(e) => setLevelFilter(e.target.value)}
+                            className="bg-white border border-[#EADED4] rounded-xl px-4 py-2.5 text-sm font-bold text-[#1e2330] focus:outline-none focus:ring-2 focus:ring-[#964C2E]/20 focus:border-[#964C2E] transition-all min-w-[160px]"
+                        >
+                            <option value="all">All Levels</option>
+                            {uniqueLevels.map(lvl => (
+                                <option key={lvl} value={lvl}>{lvl}</option>
+                            ))}
+                        </select>
+                    </div>
+                )}
+
                 <div className="flex flex-col gap-2">
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Enrollment Date (From)</label>
                     <input
@@ -542,11 +566,12 @@ const UserManagement = () => {
                     />
                 </div>
 
-                {(centerFilter !== 'all' || sessionFilter !== 'all' || startDateFilter || endDateFilter) && (
+                {(centerFilter !== 'all' || sessionFilter !== 'all' || levelFilter !== 'all' || startDateFilter || endDateFilter) && (
                     <button
                         onClick={() => {
                             setCenterFilter('all');
                             setSessionFilter('all');
+                            setLevelFilter('all');
                             setStartDateFilter('');
                             setEndDateFilter('');
                         }}

@@ -3,6 +3,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { apiFunction } from '../api/apiFunction';
 import { getAllSessionsApi, approveSessionApi, getAllUsersApi, getAllTrainersApi } from '../api/apis';
 import toast from 'react-hot-toast';
+import { useSelector } from 'react-redux';
+import { formatTime12Hour } from '../utils/timeFormat';
 
 const formatWithDay = (dateStr) => {
     if (!dateStr || dateStr === 'N/A' || dateStr === 'daily') return dateStr;
@@ -248,7 +250,7 @@ const BookingRequests = () => {
                                     </div>
                                     <div className="text-[13px] font-bold text-[#1e2330] truncate">{p.session?.title}</div>
                                     <div className="text-[12px] font-bold text-[#964C2E] truncate">{trainerName}</div>
-                                    <div className="text-[13px] font-semibold text-gray-500">{p.session?.timing}</div>
+                                    <div className="text-[13px] font-semibold text-gray-500">{formatTime12Hour(p.session?.timing)}</div>
                                     <div className="text-[12px] font-bold text-gray-500 text-center">{formatWithDay(p.date || p.session?.date || 'N/A')}</div>
                                     <div className="flex justify-center">
                                         <span className={`inline-flex justify-center px-2.5 py-1 rounded-full text-[9px] font-black tracking-widest uppercase shadow-sm ${statusStyle(p.status)}`}>
