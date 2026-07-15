@@ -264,7 +264,7 @@ const MedicalRecords = () => {
                         <div className="flex-1 overflow-y-auto space-y-2 pr-1">
                             {filteredHorses.map(horse => {
                                 const isSelected = horse.id === selectedHorseId;
-                                const latestHealth = horse.healthRecords && horse.healthRecords.length > 0
+                                const latestHealth = Array.isArray(horse.healthRecords) && horse.healthRecords.length > 0
                                     ? [...horse.healthRecords].sort((a, b) => new Date(b.date) - new Date(a.date))[0]
                                     : null;
                                 const status = latestHealth ? latestHealth.status : 'Fit';
@@ -335,7 +335,7 @@ const MedicalRecords = () => {
                                         <div className="flex flex-col md:flex-row md:items-center gap-3 justify-center md:justify-start mb-2">
                                             <h2 className="text-3xl font-black text-[#1e2330] tracking-tight">{selectedHorse.name}</h2>
                                             {(() => {
-                                                 const latestHealth = selectedHorse.healthRecords && selectedHorse.healthRecords.length > 0
+                                                 const latestHealth = Array.isArray(selectedHorse.healthRecords) && selectedHorse.healthRecords.length > 0
                                                      ? [...selectedHorse.healthRecords].sort((a, b) => new Date(b.date) - new Date(a.date))[0]
                                                      : null;
                                                  const status = latestHealth ? latestHealth.status : 'Fit';
@@ -410,7 +410,7 @@ const MedicalRecords = () => {
                                     <div className="p-8 flex-1 flex flex-col">
                                         {activeTab === 'vaccinations' ? (
                                             /* Vaccinations Tab */
-                                            (!selectedHorse.vaccinationRecords || selectedHorse.vaccinationRecords.length === 0) ? (
+                                            (!Array.isArray(selectedHorse.vaccinationRecords) || selectedHorse.vaccinationRecords.length === 0) ? (
                                                 <div className="flex-1 flex flex-col items-center justify-center py-16 text-center opacity-40">
                                                     <Syringe className="w-12 h-12 text-[#964C2E] mb-3" />
                                                     <p className="text-sm font-bold text-[#1e2330]">No vaccination logs found</p>
@@ -418,7 +418,7 @@ const MedicalRecords = () => {
                                                 </div>
                                             ) : (
                                                 <div className="space-y-6">
-                                                    {[...(selectedHorse.vaccinationRecords || [])]
+                                                    {[...(Array.isArray(selectedHorse.vaccinationRecords) ? selectedHorse.vaccinationRecords : [])]
                                                         .sort((a, b) => new Date(b.date) - new Date(a.date))
                                                         .slice(0, 5)
                                                         .map((vac) => {
@@ -486,7 +486,7 @@ const MedicalRecords = () => {
                                             )
                                         ) : (
                                             /* Health Records Tab */
-                                            (!selectedHorse.healthRecords || selectedHorse.healthRecords.length === 0) ? (
+                                            (!Array.isArray(selectedHorse.healthRecords) || selectedHorse.healthRecords.length === 0) ? (
                                                 <div className="flex-1 flex flex-col items-center justify-center py-16 text-center opacity-40">
                                                     <HeartPulse className="w-12 h-12 text-[#964C2E] mb-3" />
                                                     <p className="text-sm font-bold text-[#1e2330]">No clinical checkup reports</p>
@@ -494,7 +494,7 @@ const MedicalRecords = () => {
                                                 </div>
                                             ) : (
                                                 <div className="space-y-6">
-                                                    {[...(selectedHorse.healthRecords || [])]
+                                                    {[...(Array.isArray(selectedHorse.healthRecords) ? selectedHorse.healthRecords : [])]
                                                         .sort((a, b) => new Date(b.date) - new Date(a.date))
                                                         .slice(0, 5)
                                                         .map((log) => {

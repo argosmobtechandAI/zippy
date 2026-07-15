@@ -32,6 +32,7 @@ export const approveSessionApi = (sessionId, riderId) => `${baseURL}/session/upd
 export const updateTrainerApi = `${baseURL}/trainer`;
 export const getAllStablesApi = `${baseURL}/stable/all`;
 export const uploadToVPSApi = `${baseURL}/upload-local`;
+export const workoutsApi = `${baseURL}/horse/workout`;
 
 export const uploadToVPS = async (asset) => {
   try {

@@ -136,7 +136,7 @@ export default function DashboardProfileScreen() {
         <View style={{ flexDirection: 'row', paddingHorizontal: 20, marginBottom: 24, gap: 10 }}>
           {[
             { label: 'Wallet', value: `₹${walletBalance}` },
-            { label: 'Trophies', value: rider?.trophies?.length || 0 },
+            { label: 'Points', value: rider?.championship_points || rider?.championshipPoints || 0 },
             { label: 'Safety Score', value: `${rider?.safetyBriefing?.length || 100}%` },
           ].map((stat, i) => (
             <View key={i} style={{ flex: 1, backgroundColor: '#fff', borderRadius: 20, padding: 14, alignItems: 'center', shadowColor: '#85431E', shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 }}>
@@ -213,40 +213,46 @@ export default function DashboardProfileScreen() {
           )}
         </View>
 
-        {/* Trophies */}
+        {/* Championship Points */}
         <View style={{ paddingHorizontal: 20, marginBottom: 24 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Trophy color="#85431E" size={20} />
-              <Text className="font-normal" style={{ fontSize: 18, fontWeight: '700', color: '#5C2E0E', marginLeft: 8 }}>My Trophies</Text>
+              <Text className="font-normal" style={{ fontSize: 18, fontWeight: '700', color: '#5C2E0E', marginLeft: 8 }}>Championship Points</Text>
             </View>
             <TouchableOpacity onPress={() => navigation.navigate('Trophies')}>
-              <Text className="font-normal" style={{ fontSize: 13, fontWeight: '700', color: '#DA7347' }}>View All</Text>
+              <Text className="font-normal" style={{ fontSize: 13, fontWeight: '700', color: '#DA7347' }}>View Details</Text>
             </TouchableOpacity>
           </View>
 
-          {(!rider?.trophies || rider.trophies.length === 0) ? (
-            <View style={{ backgroundColor: '#fff', borderRadius: 24, paddingVertical: 36, alignItems: 'center', shadowColor: '#85431E', shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 }}>
-              <Trophy color="#e2d5c3" size={36} />
-              <Text className="font-normal" style={{ color: 'rgba(133,67,30,0.5)', fontSize: 14, fontWeight: '600', marginTop: 12 }}>No trophies earned yet.</Text>
-              <Text className="font-normal" style={{ color: 'rgba(133,67,30,0.35)', fontSize: 12, marginTop: 4 }}>Keep riding to unlock achievements!</Text>
+          {/* Leaderboard Card */}
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Leaderboard')}
+            style={{
+              backgroundColor: '#fff',
+              borderRadius: 24,
+              padding: 20,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              shadowColor: '#85431E',
+              shadowOpacity: 0.08,
+              shadowRadius: 10,
+              elevation: 3,
+              borderWidth: 1,
+              borderColor: 'rgba(133,67,30,0.1)'
+            }}
+          >
+            <View style={{ flex: 1, marginRight: 16 }}>
+              <Text className="font-normal" style={{ fontSize: 15, fontWeight: '700', color: '#5C2E0E', marginBottom: 4 }}>Rider Leaderboard</Text>
+              <Text className="font-normal" style={{ fontSize: 11, color: 'rgba(133,67,30,0.5)', lineHeight: 16 }}>
+                View global rankings, points, and compare your standing with other riders!
+              </Text>
             </View>
-          ) : (
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
-              {rider.trophies.map((trophy: any, idx: number) => {
-                const IconComp = getIconComp(trophy.icon);
-                return (
-                  <View key={idx} style={{ width: '48%', backgroundColor: '#fff', borderRadius: 24, padding: 18, marginBottom: 14, shadowColor: '#85431E', shadowOpacity: 0.08, shadowRadius: 10, elevation: 3 }}>
-                    <View style={{ backgroundColor: '#FAF3EC', alignSelf: 'flex-start', padding: 10, borderRadius: 14, marginBottom: 12 }}>
-                      <IconComp color={trophy.color || '#85431E'} size={26} strokeWidth={2.5} />
-                    </View>
-                    <Text className="font-normal" style={{ fontSize: 13, fontWeight: '700', color: '#5C2E0E', marginBottom: 3 }}>{trophy.title}</Text>
-                    <Text className="font-normal" style={{ fontSize: 10, fontWeight: '600', color: 'rgba(133,67,30,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>{trophy.subtitle || trophy.date}</Text>
-                  </View>
-                );
-              })}
+            <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: '#FAF3EC', alignItems: 'center', justifyContent: 'center' }}>
+              <Award color="#DA7347" size={22} strokeWidth={2.5} />
             </View>
-          )}
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView >

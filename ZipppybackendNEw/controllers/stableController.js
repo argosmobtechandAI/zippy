@@ -8,6 +8,12 @@ const mapToDb = (data) => {
     if (dbData.totalRevenue !== undefined) { dbData.total_revenue = dbData.totalRevenue; delete dbData.totalRevenue; }
     if (dbData.userId !== undefined) { dbData.user_id = dbData.userId; delete dbData.userId; }
     if (dbData.headTrainer !== undefined) { dbData.head_trainer = dbData.headTrainer; delete dbData.headTrainer; }
+    
+    // Remove calculated/read-only or non-db fields to prevent schema cache errors
+    delete dbData.horses;
+    delete dbData.horseCount;
+    delete dbData.trainerCount;
+    delete dbData.id;
     return dbData;
 };
 
@@ -44,7 +50,22 @@ export const createStable = async (req, res) => {
                 .in('id', data.horses);
         }
 
-        return res.status(201).json({ success: true, stable: mapToClient(newStable[0]) });
+        // Fetch details to build complete response
+        const { data: horses } = await supabase.from('horse').select('id, stable_id');
+        const { data: trainers } = await supabase.from('trainers').select('id, stable_id');
+
+        const stableHorses = horses?.filter(h => h.stable_id === stableId).map(h => h.id) || [];
+        const stableTrainers = trainers?.filter(t => t.stable_id === stableId) || [];
+
+        return res.status(201).json({
+            success: true,
+            stable: mapToClient({
+                ...newStable[0],
+                horses: stableHorses,
+                horseCount: stableHorses.length,
+                trainerCount: stableTrainers.length
+            })
+        });
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message });
     }
@@ -56,7 +77,22 @@ export const getStable = async (req, res) => {
         const { data: stables, error } = await supabase.from('stable').select('*').eq('user_id', id);
         if (error) throw error;
         
-        return res.status(200).json({ success: true, stables: stables.map(mapToClient) });
+        const { data: horses } = await supabase.from('horse').select('id, stable_id');
+        const { data: trainers } = await supabase.from('trainers').select('id, stable_id');
+
+        const stablesWithDetails = stables.map(stable => {
+            const stableHorses = horses?.filter(h => h.stable_id === stable.id).map(h => h.id) || [];
+            const stableTrainers = trainers?.filter(t => t.stable_id === stable.id) || [];
+            
+            return mapToClient({
+                ...stable,
+                horses: stableHorses,
+                horseCount: stableHorses.length,
+                trainerCount: stableTrainers.length
+            });
+        });
+
+        return res.status(200).json({ success: true, stables: stablesWithDetails });
     } catch (error) {
         return res.status(500).json({ success: false, message: `Error: ${error.message}` });
     }
@@ -75,15 +111,33 @@ export const updateStable = async (req, res) => {
             return res.status(404).json({ success: false, message: error ? error.message : 'Stable not found' });
         }
         
-        // Unassign all horses currently assigned to this stable
-        await supabase.from('horse').update({ stable_id: null }).eq('stable_id', id);
+        // Only update horse assignments if horses array is explicitly passed
+        if (data.horses !== undefined) {
+            // Unassign all horses currently assigned to this stable
+            await supabase.from('horse').update({ stable_id: null }).eq('stable_id', id);
 
-        // Assign the new horses
-        if (data.horses && data.horses.length > 0) {
-            await supabase.from('horse').update({ stable_id: id }).in('id', data.horses);
+            // Assign the new horses
+            if (data.horses && data.horses.length > 0) {
+                await supabase.from('horse').update({ stable_id: id }).in('id', data.horses);
+            }
         }
 
-        return res.status(200).json({ success: true, stable: mapToClient(updatedStable[0]) });
+        // Fetch details to build complete response
+        const { data: horses } = await supabase.from('horse').select('id, stable_id');
+        const { data: trainers } = await supabase.from('trainers').select('id, stable_id');
+
+        const stableHorses = horses?.filter(h => h.stable_id === id).map(h => h.id) || [];
+        const stableTrainers = trainers?.filter(t => t.stable_id === id) || [];
+
+        return res.status(200).json({
+            success: true,
+            stable: mapToClient({
+                ...updatedStable[0],
+                horses: stableHorses,
+                horseCount: stableHorses.length,
+                trainerCount: stableTrainers.length
+            })
+        });
     } catch (error) {
         return res.status(500).json({ success: false, message: `Error: ${error.message}` });
     }
@@ -94,7 +148,22 @@ export const getStables = async (req, res) => {
         const { data: stables, error } = await supabase.from('stable').select('*');
         if (error) throw error;
         
-        return res.status(200).json({ success: true, stables: stables.map(mapToClient) });
+        const { data: horses } = await supabase.from('horse').select('id, stable_id');
+        const { data: trainers } = await supabase.from('trainers').select('id, stable_id');
+
+        const stablesWithDetails = stables.map(stable => {
+            const stableHorses = horses?.filter(h => h.stable_id === stable.id).map(h => h.id) || [];
+            const stableTrainers = trainers?.filter(t => t.stable_id === stable.id) || [];
+            
+            return mapToClient({
+                ...stable,
+                horses: stableHorses,
+                horseCount: stableHorses.length,
+                trainerCount: stableTrainers.length
+            });
+        });
+
+        return res.status(200).json({ success: true, stables: stablesWithDetails });
     } catch (error) {
         return res.status(500).json({ success: false, message: `Error: ${error.message}` });
     }

@@ -9,6 +9,7 @@ import PersonalInformationScreen from "../component/PersonalInformationScreen";
 import SlotManagementScreen from "../screens/SlotManagementScreen";
 import PrivacySecurityScreen from "../screens/PrivacySecurityScreen";
 import HelpCenterScreen from "../screens/HelpCenterScreen";
+import TrainerWorkoutsScreen from "../screens/TrainerWorkoutsScreen";
 
 const WelcomeStack = () => {
     const Stack = createNativeStackNavigator();
@@ -25,6 +26,7 @@ const WelcomeStack = () => {
             <Stack.Screen name="SlotManagement" component={SlotManagementScreen} options={{ headerShown: false }} />
             <Stack.Screen name="PrivacySecurity" component={PrivacySecurityScreen} options={{ headerShown: false }} />
             <Stack.Screen name="HelpCenter" component={HelpCenterScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="TrainerWorkouts" component={TrainerWorkoutsScreen} options={{ headerShown: false }} />
 
         </Stack.Navigator>
     )

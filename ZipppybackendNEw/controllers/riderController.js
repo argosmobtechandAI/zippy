@@ -172,3 +172,81 @@ export const enrollPack = async (req, res) => {
         return res.status(500).json({ success: false, message: `Error: ${error.message}` });
     }
 };
+
+export const getLeaderboard = async (req, res) => {
+    try {
+        const { data: riders, error } = await supabase
+            .from('rider')
+            .select('id, user_id, championship_points, championship_records, users!user_id(name, profile_picture)')
+            .order('championship_points', { ascending: false });
+
+        if (error) throw error;
+
+        const leaderboard = (riders || [])
+            .filter(r => r.users)
+            .map(r => ({
+                id: r.id,
+                userId: r.user_id,
+                name: r.users.name,
+                profilePicture: r.users.profile_picture,
+                championshipPoints: r.championship_points || 0,
+                championshipRecords: r.championship_records || []
+            }));
+
+        return res.status(200).json({
+            success: true,
+            leaderboard
+        });
+    } catch (error) {
+        console.error("Leaderboard fetch error:", error);
+        return res.status(500).json({ success: false, message: `Error: ${error.message}` });
+    }
+};
+
+export const getCompetitions = async (req, res) => {
+    try {
+        const { data: competitions, error } = await supabase
+            .from('competitions')
+            .select('*')
+            .order('name', { ascending: true });
+
+        if (error) throw error;
+
+        return res.status(200).json({
+            success: true,
+            competitions: competitions || []
+        });
+    } catch (error) {
+        console.error("Fetch competitions error:", error);
+        return res.status(500).json({ success: false, message: `Error: ${error.message}` });
+    }
+};
+
+export const createCompetition = async (req, res) => {
+    const { name, date, category } = req.body.data || req.body || {};
+    if (!name || name.trim() === '') {
+        return res.status(400).json({ success: false, message: 'Competition name is required' });
+    }
+    try {
+        const { data: newComp, error } = await supabase
+            .from('competitions')
+            .insert({ name, date: date || null, category: category || null })
+            .select();
+
+        if (error) {
+            if (error.message.includes('unique constraint') || error.message.includes('duplicate key')) {
+                return res.status(400).json({ success: false, message: 'A competition with this name already exists' });
+            }
+            throw error;
+        }
+
+        return res.status(200).json({
+            success: true,
+            competition: newComp[0],
+            message: 'Competition created successfully'
+        });
+    } catch (error) {
+        console.error("Create competition error:", error);
+        return res.status(500).json({ success: false, message: `Error: ${error.message}` });
+    }
+};

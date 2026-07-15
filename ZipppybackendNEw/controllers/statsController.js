@@ -16,11 +16,31 @@ export const getGlobalStats = async (req, res) => {
 
     const { data: stables } = await supabase.from('stable').select('*');
 
-    // 3. Total Revenue (from Revenue table to match Revenue Management)
-    const { data: revenueData } = await supabase.from('revenue').select('amount');
+    // 3. Total Revenue (from payments table to match Revenue Management)
+    const { data: revenueData } = await supabase.from('payments').select('amount, user_id');
     let totalRevenue = 0;
     if (revenueData) {
         totalRevenue = revenueData.reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
+    }
+
+    // Calculate Center Revenue Map
+    const { data: allRidersMapData } = await supabase.from('rider').select('user_id, stable_id');
+    const centerRevenueMap = {};
+    if (revenueData && allRidersMapData) {
+        const userToStable = {};
+        allRidersMapData.forEach(r => {
+            if (r.user_id && r.stable_id) {
+                userToStable[r.user_id] = r.stable_id;
+            }
+        });
+        revenueData.forEach(p => {
+            if (p.user_id && p.amount) {
+                const stableId = userToStable[p.user_id];
+                if (stableId) {
+                    centerRevenueMap[stableId] = (centerRevenueMap[stableId] || 0) + Number(p.amount);
+                }
+            }
+        });
     }
 
     // 4. Center Utilization
@@ -48,7 +68,7 @@ export const getGlobalStats = async (req, res) => {
       const trainerCount = allTrainers ? allTrainers.filter(t => t.stable_id === s.id).length : 0;
 
       let status = "STABLE";
-      const rev = Number(s.total_revenue || s.totalRevenue) || 0;
+      const rev = centerRevenueMap[s.id] || 0;
       if (rev > 40000) status = "PEEK PERFORMANCE";
       else if (rev > 30000) status = "NEAR CAPACITY";
       else if (rev < 20000) status = "UNDER REVIEW";

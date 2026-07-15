@@ -144,13 +144,24 @@ export default function ProfileScreen() {
                             <ChevronRight color="#85431E" size={18} opacity={0.3} />
                         </TouchableOpacity>
 
-                        <TouchableOpacity onPress={() => navigation.navigate("Attendance")} className="flex-row items-center p-4">
+                        <TouchableOpacity onPress={() => navigation.navigate("Attendance")} className="flex-row items-center p-4 border-b border-brand-brown/5">
                             <View className="w-12 h-12 bg-brand-beige rounded-2xl items-center justify-center mr-4">
                                 <Calendar color="#85431E" size={22} strokeWidth={2.5} />
                             </View>
                             <View className="flex-1">
                                 <Text className="text-brand-brown font-display-reg font-bold text-sm mb-0.5">Availability & Leave</Text>
                                 <Text className="text-brand-brown/40 font-body text-[11px]">Manage roster & hours</Text>
+                            </View>
+                            <ChevronRight color="#85431E" size={18} opacity={0.3} />
+                        </TouchableOpacity>
+
+                        <TouchableOpacity onPress={() => navigation.navigate("TrainerWorkouts")} className="flex-row items-center p-4">
+                            <View className="w-12 h-12 bg-brand-beige rounded-2xl items-center justify-center mr-4">
+                                <Award color="#85431E" size={22} strokeWidth={2.5} />
+                            </View>
+                            <View className="flex-1">
+                                <Text className="text-brand-brown font-display-reg font-bold text-sm mb-0.5">Assigned Workouts</Text>
+                                <Text className="text-brand-brown/40 font-body text-[11px]">Track scheduled sessions & leave notes</Text>
                             </View>
                             <ChevronRight color="#85431E" size={18} opacity={0.3} />
                         </TouchableOpacity>

@@ -1,6 +1,6 @@
 import {
     ChevronRight, Zap, Edit2, MoreVertical, Star,
-    ChevronLeft, MoreHorizontal, UserCheck, Activity, Award, X, BellRing, Send, Megaphone, Search,
+    ChevronLeft, MoreHorizontal, UserCheck, Activity, Award, Trophy, X, BellRing, Send, Megaphone, Search,
     Edit,
     Trash2,
     Plus,
@@ -9,7 +9,7 @@ import {
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFunction } from '../api/apiFunction';
-import { createUserApi, getAllUsersApi, notifyUserApi, notifyAllUsersApi, updateUserApi, updateUserLeaveApi, getAllTrainersApi, updateTrainerApi, getAllStablesApi, deleteStableLogoApi, uploadFileApi, deleteUserApi, plansApi, assignPlanApi, getAllHorsesApi, getLevelsApi } from '../api/apis';
+import { createUserApi, getAllUsersApi, notifyUserApi, notifyAllUsersApi, updateUserApi, updateUserLeaveApi, getAllTrainersApi, updateTrainerApi, getAllStablesApi, deleteStableLogoApi, uploadFileApi, deleteUserApi, plansApi, assignPlanApi, getAllHorsesApi, getLevelsApi, getCompetitionsApi, createCompetitionApi } from '../api/apis';
 import toast from 'react-hot-toast';
 import axios from 'axios';
 
@@ -130,6 +130,8 @@ const UserManagement = () => {
     const [loading, setLoading] = useState(true)
     const [stables, setStables] = useState([])
     const [horses, setHorses] = useState([])
+    const [competitionModal, setCompetitionModal] = useState(false)
+    const [competitions, setCompetitions] = useState([])
     const navigate = useNavigate();
 
     const fetchHorses = async () => {
@@ -261,10 +263,22 @@ const UserManagement = () => {
         setLoading(false);
     }
 
+    const fetchCompetitions = async () => {
+        try {
+            const res = await apiFunction(getCompetitionsApi, [], {}, "GET", true);
+            if (res && res.success) {
+                setCompetitions(res.competitions || []);
+            }
+        } catch (error) {
+            console.error("Error fetching competitions:", error);
+        }
+    };
+
     useEffect(() => {
         fetchUsers();
         fetchTrainers();
         fetchStables();
+        fetchCompetitions();
     }, []);
 
 
@@ -451,6 +465,15 @@ const UserManagement = () => {
                             <Megaphone className="w-4 h-4" strokeWidth={2.5} />
                             Global Broadcast
                         </button>
+                        {(userType === 'rider' || userType === 'all') && (
+                            <button
+                                onClick={() => setCompetitionModal(true)}
+                                className="bg-white border border-[#964C2E]/20 text-[#964C2E] text-[13px] font-bold px-6 py-3.5 rounded-xl shadow-sm flex items-center gap-2.5 hover:bg-[#FDF9F4] transition-all"
+                            >
+                                <Trophy className="w-4 h-4" strokeWidth={2.5} />
+                                Manage Competitions
+                            </button>
+                        )}
                         <button
                             onClick={() => setCreateModal(true)}
                             className="bg-[#FAE9DB] border border-[#EACDBA] text-[#964C2E] text-[13px] font-bold px-6 py-3.5 rounded-xl shadow-sm flex items-center gap-2.5 hover:bg-[#F3DCC7] transition-all"
@@ -670,7 +693,7 @@ const UserManagement = () => {
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-3 gap-3">
+                                    <div className={`grid ${user.type === 'rider' ? 'grid-cols-4' : 'grid-cols-3'} gap-3`}>
                                         {user.type === 'rider' ? (
                                             <>
                                                 <div className="bg-[#F8F9FA] rounded-xl p-4 border border-gray-100">
@@ -680,6 +703,10 @@ const UserManagement = () => {
                                                 <div className="bg-[#F8F9FA] rounded-xl p-4 border border-gray-100">
                                                     <h4 className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-1.5">RIDER LEVEL</h4>
                                                     <p className="text-[14px] mt-1.5 font-bold text-[#964C2E] truncate">{user.level || 'Level 1'}</p>
+                                                </div>
+                                                <div className="bg-[#F8F9FA] rounded-xl p-4 border border-gray-100">
+                                                    <h4 className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-1.5">POINTS</h4>
+                                                    <p className="text-[20px] font-black text-[#964C2E]">{user.championshipPoints !== undefined ? user.championshipPoints : 0}</p>
                                                 </div>
                                             </>
                                         ) : (
@@ -839,6 +866,15 @@ const UserManagement = () => {
                 />
             )}
 
+            {competitionModal && (
+                <CompetitionsModal
+                    isOpen={competitionModal}
+                    onClose={() => setCompetitionModal(false)}
+                    competitions={competitions}
+                    fetchCompetitions={fetchCompetitions}
+                />
+            )}
+
             {viewUser && (
                 <ProfileQuickView 
                     user={viewUser} 
@@ -854,6 +890,8 @@ const UserManagement = () => {
                     fetchHorses={fetchHorses}
                     users={users}
                     fetchUsers={fetchUsers}
+                    competitions={competitions}
+                    fetchCompetitions={fetchCompetitions}
                 />
             )}
 
@@ -869,7 +907,7 @@ const UserManagement = () => {
 };
 
 
-const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave, onUpdateSuccess, horses = [], fetchHorses, users, fetchUsers }) => {
+const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave, onUpdateSuccess, horses = [], fetchHorses, users, fetchUsers, competitions = [], fetchCompetitions }) => {
     const [isEditingWallet, setIsEditingWallet] = useState(false);
     const [isAddingWallet, setIsAddingWallet] = useState(false);
     const [walletInput, setWalletInput] = useState('');
@@ -895,6 +933,15 @@ const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave, onUpdateSuc
 
     const [selectedHorseIds, setSelectedHorseIds] = useState([]);
     const [isAssigningHorse, setIsAssigningHorse] = useState(false);
+
+    // Championship points allotment state
+    const [isAddingPoints, setIsAddingPoints] = useState(false);
+    const [isSavingPoints, setIsSavingPoints] = useState(false);
+    const [pointsCompName, setPointsCompName] = useState('');
+    const [pointsDate, setPointsDate] = useState(new Date().toISOString().split('T')[0]);
+    const [pointsCategory, setPointsCategory] = useState('');
+    const [pointsGained, setPointsGained] = useState('');
+    const [editingRecordId, setEditingRecordId] = useState(null);
 
     useEffect(() => {
         if (user && users) {
@@ -1039,6 +1086,110 @@ const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave, onUpdateSuc
             toast.error("Network error. Please try again.");
         } finally {
             setIsSavingLevel(false);
+        }
+    };
+
+    const handleAllotPoints = async () => {
+        if (!pointsCompName) {
+            toast.error('Please select a competition');
+            return;
+        }
+        if (!pointsGained || isNaN(Number(pointsGained)) || Number(pointsGained) <= 0) {
+            toast.error('Please enter a valid points amount');
+            return;
+        }
+        setIsSavingPoints(true);
+        try {
+            const selectedComp = competitions.find(c => c.name === pointsCompName);
+            const combinedCategoryOrRound = selectedComp && selectedComp.category 
+                ? `${selectedComp.category} • ${pointsCategory}` 
+                : pointsCategory;
+
+            if (editingRecordId) {
+                // Edit existing record
+                updatedRecords = (localUser.championshipRecords || []).map(r => {
+                    if (r.id === editingRecordId) {
+                        return {
+                            ...r,
+                            competitionName: pointsCompName,
+                            date: pointsDate,
+                            categoryOrRound: combinedCategoryOrRound,
+                            points: Number(pointsGained)
+                        };
+                    }
+                    return r;
+                });
+                newPoints = updatedRecords.reduce((sum, r) => sum + Number(r.points || 0), 0);
+            } else {
+                // Add new record
+                const newRecord = {
+                    id: Date.now().toString(),
+                    competitionName: pointsCompName,
+                    date: pointsDate,
+                    categoryOrRound: combinedCategoryOrRound,
+                    points: Number(pointsGained)
+                };
+                updatedRecords = [...(localUser.championshipRecords || []), newRecord];
+                newPoints = (localUser.championshipPoints || 0) + Number(pointsGained);
+            }
+
+            const payload = {
+                championshipRecords: updatedRecords,
+                championshipPoints: newPoints
+            };
+
+            const res = await apiFunction(`${updateUserApi}/${localUser.id}`, [], payload, "PUT", true);
+            if (res && res.success) {
+                toast.success(editingRecordId ? 'Championship record updated successfully' : 'Championship points allotted successfully');
+                setIsAddingPoints(false);
+                setEditingRecordId(null);
+                setPointsCompName('');
+                setPointsCategory('');
+                setPointsGained('');
+                
+                const updated = {
+                    ...localUser,
+                    championshipPoints: newPoints,
+                    championshipRecords: updatedRecords
+                };
+                setLocalUser(updated);
+                if (onUpdateSuccess) onUpdateSuccess(updated);
+            } else {
+                toast.error(res?.message || 'Failed to update points');
+            }
+        } catch (err) {
+            toast.error('An error occurred');
+        } finally {
+            setIsSavingPoints(false);
+        }
+    };
+
+    const handleDeleteChampionshipRecord = async (recordToDelete) => {
+        if (!window.confirm("Are you sure you want to delete this championship record?")) return;
+        try {
+            const updatedRecords = (localUser.championshipRecords || []).filter(r => r.id !== recordToDelete.id);
+            const newPoints = updatedRecords.reduce((sum, r) => sum + Number(r.points || 0), 0);
+            
+            const payload = {
+                championshipRecords: updatedRecords,
+                championshipPoints: newPoints
+            };
+            const res = await apiFunction(`${updateUserApi}/${localUser.id}`, [], payload, "PUT", true);
+            if (res && res.success) {
+                toast.success('Championship record deleted successfully');
+                const updated = {
+                    ...localUser,
+                    championshipPoints: newPoints,
+                    championshipRecords: updatedRecords
+                };
+                setLocalUser(updated);
+                if (onUpdateSuccess) onUpdateSuccess(updated);
+            } else {
+                toast.error(res?.message || 'Failed to delete record');
+            }
+        } catch (err) {
+            console.error("Delete record error:", err);
+            toast.error("Failed to delete record");
         }
     };
 
@@ -1389,6 +1540,181 @@ const ProfileQuickView = ({ user, onClose, navigate, onApproveLeave, onUpdateSuc
                                     className="flex-1 bg-[#964C2E] hover:bg-[#804026] text-white text-[11px] font-black uppercase py-2.5 rounded-xl transition-all disabled:opacity-55 font-bold"
                                 >
                                     {isSavingLevel ? 'Saving...' : 'Save'}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ── Championship Points ────────────────────────── */}
+                    {localUser.type === 'rider' && !isAddingPoints && (
+                        <div className="p-5 bg-[#FAF3EC] rounded-2xl border border-[#964C2E]/20 flex flex-col gap-4 shadow-sm animate-in fade-in duration-200">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <h4 className="text-[10px] font-black text-[#964C2E] tracking-widest uppercase mb-1">Championship Points</h4>
+                                    <p className="text-[24px] font-black text-[#1e2330]">{localUser.championshipPoints || 0} pts</p>
+                                </div>
+                                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-[#964C2E] border border-[#964C2E]/10 shadow-sm">
+                                    <Trophy className="w-6 h-6" />
+                                </div>
+                            </div>
+
+                            {/* Points History Feed */}
+                            {localUser.championshipRecords && localUser.championshipRecords.length > 0 && (
+                                <div className="border-t border-[#964C2E]/10 pt-3 mt-1 max-h-[150px] overflow-y-auto pr-1 no-scrollbar flex flex-col gap-2">
+                                    {localUser.championshipRecords.map((rec) => (
+                                        <div key={rec.id} className="bg-white border border-gray-100 rounded-xl p-2.5 flex justify-between items-center gap-2">
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-[11px] font-black text-[#1e2330] leading-snug truncate">{rec.competitionName}</p>
+                                                <p className="text-[9px] font-semibold text-gray-400 mt-0.5">
+                                                    {rec.date} • {rec.categoryOrRound || 'N/A'}
+                                                </p>
+                                            </div>
+                                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                                                <span className="text-[11px] font-black text-green-700 bg-green-50 px-2 py-0.5 rounded-lg whitespace-nowrap">
+                                                    +{rec.points} pts
+                                                </span>
+                                                <button
+                                                    onClick={() => {
+                                                        setEditingRecordId(rec.id);
+                                                        setPointsCompName(rec.competitionName);
+                                                        setPointsDate(rec.date);
+                                                        const catOrRound = rec.categoryOrRound || '';
+                                                        const parts = catOrRound.split(' • ');
+                                                        const roundOnly = parts.length > 1 ? parts.slice(1).join(' • ') : parts[0];
+                                                        setPointsCategory(roundOnly);
+                                                        setPointsGained(rec.points.toString());
+                                                        setIsAddingPoints(true);
+                                                    }}
+                                                    className="p-1 text-gray-400 hover:text-[#964C2E] hover:bg-[#FAF3EC] rounded transition-colors"
+                                                    title="Edit Record"
+                                                >
+                                                    <Edit2 className="w-3.5 h-3.5" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteChampionshipRecord(rec)}
+                                                    className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                                                    title="Delete Record"
+                                                >
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            <button
+                                onClick={() => {
+                                    const defaultCompName = competitions.length > 0 ? competitions[0].name : '';
+                                    setPointsCompName(defaultCompName);
+                                    setPointsDate(new Date().toISOString().split('T')[0]);
+                                    setPointsCategory('');
+                                    setPointsGained('');
+                                    setIsAddingPoints(true);
+                                }}
+                                className="w-full bg-[#964C2E] hover:bg-[#804026] text-white text-[11px] font-black uppercase py-2.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 font-bold"
+                            >
+                                <Plus className="w-3.5 h-3.5" /> Allot Championship Points
+                            </button>
+                        </div>
+                    )}
+
+                    {localUser.type === 'rider' && isAddingPoints && (
+                        <div className="p-5 bg-[#FAF3EC] rounded-2xl border border-[#964C2E]/20 flex flex-col gap-4 shadow-sm animate-in fade-in duration-200">
+                            <div>
+                                <h4 className="text-[10px] font-black text-[#964C2E] tracking-widest uppercase mb-3">
+                                    {editingRecordId ? 'Edit Championship Record' : 'Allot Championship Points'}
+                                </h4>
+                                
+                                <div className="flex flex-col gap-3">
+                                    <div>
+                                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Competition</label>
+                                        {competitions.length === 0 && !editingRecordId ? (
+                                            <div className="text-[12px] font-semibold text-red-500 py-1">
+                                                No competitions defined! Please add a competition first using "Manage Competitions" in the main toolbar.
+                                            </div>
+                                        ) : (
+                                            <div className="flex flex-col gap-1">
+                                                <select
+                                                    value={pointsCompName}
+                                                    onChange={(e) => setPointsCompName(e.target.value)}
+                                                    className="w-full bg-white border border-[#964C2E]/20 rounded-xl px-3 py-2.5 text-[13px] font-bold focus:outline-none focus:border-[#964C2E]"
+                                                >
+                                                    {competitions.length > 0 ? (
+                                                        competitions.map(c => (
+                                                            <option key={c.id} value={c.name}>{c.name}</option>
+                                                        ))
+                                                    ) : (
+                                                        <option value={pointsCompName}>{pointsCompName}</option>
+                                                    )}
+                                                </select>
+                                                {(() => {
+                                                    const selected = competitions.find(c => c.name === pointsCompName);
+                                                    if (selected && selected.category) {
+                                                        return (
+                                                            <div className="mt-1.5 flex items-center gap-1.5">
+                                                                <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Category:</span>
+                                                                <span className="text-[9px] font-black text-[#964C2E] bg-[#FAF3EC] px-2 py-0.5 rounded-md uppercase tracking-wider">
+                                                                    {selected.category}
+                                                                </span>
+                                                            </div>
+                                                        );
+                                                    }
+                                                    return null;
+                                                })()}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Date</label>
+                                        <input
+                                            type="date"
+                                            value={pointsDate}
+                                            onChange={(e) => setPointsDate(e.target.value)}
+                                            className="w-full bg-white border border-[#964C2E]/20 rounded-xl px-3 py-2.5 text-[13px] font-bold focus:outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Rounds Participated</label>
+                                        <input
+                                            type="text"
+                                            value={pointsCategory}
+                                            onChange={(e) => setPointsCategory(e.target.value)}
+                                            className="w-full bg-white border border-[#964C2E]/20 rounded-xl px-3 py-2.5 text-[13px] font-bold focus:outline-none"
+                                            placeholder="e.g. Round 1 & Round 2"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Points Gained</label>
+                                        <input
+                                            type="number"
+                                            value={pointsGained}
+                                            onChange={(e) => setPointsGained(e.target.value)}
+                                            className="w-full bg-white border border-[#964C2E]/20 rounded-xl px-3 py-2.5 text-[13px] font-bold focus:outline-none"
+                                            placeholder="e.g. 10"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => {
+                                        setIsAddingPoints(false);
+                                        setEditingRecordId(null);
+                                        setPointsCompName('');
+                                        setPointsCategory('');
+                                        setPointsGained('');
+                                    }}
+                                    className="flex-1 bg-white text-gray-500 border border-gray-200 hover:bg-gray-50 text-[11px] font-black uppercase py-2.5 rounded-xl transition-all font-bold"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleAllotPoints}
+                                    disabled={isSavingPoints || (competitions.length === 0 && !editingRecordId)}
+                                    className="flex-1 bg-[#964C2E] hover:bg-[#804026] text-white text-[11px] font-black uppercase py-2.5 rounded-xl transition-all disabled:opacity-55 font-bold"
+                                >
+                                    {isSavingPoints ? 'Saving...' : (editingRecordId ? 'Save' : 'Allot')}
                                 </button>
                             </div>
                         </div>
@@ -2291,6 +2617,138 @@ const DeleteConfirmModal = ({ userName, onCancel, onConfirm }) => {
                             </>
                         )}
                     </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const CompetitionsModal = ({ isOpen, onClose, competitions, fetchCompetitions }) => {
+    const [name, setName] = useState('');
+    const [date, setDate] = useState('');
+    const [category, setCategory] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
+
+    if (!isOpen) return null;
+
+    const handleAdd = async (e) => {
+        e.preventDefault();
+        if (!name.trim()) {
+            toast.error('Competition name is required');
+            return;
+        }
+        setIsSaving(true);
+        try {
+            const res = await apiFunction(createCompetitionApi, [], { name: name.trim(), date: date || null, category: category.trim() || null }, "POST", true);
+            if (res && res.success) {
+                toast.success('Competition added successfully');
+                setName('');
+                setDate('');
+                setCategory('');
+                fetchCompetitions();
+            } else {
+                toast.error(res?.message || 'Failed to add competition');
+            }
+        } catch (err) {
+            toast.error('An error occurred');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white rounded-3xl w-full max-w-lg p-6 shadow-2xl relative overflow-hidden animate-in zoom-in-95 duration-200">
+                <button
+                    onClick={onClose}
+                    className="absolute top-5 right-5 p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                    <X className="w-5 h-5" />
+                </button>
+
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 rounded-xl bg-[#FAF3EC] border border-[#964C2E]/20 flex items-center justify-center text-[#964C2E]">
+                        <Trophy className="w-5 h-5" />
+                    </div>
+                    <div>
+                        <h2 className="text-[20px] font-black text-[#1e2330] leading-none">Manage Competitions</h2>
+                        <p className="text-[12px] font-semibold text-gray-400 mt-1">Add and view competitions for championship points.</p>
+                    </div>
+                </div>
+
+                {/* Add Competition Form */}
+                <form onSubmit={handleAdd} className="bg-[#FAF3EC]/50 border border-[#964C2E]/10 rounded-2xl p-4 mb-6">
+                    <h3 className="text-[12px] font-black text-[#964C2E] uppercase tracking-wider mb-3">Add New Competition</h3>
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                        <div className="col-span-2">
+                            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Competition Name</label>
+                            <input
+                                type="text"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-[13px] font-bold focus:outline-none focus:border-[#964C2E]"
+                                placeholder="e.g. Summer Classic 2026"
+                            />
+                        </div>
+                        <div className="col-span-2 md:col-span-1">
+                            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Category Name (Optional)</label>
+                            <input
+                                type="text"
+                                value={category}
+                                onChange={(e) => setCategory(e.target.value)}
+                                className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-[13px] font-bold focus:outline-none focus:border-[#964C2E]"
+                                placeholder="e.g. Dressage / Jumping"
+                            />
+                        </div>
+                        <div className="col-span-2 md:col-span-1">
+                            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Date (Optional)</label>
+                            <input
+                                type="date"
+                                value={date}
+                                onChange={(e) => setDate(e.target.value)}
+                                className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-[13px] font-bold focus:outline-none focus:border-[#964C2E]"
+                            />
+                        </div>
+                    </div>
+                    <button
+                        type="submit"
+                        disabled={isSaving}
+                        className="w-full bg-[#964C2E] hover:bg-[#804026] text-white text-[12px] font-bold py-2.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5"
+                    >
+                        <Plus className="w-3.5 h-3.5" />
+                        {isSaving ? 'Adding...' : 'Add Competition'}
+                    </button>
+                </form>
+
+                {/* Competition List */}
+                <h3 className="text-[12px] font-black text-[#1e2330] uppercase tracking-wider mb-3">Competition List ({competitions.length})</h3>
+                <div className="max-h-[200px] overflow-y-auto pr-1 flex flex-col gap-2 no-scrollbar">
+                    {competitions.length === 0 ? (
+                        <p className="text-[13px] text-gray-400 font-semibold text-center py-6">No competitions added yet.</p>
+                    ) : (
+                        competitions.map((comp) => (
+                            <div key={comp.id} className="flex justify-between items-center bg-gray-50 border border-gray-100 rounded-xl px-4 py-3">
+                                <div>
+                                    <p className="text-[13px] font-bold text-[#1e2330]">
+                                        {comp.name}
+                                        {comp.category && (
+                                            <span className="text-[9px] font-bold text-[#964C2E] ml-2 bg-[#FAF3EC] px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                                {comp.category}
+                                            </span>
+                                        )}
+                                    </p>
+                                    {comp.date && (
+                                        <p className="text-[10px] font-semibold text-gray-400 mt-0.5">
+                                            Date: {new Date(comp.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                        </p>
+                                    )}
+                                </div>
+                                <span className="text-[9px] font-bold text-[#964C2E] bg-[#FAF3EC] px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                    Active
+                                </span>
+                            </div>
+                        ))
+                    )}
                 </div>
             </div>
         </div>

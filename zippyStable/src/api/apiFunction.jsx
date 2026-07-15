@@ -20,7 +20,7 @@ export const apiFunction = async (api, params = [], data = {}, method, withAuth)
     try {
         switch (method) {
             case 'GET':
-                response = await axios.get(url, { headers });
+                response = await axios.get(url, { headers, params: data });
                 break;
             case 'POST':
                 response = await axios.post(url, { data }, { headers });

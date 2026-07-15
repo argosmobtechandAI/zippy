@@ -62,10 +62,14 @@ const AttendanceReport = () => {
                 apiFunction(getAllHorsesApi, [], {}, 'GET', true),
             ]);
             
+            const stablesList = stabRes?.stables || stabRes?.data || [];
+            const matchedStable = stablesList.find(st => st.id === selectedStable);
+
             const filterByStable = (list) => {
                 return (list || []).filter(s => 
                     s.stableId === selectedStable || 
                     s.stable_id === selectedStable ||
+                    (matchedStable && s.location === matchedStable.name) ||
                     (s.horse && (s.horse.stableId === selectedStable || s.horse.stable_id === selectedStable))
                 );
             };

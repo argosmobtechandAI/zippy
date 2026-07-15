@@ -59,9 +59,17 @@ const Sidebar = () => {
                     <Users className="w-5 h-5" />
                     Member Directory
                 </NavLink>
+                <NavLink to="/horses" className={({ isActive }) => `flex items-center gap-4 px-4 py-3 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
+                    <CloudLightning className="w-5 h-5" />
+                    Horses registry
+                </NavLink>
                 <NavLink to="/horse-health" className={({ isActive }) => `flex items-center gap-4 px-4 py-3 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
                     <Activity className="w-5 h-5" />
                     Horse Health & Workload
+                </NavLink>
+                <NavLink to="/workout-tracker" className={({ isActive }) => `flex items-center gap-4 px-4 py-3 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
+                    <ClipboardList className="w-5 h-5" />
+                    Workout Tracker
                 </NavLink>
                 <NavLink to="/attendanceReport" className={({ isActive }) => `flex items-center gap-4 px-4 py-3 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
                     <ClipboardList className="w-5 h-5" />
@@ -107,10 +115,10 @@ const Sidebar = () => {
                     <Users className="w-5 h-5" />
                     Trainer Management
                 </NavLink>
-                <NavLink to="/lessons" className={({ isActive }) => `flex items-center gap-4 px-4 py-3 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
+                {/* <NavLink to="/lessons" className={({ isActive }) => `flex items-center gap-4 px-4 py-3 rounded-xl text-[13px] font-semibold transition-all ${isActive ? 'bg-brand-beige text-brand-brown shadow-sm' : 'hover:bg-white/10 text-brand-beige/90'}`}>
                     <BookOpen className="w-5 h-5" />
                     Lesson Schedule
-                </NavLink>
+                </NavLink> */}
             </nav>
 
             {/* Bottom Button */}

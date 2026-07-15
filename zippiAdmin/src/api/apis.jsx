@@ -79,3 +79,6 @@ export const verifyCombinedCartOrderApi  = `${baseUrl}/cart/verifyCombinedOrder`
 
 export const getDailySnapshotsApi = `${baseUrl}/session/snapshots`;
 export const triggerDailySnapshotCronApi = `${baseUrl}/cron/take-daily-snapshot`;
+
+export const getCompetitionsApi = `${baseUrl}/competitions`;
+export const createCompetitionApi = `${baseUrl}/competitions`;

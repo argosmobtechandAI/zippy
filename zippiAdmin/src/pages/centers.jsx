@@ -436,36 +436,29 @@ const CreateCenterModal = ({ setShowModal, editing, formDataa, onSuccess, stable
 
                         <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Horses</label>
 
-                        <div className="flex flex-row gap-2">
-                            {(formData.horses || []).map((horse) => (
-                                <div key={horse} className="flex items-center gap-2">
-                                    <span className="text-[14px] font-bold">{horses.find((h) => h.id === horse)?.name}</span>
-                                    <button onClick={() => setFormData({ ...formData, horses: (formData.horses || []).filter((h) => h !== horse) })}>
-                                        <X className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
                         <select
                             name="horse"
-                            value={formData.horse}
-                            onChange={(e) => setFormData({ ...formData, horses: [...(formData.horses || []), (formData.horses || []).includes(e.target.value) ? "" : e.target.value] })}
+                            value=""
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                if (!val) return;
+                                const currentHorses = formData.horses || [];
+                                const newHorses = currentHorses.includes(val) 
+                                    ? currentHorses.filter(h => h !== val) 
+                                    : [...currentHorses, val];
+                                setFormData({ ...formData, horses: newHorses });
+                            }}
                             className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:ring-2 focus:ring-[#964C2E]/10 focus:border-[#964C2E] focus:bg-white transition-all"
                         >
-                            <option value="">Select Horse</option>
-                            {horses.map((horse) => (
-                                <option key={horse.id} value={horse.id}>
-                                    <div className='flex flex-row w-full justify-between gap-6 items-center px-4'>
-                                        <span>{horse.name}</span>
-                                        {horse.stableId && <span>
-
-                                            {`(${getStableName(horse.stableId)})`}
-                                        </span>}
-
-
-                                    </div>
-                                </option>
-                            ))}
+                            <option value="">{formData.horses?.length > 0 ? `${formData.horses.length} Horses Selected` : "Select Horse"}</option>
+                            {horses.map((horse) => {
+                                const isSelected = (formData.horses || []).includes(horse.id);
+                                return (
+                                    <option key={horse.id} value={horse.id}>
+                                        {horse.name} {isSelected ? "✓" : ""} {horse.stableId ? `(${getStableName(horse.stableId)})` : ""}
+                                    </option>
+                                );
+                            })}
                         </select>
                     </div>
                     <div>

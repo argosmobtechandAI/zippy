@@ -6,8 +6,7 @@ const mapToDb = (data) => {
     if (dbData.currentStock !== undefined) { dbData.current_stock = dbData.currentStock; delete dbData.currentStock; }
     if (dbData.minThreshold !== undefined) { dbData.min_threshold = dbData.minThreshold; delete dbData.minThreshold; }
     if (dbData.lastUpdated !== undefined) { dbData.last_updated = dbData.lastUpdated; delete dbData.lastUpdated; }
-    if (dbData.stableId !== undefined) { delete dbData.stableId; }
-    if (dbData.stable_id !== undefined) { delete dbData.stable_id; }
+    if (dbData.stableId !== undefined) { dbData.stable_id = dbData.stableId; delete dbData.stableId; }
     return dbData;
 };
 
@@ -71,6 +70,9 @@ export const createInventoryItem = async (req, res) => {
         const status = Number(data.currentStock) <= 0 ? "Out of Stock" :
             Number(data.currentStock) <= (Number(data.minThreshold) || 10) ? "Low Stock" : "In Stock";
 
+        let stableId = data.stableId;
+        if (!stableId || stableId === "") stableId = null;
+
         const insertData = mapToDb({
             name: data.name,
             category: data.category,
@@ -79,16 +81,18 @@ export const createInventoryItem = async (req, res) => {
             minThreshold: Number(data.minThreshold) || 10,
             status,
             lastUpdated: new Date().toISOString(),
-            stableId: data.stableId
+            stableId: stableId
         });
 
         const { data: newItem, error } = await supabase.from('inventory').insert(insertData).select();
         if (error || !newItem || !newItem.length) throw error || new Error('Failed to create inventory item');
 
-        const { data: stable } = await supabase.from('stable').select('*').eq('id', data.stableId).limit(1);
-        if (stable && stable.length) {
-            const stocks = stable[0].stocks ? [...stable[0].stocks, newItem[0].id] : [newItem[0].id];
-            await supabase.from('stable').update({ stocks }).eq('id', data.stableId);
+        if (stableId) {
+            const { data: stable } = await supabase.from('stable').select('*').eq('id', stableId).limit(1);
+            if (stable && stable.length) {
+                const stocks = stable[0].stocks ? [...stable[0].stocks, newItem[0].id] : [newItem[0].id];
+                await supabase.from('stable').update({ stocks }).eq('id', stableId);
+            }
         }
 
         res.status(201).json({ success: true, item: mapToClient(newItem[0]) });

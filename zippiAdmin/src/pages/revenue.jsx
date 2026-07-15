@@ -171,7 +171,8 @@ const Revenue = () => {
         }
     };
     const getStableRevenue = (stableId, type) => {
-        const stablePayments = payments.filter(p => {
+        const sourcePayments = scopedStats?.statsList || payments;
+        const stablePayments = sourcePayments.filter(p => {
             if (!p.user) return false;
             const riderStables = p.user.rider?.map(r => String(r.stableId || r.stable_id || r.stable?.id || '')) || [];
             const isMatch = riderStables.includes(String(stableId)) || String(p.user.stableId || '') === String(stableId) || String(p.user.stable_id || '') === String(stableId);

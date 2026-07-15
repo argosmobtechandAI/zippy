@@ -13,7 +13,7 @@ export default async function handler(req, res) {
     try {
         const { data: payments, error } = await supabase
             .from('payments')
-            .select('*, user:users(id, name, email, mobile, rider(level, stable(name)))')
+            .select('*, user:users(id, name, email, mobile, rider(level, stable_id, stable(name)))')
             .order('date', { ascending: false });
 
         if (error) throw error;

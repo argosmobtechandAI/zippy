@@ -13,7 +13,7 @@ export default async function handler(req, res) {
   } else if (req.method === 'POST') {
     try {
       const bodyData = req.body.data || req.body;
-      const { code, discountType, discountValue, targetUsers, usageLimit, expiryDate, status } = bodyData;
+      const { code, discountType, discountValue, targetUsers, usageLimit, expiryDate, status, stableId } = bodyData;
       
       if (!code || !discountType || discountValue === undefined) {
         return res.status(400).json({ success: false, message: 'Missing required fields' });
@@ -33,6 +33,7 @@ export default async function handler(req, res) {
         usage_limit: usageLimit || null,
         expiry_date: expiryDate || null,
         status: status || 'ACTIVE',
+        stable_id: stableId,
         created_at: new Date().toISOString()
       }).select();
 

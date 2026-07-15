@@ -96,6 +96,15 @@ export const riderTable = pgTable("rider", {
   planEndDate: varchar("plan_end_date", { length: 50 }).default(""),
   stableId: uuid("stable_id").references(() => stableTable.id),
   wallet: integer("wallet").default(0),
+  championshipPoints: integer("championship_points").default(0),
+  championshipRecords: jsonb("championship_records").default([]),
+});
+
+export const competitionTable = pgTable("competitions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull().unique(),
+  date: varchar("date", { length: 50 }),
+  createdAt: varchar("created_at", { length: 50 }).default(new Date().toISOString()),
 });
 
 export const planTable = pgTable("plan", {
@@ -246,5 +255,20 @@ export const riderDailySnapshotsTable = pgTable("rider_daily_snapshots", {
   bookingTime: varchar("booking_time", { length: 255 }),
   hasBookedToday: varchar("has_booked_today", { length: 50 }).default("false"),
   snapshotDate: varchar("snapshot_date", { length: 50 }).notNull(),
+  createdAt: varchar("created_at", { length: 50 }).default(new Date().toISOString()),
+});
+
+export const horseWorkoutsTable = pgTable("horse_workouts", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  horseId: uuid("horse_id").notNull().references(() => horseTable.id, { onDelete: 'cascade' }),
+  trainerId: uuid("trainer_id").references(() => userTable.id, { onDelete: 'set null' }),
+  date: varchar("date", { length: 50 }).notNull(),
+  workoutType: varchar("workout_type", { length: 255 }).notNull(),
+  duration: integer("duration").notNull(),
+  intensity: varchar("intensity", { length: 50 }).notNull(),
+  status: varchar("status", { length: 50 }).notNull().default("Scheduled"),
+  notes: varchar("notes", { length: 1000 }),
+  trainerComment: varchar("trainer_comment", { length: 1000 }),
+  stableId: uuid("stable_id").notNull().references(() => stableTable.id, { onDelete: 'cascade' }),
   createdAt: varchar("created_at", { length: 50 }).default(new Date().toISOString()),
 });

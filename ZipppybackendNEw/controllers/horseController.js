@@ -288,7 +288,10 @@ export const getHorsesByStable = async (req, res) => {
             const trainer = allUsers?.filter(u => u.id === horse.trainer_id) || [];
             const sessions = allSessions?.filter(s => s.horse_id && s.horse_id.includes(horse.id)) || [];
 
-            return mapToClient({ ...horse, healthRecords: latestHealthStatus, vaccinationRecords, trainer, session: sessions });
+            const horseObj = { ...horse };
+            delete horseObj.vaccination_records;
+
+            return mapToClient({ ...horseObj, healthRecords, vaccinationRecords, trainer, session: sessions });
         });
         res.status(200).json({ success: true, horses: completeHorses });
     } catch (error) {

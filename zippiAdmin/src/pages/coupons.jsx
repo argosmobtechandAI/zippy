@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Tag, Plus, Trash2, Edit2, CheckCircle2, XCircle, Users } from 'lucide-react';
 import { apiFunction } from '../api/apiFunction';
 import { getCouponsApi, createCouponApi, deleteCouponApi, updateCouponApi, getAllUsersApi } from '../api/apis';
@@ -22,6 +22,17 @@ const Coupons = () => {
         targetUsers: [],
         targetAll: true
     });
+
+    const [userSearchQuery, setUserSearchQuery] = useState('');
+
+    const filteredUsers = useMemo(() => {
+        if (!userSearchQuery) return users;
+        const q = userSearchQuery.toLowerCase();
+        return users.filter(u => 
+            (u.name || '').toLowerCase().includes(q) || 
+            (u.mobile || '').toLowerCase().includes(q)
+        );
+    }, [users, userSearchQuery]);
 
     useEffect(() => {
         fetchCoupons();
@@ -277,26 +288,35 @@ const Coupons = () => {
                             </div>
 
                             {!formData.targetAll && (
-                                <div className="border border-gray-100 rounded-2xl p-4 max-h-48 overflow-y-auto bg-gray-50/50">
-                                    {users.length === 0 ? (
-                                        <div className="text-[13px] text-gray-400 font-semibold p-2">No users found.</div>
-                                    ) : (
-                                        users.map(u => (
-                                            <label key={u.id} className="flex items-center gap-3 p-2 hover:bg-white rounded-xl cursor-pointer transition-colors">
-                                                <input 
-                                                    type="checkbox"
-                                                    checked={formData.targetUsers.includes(u.id)}
-                                                    onChange={() => handleUserToggle(u.id)}
-                                                    className="w-4 h-4 text-[#964C2E] rounded focus:ring-[#964C2E]"
-                                                />
-                                                <div className="flex flex-col">
-                                                    <span className="text-[14px] font-bold text-[#1e2330]">{u.name}</span>
-                                                    <span className="text-[11px] text-gray-500 font-semibold">{u.mobile}</span>
-                                                </div>
-                                            </label>
-                                        ))
-                                    )}
-                                </div>
+                                <>
+                                    <input
+                                        type="text"
+                                        placeholder="Search user name or mobile..."
+                                        value={userSearchQuery}
+                                        onChange={(e) => setUserSearchQuery(e.target.value)}
+                                        className="w-full border border-gray-200 bg-white rounded-xl px-4 py-3 text-[13px] font-medium mb-3 focus:outline-none focus:border-[#964C2E] transition-all"
+                                    />
+                                    <div className="border border-gray-100 rounded-2xl p-4 max-h-48 overflow-y-auto bg-gray-50/50">
+                                        {filteredUsers.length === 0 ? (
+                                            <div className="text-[13px] text-gray-400 font-semibold p-2">No users found.</div>
+                                        ) : (
+                                            filteredUsers.map(u => (
+                                                <label key={u.id} className="flex items-center gap-3 p-2 hover:bg-white rounded-xl cursor-pointer transition-colors">
+                                                    <input 
+                                                        type="checkbox"
+                                                        checked={formData.targetUsers.includes(u.id)}
+                                                        onChange={() => handleUserToggle(u.id)}
+                                                        className="w-4 h-4 text-[#964C2E] rounded focus:ring-[#964C2E]"
+                                                    />
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[14px] font-bold text-[#1e2330]">{u.name}</span>
+                                                        <span className="text-[11px] text-gray-500 font-semibold">{u.mobile}</span>
+                                                    </div>
+                                                </label>
+                                            ))
+                                        )}
+                                    </div>
+                                </>
                             )}
                         </div>
 

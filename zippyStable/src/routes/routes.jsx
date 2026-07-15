@@ -21,6 +21,8 @@ import Coupons from "../pages/coupons";
 import Payments from "../pages/payments";
 import HelpCenter from "../pages/HelpCenter";
 import HorseHealth from "../pages/horseHealth";
+import StableManagement from "../pages/stableManagement";
+import WorkoutTracker from "../pages/workoutTracker";
 
 const Layout = () => {
     return (
@@ -55,8 +57,10 @@ export const AppRoutes = () => {
                 <Route path="/coupons" element={<Coupons />} />
                 <Route path="/payments" element={<Payments />} />
                 <Route path="/trainer-management" element={<TrainerManagement />} />
-                <Route path="/lessons" element={<Lessons />} />
+                {/* <Route path="/lessons" element={<Lessons />} /> */}
                 <Route path="/horse-health" element={<HorseHealth />} />
+                <Route path="/horses" element={<StableManagement />} />
+                <Route path="/workout-tracker" element={<WorkoutTracker />} />
             </Route>
             <Route path="/login" element={<Login />} />
             <Route path="/choose-stable" element={<ChooseStable />} />

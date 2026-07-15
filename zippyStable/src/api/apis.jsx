@@ -80,3 +80,4 @@ export const getPaymentsApi = `${baseUrl}/payments`;
 export const notifyUserApi = `${baseUrl}/users/notify`;
 export const notifyAllUsersApi = `${baseUrl}/users/notifyAll`;
 export const updateUserLeaveApi = `${baseUrl}/users/leave`;
+export const workoutsApi = `${baseUrl}/horse/workout`;

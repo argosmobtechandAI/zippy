@@ -70,7 +70,9 @@ export const getAllUsers = async (req, res) => {
             planEndDate: user.rider && user.rider.length > 0 ? (user.rider[0].plan_end_date || null) : null,
             stableId: (user.rider && user.rider.length > 0 && user.rider[0].stable_id) ? user.rider[0].stable_id : (user.trainers && user.trainers.length > 0 ? user.trainers[0].stable_id : null),
             title: user.trainers && user.trainers.length > 0 ? user.trainers[0].title : "",
-            experience: user.trainers && user.trainers.length > 0 ? user.trainers[0].experience : ""
+            experience: user.trainers && user.trainers.length > 0 ? user.trainers[0].experience : "",
+            championshipPoints: user.rider && user.rider.length > 0 ? (user.rider[0].championship_points || 0) : 0,
+            championshipRecords: user.rider && user.rider.length > 0 ? (user.rider[0].championship_records || []) : []
         }));
 
         let healed = false;
@@ -167,7 +169,9 @@ export const getUser = async (req, res) => {
             instructions: rawUser.rider && rawUser.rider.length > 0 ? rawUser.rider[0].instructions : "",
             stableId: (rawUser.rider && rawUser.rider.length > 0 && rawUser.rider[0].stable_id) ? rawUser.rider[0].stable_id : (rawUser.trainers && rawUser.trainers.length > 0 ? rawUser.trainers[0].stable_id : null),
             title: rawUser.trainers && rawUser.trainers.length > 0 ? rawUser.trainers[0].title : "",
-            experience: rawUser.trainers && rawUser.trainers.length > 0 ? rawUser.trainers[0].experience : ""
+            experience: rawUser.trainers && rawUser.trainers.length > 0 ? rawUser.trainers[0].experience : "",
+            championshipPoints: rawUser.rider && rawUser.rider.length > 0 ? (rawUser.rider[0].championship_points || 0) : 0,
+            championshipRecords: rawUser.rider && rawUser.rider.length > 0 ? (rawUser.rider[0].championship_records || []) : []
         };
 
         let healed = false;
@@ -331,8 +335,9 @@ export const updateUser = async (req, res) => {
     // Destructure all non-users-table fields out first
     const {
         title, experience, level, medical, instructions, allergies,
-        riderType, addHorseId, newTrophy, code, password,
-        parentName, emergencyContact, riderWallet, wallet, sessionCount, profilePicture,
+        riderType, addHorseId, newTrophy, newChampionshipRecord, code, password,
+        parentName, emergencyContact, riderWallet, wallet, sessionCount, profilePicture, stableId,
+        championshipRecords, championshipPoints,
         ...rest
     } = data;
 
@@ -429,6 +434,9 @@ export const updateUser = async (req, res) => {
             if (wallet !== undefined) riderUpdateData.wallet = Number(wallet);
             if (riderWallet !== undefined) riderUpdateData.wallet = Number(riderWallet);
             if (sessionCount !== undefined) riderUpdateData.session_count = Number(sessionCount);
+            if (stableId !== undefined) riderUpdateData.stable_id = stableId;
+            if (championshipRecords !== undefined) riderUpdateData.championship_records = championshipRecords;
+            if (championshipPoints !== undefined) riderUpdateData.championship_points = Number(championshipPoints);
 
             if (Object.keys(riderUpdateData).length > 0) {
                 await supabase.from('rider').update(riderUpdateData).eq('user_id', id);
@@ -448,10 +456,34 @@ export const updateUser = async (req, res) => {
                 const currentTrophies = riderData && riderData.length > 0 ? (riderData[0].trophies || []) : [];
                 await supabase.from('rider').update({ trophies: [...currentTrophies, trophyItem] }).eq('user_id', id);
             }
+
+            if (newChampionshipRecord) {
+                const recordItem = {
+                    id: Date.now().toString(),
+                    competitionName: newChampionshipRecord.competitionName,
+                    date: newChampionshipRecord.date || new Date().toISOString().split('T')[0],
+                    categoryOrRound: newChampionshipRecord.categoryOrRound || '',
+                    points: Number(newChampionshipRecord.points) || 0,
+                    createdAt: new Date().toISOString()
+                };
+
+                const { data: riderData } = await supabase.from('rider').select('championship_points, championship_records').eq('user_id', id).limit(1);
+                if (riderData && riderData.length > 0) {
+                    const currentRecords = riderData[0].championship_records || [];
+                    const currentPoints = Number(riderData[0].championship_points) || 0;
+                    const newPoints = currentPoints + recordItem.points;
+
+                    await supabase.from('rider').update({
+                        championship_points: newPoints,
+                        championship_records: [...currentRecords, recordItem]
+                    }).eq('user_id', id);
+                }
+            }
         } else if (user.type?.toLowerCase() === "trainer") {
             const trainerUpdateData = {};
             if (title !== undefined) trainerUpdateData.title = title;
             if (experience !== undefined) trainerUpdateData.experience = experience;
+            if (stableId !== undefined) trainerUpdateData.stable_id = stableId;
 
             if (Object.keys(trainerUpdateData).length > 0) {
                 await supabase.from('trainers').update(trainerUpdateData).eq('user_id', id);
@@ -681,10 +713,28 @@ export const deleteUser = async (req, res) => {
             return res.status(404).json({ message: 'User not found', success: false });
         }
 
-        // Delete related role records to prevent foreign key violations
+        // Unlink and delete trainer
+        const { data: trainerData } = await supabase.from('trainers').select('id').eq('user_id', id).limit(1);
+        if (trainerData && trainerData.length > 0) {
+            const trainerId = trainerData[0].id;
+            await supabase.from('sessions').delete().eq('trainers', trainerId);
+            await supabase.from('horse').update({ trainer_id: null }).eq('trainer_id', trainerId);
+            await supabase.from('stable').update({ head_trainer: null }).eq('head_trainer', trainerId);
+            const { error: tErr } = await supabase.from('trainers').delete().eq('id', trainerId);
+            if (tErr) throw new Error("Could not delete trainer record: " + tErr.message);
+        }
+
+        // Unlink and delete vet
+        const { data: vetData } = await supabase.from('vet').select('id').eq('user_id', id).limit(1);
+        if (vetData && vetData.length > 0) {
+            const vetId = vetData[0].id;
+            await supabase.from('horse').update({ vet_id: null }).eq('vet_id', vetId);
+            const { error: vErr } = await supabase.from('vet').delete().eq('id', vetId);
+            if (vErr) throw new Error("Could not delete vet record: " + vErr.message);
+        }
+
+        // Delete rider and payments
         await supabase.from('rider').delete().eq('user_id', id);
-        await supabase.from('trainers').delete().eq('user_id', id);
-        await supabase.from('vet').delete().eq('user_id', id);
         await supabase.from('payments').delete().eq('user_id', id);
 
         // Delete the user

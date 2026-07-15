@@ -1,14 +1,15 @@
 import {
     Clock, Calendar, ChevronRight, Ban, Edit, Copy,
     CheckCircle2, Circle, MoreVertical, Download,
-    ChevronDown, Info, ShieldAlert, CheckSquare, List, LayoutGrid, ArrowLeft, Plus, Trash2, Filter
+    ChevronDown, Info, ShieldAlert, CheckSquare, List, LayoutGrid, ArrowLeft, Plus, Trash2, Filter,
+    Search, UserPlus
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { apiFunction } from '../api/apiFunction';
 import {
     getAllSessionsApi, createSessionApi, bulkCreateSessionsApi, updateSessionApi, deleteSessionApi,
     getAllUsersApi, getAllStablesApi, getAllHorsesApi, getAllTrainersApi,
-    approveSessionApi, cancelFullSessionApi
+    approveSessionApi, cancelFullSessionApi, getUserApi, updateUserApi
 } from '../api/apis';
 import toast from 'react-hot-toast';
 import { X, XCircle } from 'lucide-react';
@@ -59,6 +60,11 @@ const SlotManagement = () => {
     const [showBulkModal, setShowBulkModal] = useState(false);
     const [sessionToEdit, setSessionToEdit] = useState(null);
 
+    // Guest booking state
+    const [showGuestModal, setShowGuestModal] = useState(false);
+    const [guestSession, setGuestSession] = useState(null);
+    const [allUsers, setAllUsers] = useState([]); // all users for guest booking
+
     const currentStable = stables.find(s => s.id === selectedStable);
 
     const fetchData = async () => {
@@ -86,7 +92,10 @@ const SlotManagement = () => {
             if (trainerRes?.success) {
                 setTrainers((trainerRes.trainers || []).filter(t => t.stableId === selectedStable || t.stable_id === selectedStable));
             }
-            if (userRes?.success) setUsers(userRes.users.filter(u => u.type?.toLowerCase() === 'trainer') || []);
+            if (userRes?.success) {
+                setAllUsers(userRes.users || []);
+                setUsers(userRes.users.filter(u => u.type?.toLowerCase() === 'trainer') || []);
+            }
             if (horseRes?.success) {
                 setHorses((horseRes.horse || horseRes.horses || []).filter(h => h.stableId === selectedStable || h.stable_id === selectedStable));
             }
@@ -352,6 +361,15 @@ const SlotManagement = () => {
                                             <Ban className={`w-3.5 h-3.5 ${slot.status === 'BLOCKED' ? 'text-[#EF4444]' : 'text-gray-500'}`} />
                                             {slot.status === 'BLOCKED' ? 'Unblock' : 'Block'}
                                         </button>
+                                        {slot.status !== 'BLOCKED' && slot.status !== 'CANCELLED' && (
+                                            <button
+                                                onClick={() => { setGuestSession(slot); setShowGuestModal(true); }}
+                                                className="flex-1 bg-[#964C2E] text-white border border-[#964C2E] py-2.5 rounded-xl text-[12px] font-bold flex items-center justify-center gap-2 shadow-sm hover:bg-[#7D3F25] transition-colors"
+                                            >
+                                                <UserPlus className="w-3.5 h-3.5" />
+                                                Book Guest
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -385,6 +403,14 @@ const SlotManagement = () => {
                     trainers={trainers}
                     horses={horses}
                     defaultLocation={currentStable?.name}
+                />
+            )}
+            {showGuestModal && guestSession && (
+                <GuestBookingModal
+                    session={guestSession}
+                    allUsers={allUsers}
+                    setShowModal={setShowGuestModal}
+                    onSuccess={fetchData}
                 />
             )}
         </div>
@@ -699,6 +725,363 @@ const BulkSessionModal = ({ setShowModal, onSuccess, stables, users, trainers, h
                         <button type="button" onClick={() => setShowModal(false)} className="px-8 py-3.5 rounded-2xl border border-gray-200 text-[#1e2330] text-[14px] font-bold hover:bg-gray-50 transition-all">Cancel</button>
                         <button disabled={isSubmitting} type="submit" className="px-8 py-3.5 rounded-2xl bg-[#964C2E] text-white text-[14px] font-bold shadow-lg hover:bg-[#7D3F25] transition-all disabled:opacity-50">
                             {isSubmitting ? "Creating..." : "Create Slots"}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+const GuestBookingModal = ({ session, allUsers, setShowModal, onSuccess }) => {
+    const [guestType, setGuestType] = useState('guest'); // 'guest' | 'registered'
+    const [userSearch, setUserSearch] = useState('');
+    const [selectedUser, setSelectedUser] = useState(null);
+    const [showUserDropdown, setShowUserDropdown] = useState(false);
+    const [riderSessionCount, setRiderSessionCount] = useState(null); // live session count for selected rider
+    const [fetchingCount, setFetchingCount] = useState(false);
+    const [formData, setFormData] = useState({
+        guestName: '',
+        guestPhone: '',
+        guestEmail: '',
+        bookingDate: '',
+        paymentMode: 'CASH',
+        amount: session.joiningAmount || session.joining_amount || 0,
+        notes: ''
+    });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const riders = allUsers.filter(u => u.type?.toLowerCase() === 'rider');
+    const filteredUsers = riders.filter(u =>
+        u.name?.toLowerCase().includes(userSearch.toLowerCase()) ||
+        u.email?.toLowerCase().includes(userSearch.toLowerCase()) ||
+        u.phone?.includes(userSearch)
+    );
+
+    // Fetch live session count when a registered rider is selected
+    const handleSelectUser = async (u) => {
+        setSelectedUser(u);
+        setUserSearch('');
+        setShowUserDropdown(false);
+        setRiderSessionCount(null);
+        setFetchingCount(true);
+        try {
+            const res = await apiFunction(`${getUserApi}/${u.id}`, [], {}, 'GET', true);
+            if (res?.success && res.user) {
+                setRiderSessionCount(res.user.sessionCount ?? 0);
+            }
+        } catch (err) {
+            console.error('Failed to fetch rider session count:', err);
+        } finally {
+            setFetchingCount(false);
+        }
+    };
+
+    // Switch to guest — reset membership-only fields
+    const handleSwitchToGuest = () => {
+        setGuestType('guest');
+        setSelectedUser(null);
+        setRiderSessionCount(null);
+        // If membership was selected, reset to CASH since guest can't use membership
+        if (formData.paymentMode === 'MEMBERSHIP') {
+            setFormData(prev => ({ ...prev, paymentMode: 'CASH' }));
+        }
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        try {
+            // --- Membership Deduction Guard ---
+            if (guestType === 'registered' && formData.paymentMode === 'MEMBERSHIP') {
+                const currentCount = riderSessionCount ?? 0;
+                if (currentCount <= 0) {
+                    toast.error(`${selectedUser.name}'s session count is 0. Cannot book using Membership Deduction.`);
+                    setIsSubmitting(false);
+                    return;
+                }
+            }
+
+            // Fetch current session to get existing participants
+            const sessionRes = await apiFunction(`${getAllSessionsApi}/${session.id}`, [], {}, 'GET', true);
+            const currentSession = sessionRes?.session || session;
+            const existingParticipants = currentSession.participants || session.participants || [];
+
+            let newParticipant;
+
+            if (guestType === 'registered' && selectedUser) {
+                // Registered rider booking by admin
+                newParticipant = {
+                    riderId: selectedUser.riderId || selectedUser.id,
+                    name: selectedUser.name,
+                    status: 'CONFIRMED',
+                    date: formData.bookingDate || new Date().toISOString().split('T')[0],
+                    bookedByAdmin: true,
+                    paymentMode: formData.paymentMode,
+                    amount: formData.amount,
+                    notes: formData.notes
+                };
+            } else {
+                // Walk-in guest booking
+                newParticipant = {
+                    riderId: `guest_${Date.now()}`,
+                    name: formData.guestName,
+                    phone: formData.guestPhone,
+                    email: formData.guestEmail,
+                    status: 'CONFIRMED',
+                    date: formData.bookingDate || new Date().toISOString().split('T')[0],
+                    isGuest: true,
+                    bookedByAdmin: true,
+                    paymentMode: formData.paymentMode,
+                    amount: formData.amount,
+                    notes: formData.notes
+                };
+            }
+
+            const updatedParticipants = [...existingParticipants, newParticipant];
+
+            const res = await apiFunction(
+                `${updateSessionApi}/${session.id}`,
+                [],
+                { participants: updatedParticipants },
+                'PUT',
+                true
+            );
+
+            if (res?.success) {
+                // --- Deduct 1 session from rider if Membership Deduction ---
+                if (guestType === 'registered' && formData.paymentMode === 'MEMBERSHIP' && selectedUser) {
+                    const newCount = (riderSessionCount ?? 1) - 1;
+                    await apiFunction(
+                        `${updateUserApi}/${selectedUser.id}`,
+                        [],
+                        { sessionCount: newCount },
+                        'PUT',
+                        true
+                    );
+                    toast.success(`Booking confirmed for ${selectedUser.name}! Session count: ${riderSessionCount} → ${newCount}`);
+                } else {
+                    toast.success(
+                        guestType === 'registered'
+                            ? `Booking confirmed for ${selectedUser.name}!`
+                            : `Guest booking confirmed for ${formData.guestName}!`
+                    );
+                }
+                setShowModal(false);
+                if (onSuccess) onSuccess();
+            } else {
+                toast.error(res?.message || 'Failed to book slot');
+            }
+        } catch (err) {
+            console.error('GuestBookingModal error:', err);
+            toast.error('Network error while booking');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50" onClick={(e) => e.target === e.currentTarget && setShowModal(false)}>
+            <div className="bg-white rounded-3xl p-8 w-[620px] shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200">
+                {/* Header */}
+                <div className="flex justify-between items-center mb-6 pb-6 border-b border-gray-50">
+                    <div>
+                        <h3 className="text-[22px] font-black text-[#1e2330] flex items-center gap-2">
+                            <UserPlus className="w-6 h-6 text-[#964C2E]" /> Book Guest Ride
+                        </h3>
+                        <p className="text-[13px] font-semibold text-gray-400 mt-1">
+                            Session: <span className="text-[#964C2E]">{session.title}</span> &bull; {formatTime12Hour(session.timing)} &bull; {session.date === 'daily' ? 'Daily' : session.date}
+                        </p>
+                        <p className="text-[12px] text-gray-400 mt-0.5">
+                            Seats: {session.participants?.length || 0} / {session.totalSeats || 10} booked
+                        </p>
+                    </div>
+                    <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-[#964C2E] p-2 hover:bg-gray-50 rounded-xl transition-all">
+                        <X className="w-6 h-6" />
+                    </button>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-5">
+                    {/* Guest Type Toggle */}
+                    <div>
+                        <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-3 block px-1">Booking Type</label>
+                        <div className="flex bg-[#F3F1EF] p-1.5 rounded-2xl gap-2">
+                            <button
+                                type="button"
+                                onClick={() => handleSwitchToGuest()}
+                                className={`flex-1 py-2.5 rounded-xl text-[13px] font-bold transition-all ${guestType === 'guest' ? 'bg-[#964C2E] text-white shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
+                            >
+                                🚶 Walk-in Guest
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setGuestType('registered')}
+                                className={`flex-1 py-2.5 rounded-xl text-[13px] font-bold transition-all ${guestType === 'registered' ? 'bg-[#964C2E] text-white shadow-md' : 'text-gray-500 hover:text-gray-700'}`}
+                            >
+                                👤 Registered Rider
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Registered Rider Search */}
+                    {guestType === 'registered' && (
+                        <div className="relative">
+                            <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Select Rider</label>
+                            <div className="relative">
+                                <Search className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                                <input
+                                    type="text"
+                                    placeholder="Search by name, email or phone..."
+                                    value={selectedUser ? selectedUser.name : userSearch}
+                                    onChange={(e) => { setUserSearch(e.target.value); setSelectedUser(null); setShowUserDropdown(true); }}
+                                    onFocus={() => setShowUserDropdown(true)}
+                                    className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 pl-11 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]"
+                                    required={guestType === 'registered'}
+                                />
+                            </div>
+                            {showUserDropdown && !selectedUser && filteredUsers.length > 0 && (
+                                <div className="absolute top-full left-0 right-0 bg-white border border-gray-100 rounded-2xl shadow-xl z-10 max-h-48 overflow-y-auto mt-1">
+                                    {filteredUsers.map(u => (
+                                        <button
+                                            key={u.id}
+                                            type="button"
+                                            onClick={() => handleSelectUser(u)}
+                                            className="w-full text-left px-4 py-3 hover:bg-[#FFF5F2] transition-colors border-b border-gray-50 last:border-0"
+                                        >
+                                            <p className="text-[13px] font-bold text-[#1e2330]">{u.name}</p>
+                                            <p className="text-[11px] text-gray-400">{u.email} {u.phone ? `· ${u.phone}` : ''}</p>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                            {selectedUser && (
+                                <div className="mt-2 bg-[#FFF5F2] border border-[#FFDDD0] rounded-2xl px-4 py-3 flex items-center justify-between">
+                                    <div>
+                                        <p className="text-[13px] font-bold text-[#964C2E]">{selectedUser.name}</p>
+                                        <p className="text-[11px] text-gray-500">{selectedUser.email}</p>
+                                        {fetchingCount ? (
+                                            <p className="text-[11px] text-gray-400 mt-1">Fetching session balance...</p>
+                                        ) : riderSessionCount !== null ? (
+                                            <p className={`text-[12px] font-black mt-1 ${riderSessionCount === 0 ? 'text-red-500' : 'text-green-600'}`}>
+                                                🎟️ {riderSessionCount} session{riderSessionCount !== 1 ? 's' : ''} remaining
+                                                {riderSessionCount === 0 && ' — Cannot use Membership Deduction'}
+                                            </p>
+                                        ) : null}
+                                    </div>
+                                    <button type="button" onClick={() => { setSelectedUser(null); setRiderSessionCount(null); }} className="text-gray-400 hover:text-red-500"><X className="w-4 h-4" /></button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Walk-in Guest Fields */}
+                    {guestType === 'guest' && (
+                        <div className="space-y-4">
+                            <div>
+                                <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Guest Name *</label>
+                                <input
+                                    required
+                                    type="text"
+                                    placeholder="Full name"
+                                    value={formData.guestName}
+                                    onChange={e => setFormData({ ...formData, guestName: e.target.value })}
+                                    className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]"
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Phone *</label>
+                                    <input
+                                        required
+                                        type="tel"
+                                        placeholder="+91 00000 00000"
+                                        value={formData.guestPhone}
+                                        onChange={e => setFormData({ ...formData, guestPhone: e.target.value })}
+                                        className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Email (optional)</label>
+                                    <input
+                                        type="email"
+                                        placeholder="guest@example.com"
+                                        value={formData.guestEmail}
+                                        onChange={e => setFormData({ ...formData, guestEmail: e.target.value })}
+                                        className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Booking Date */}
+                    <div>
+                        <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">
+                            Booking Date {session.date === 'daily' ? '(Required for daily sessions)' : '(Optional override)'}
+                        </label>
+                        <input
+                            type="date"
+                            required={session.date === 'daily'}
+                            value={formData.bookingDate || (session.date !== 'daily' ? session.date : '')}
+                            onChange={e => setFormData({ ...formData, bookingDate: e.target.value })}
+                            min={new Date().toISOString().split('T')[0]}
+                            className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]"
+                        />
+                    </div>
+
+                    {/* Payment */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Payment Mode</label>
+                            <select
+                                value={formData.paymentMode}
+                                onChange={e => setFormData({ ...formData, paymentMode: e.target.value })}
+                                className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]"
+                            >
+                                <option value="CASH">💵 Cash (Collected)</option>
+                                <option value="ONLINE">💳 Online / UPI</option>
+                                {guestType === 'registered' && (
+                                    <option value="MEMBERSHIP">🎟️ Membership Deduction</option>
+                                )}
+                                <option value="PENDING">⏳ Pending / Collect Later</option>
+                                <option value="TRIAL">🆓 Trial Ride</option>
+                                <option value="FREE">🎁 Free / Complimentary</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Amount (₹)</label>
+                            <input
+                                type="number"
+                                min="0"
+                                value={formData.amount}
+                                onChange={e => setFormData({ ...formData, amount: Number(e.target.value) })}
+                                className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:border-[#964C2E]"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Notes */}
+                    <div>
+                        <label className="text-[10px] font-black text-gray-400 tracking-widest uppercase mb-2 block px-1">Notes (optional)</label>
+                        <textarea
+                            rows={2}
+                            placeholder="e.g. Corporate group, VIP guest, special requirements..."
+                            value={formData.notes}
+                            onChange={e => setFormData({ ...formData, notes: e.target.value })}
+                            className="w-full border border-gray-100 bg-gray-50/50 rounded-2xl p-4 text-[14px] font-bold focus:outline-none focus:border-[#964C2E] resize-none"
+                        />
+                    </div>
+
+                    {/* Submit */}
+                    <div className="flex justify-end gap-4 pt-4 border-t border-gray-50">
+                        <button type="button" onClick={() => setShowModal(false)} className="px-8 py-3.5 rounded-2xl border border-gray-200 text-[#1e2330] text-[14px] font-bold hover:bg-gray-50 transition-all">Cancel</button>
+                        <button
+                            disabled={isSubmitting || (guestType === 'registered' && !selectedUser)}
+                            type="submit"
+                            className="px-8 py-3.5 rounded-2xl bg-[#964C2E] text-white text-[14px] font-bold shadow-lg hover:bg-[#7D3F25] transition-all disabled:opacity-50 flex items-center gap-2"
+                        >
+                            <UserPlus className="w-4 h-4" />
+                            {isSubmitting ? 'Booking...' : 'Confirm Booking'}
                         </button>
                     </div>
                 </form>

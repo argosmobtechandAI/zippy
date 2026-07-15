@@ -1,7 +1,7 @@
 import { CheckCircle2, ChevronRight, Clock, Calendar, XCircle } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { apiFunction } from '../api/apiFunction';
-import { getAllSessionsApi, approveSessionApi, getAllUsersApi, getAllTrainersApi } from '../api/apis';
+import { getAllSessionsApi, approveSessionApi, getAllUsersApi, getAllTrainersApi, getAllStablesApi } from '../api/apis';
 import toast from 'react-hot-toast';
 import { useSelector } from 'react-redux';
 import { formatTime12Hour } from '../utils/timeFormat';
@@ -35,7 +35,7 @@ const statusStyle = (status) => {
     return 'bg-[#FEF3C7] text-[#92400E]';
 };
 
-import { useSelector } from 'react-redux';
+
 
 const BookingRequests = () => {
     const { selectedStable } = useSelector((state) => state.getDataReducer);
@@ -51,17 +51,22 @@ const BookingRequests = () => {
     const fetchSessions = async () => {
         setLoading(true);
         try {
-            const [sessionRes, trainerRes, userRes] = await Promise.all([
+            const [sessionRes, trainerRes, userRes, stableRes] = await Promise.all([
                 apiFunction(getAllSessionsApi, [], {}, 'GET', true),
                 apiFunction(getAllTrainersApi, [], {}, 'GET', true),
-                apiFunction(getAllUsersApi, [], {}, 'GET', true)
+                apiFunction(getAllUsersApi, [], {}, 'GET', true),
+                apiFunction(getAllStablesApi, [], {}, 'GET', true)
             ]);
+            
+            const stablesList = stableRes?.stables || stableRes?.data || [];
+            const matchedStable = stablesList.find(st => st.id === selectedStable);
             
             if (sessionRes?.success) {
                 const allSessions = sessionRes.sessions || [];
                 const filtered = allSessions.filter(s => 
                     s.stableId === selectedStable || 
                     s.stable_id === selectedStable ||
+                    (matchedStable && s.location === matchedStable.name) ||
                     (s.horse && (s.horse.stableId === selectedStable || s.horse.stable_id === selectedStable))
                 );
                 setSessions(filtered);

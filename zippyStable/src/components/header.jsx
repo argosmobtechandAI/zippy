@@ -9,6 +9,8 @@ const Header = () => {
             case '/': return 'Dashboard Overview';
             case '/bookingRequests': return 'Booking Requests';
             case '/userManagement': return 'Member Directory';
+            case '/horses': return 'Stable General Registry';
+            case '/horse-health': return 'Horse Health & Workload';
             case '/inventory': return 'Health & Workload';
             case '/attendanceReport': return 'Attendance Report';
             case '/revenue': return 'Revenue Reports';
